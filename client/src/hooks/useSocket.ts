@@ -48,7 +48,8 @@ export function useSocket() {
   useEffect(() => {
     setConnecting();
 
-    const socket: TypedSocket = io({
+    const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
+    const socket: TypedSocket = io(serverUrl, {
       transports: ['websocket', 'polling'],
     });
 
