@@ -60,8 +60,8 @@ const clientDist = path.resolve(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
   console.log(`[server] Serving static files from ${clientDist}`);
   app.use(express.static(clientDist));
-  // SPA fallback — must come before any Railway default routes
-  app.get(['/', '/**'], (_req, res) => {
+  // SPA fallback
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 } else {
