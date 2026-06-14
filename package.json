@@ -1,0 +1,10 @@
+{
+  "name": "impostor-web-game",
+  "private": true,
+  "scripts": {
+    "dev:server": "pnpm --filter @impostor/server dev",
+    "build:shared": "pnpm --filter @impostor/shared build",
+    "build:server": "pnpm --filter @impostor/server build",
+    "dev": "pnpm build:shared && pnpm dev:server"
+  }
+}

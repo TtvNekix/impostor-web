@@ -1,0 +1,54 @@
+{
+  "categories": [
+    {
+      "name": "videojuegos",
+      "words": [
+        "speedrun", "headshot", "respawn", "grindear", "nerfeo",
+        "buffear", "lootear", "craftear", "boss final", "mazmorra",
+        "puzzle", "checkpoint", "save point", "game over", "new game plus",
+        "open world", "roguelike", "bullet hell", "pay to win", "free to play",
+        "early access", "dlc", "season pass", "skin", "emote",
+        "hitbox", "lag", "ping", "fps", "rage quit"
+      ]
+    },
+    {
+      "name": "internet",
+      "words": [
+        "meme", "trolear", "stremear", "moderador", "baneado",
+        "raid", "follow", "sub", "donacion", "emote spam",
+        "shitpost", "doxxear", "phishing", "spam", "bot",
+        "algoritmo", "viral", "trending", "hashtag", "like",
+        "comunidad", "hilo", "subreddit", "discord", "thread"
+      ]
+    },
+    {
+      "name": "juegos-de-mesa",
+      "words": [
+        "ficha", "dado", "tablero", "mazorreo", "campana",
+        "partida", "turno", "rol", "dungeon master", "critical hit",
+        "d20", "personaje", "clase", "nivel", "experiencia",
+        "tesoro", "trampa", "enemigo", "aliado", "mision",
+        "cooperativo", "competitivo", "estrategia", "azar", "puntaje"
+      ]
+    },
+    {
+      "name": "esports",
+      "words": [
+        "torneo", "clasificatoria", "final", "semifinal", "llave",
+        "bracket", "bo3", "bo5", "pick", "ban",
+        "meta", "counter pick", "roster", "bench", "scrim",
+        "coach", "analista", "caster", "shoutcaster", "replay",
+        "highlight", "montaje", "mvp", "smurf", "throw"
+      ]
+    },
+    {
+      "name": "gaming-cultura",
+      "words": [
+        "noob", "pro", "tryhard", "casual", "veterano",
+        "campero", "rushero", "gankear", "fleartear", "pwned",
+        "ez", "gg", "wp", "gl hf", "remake",
+        "afk", "dc", "kick", "mute", "report"
+      ]
+    }
+  ]
+}
