@@ -60,8 +60,13 @@ const clientDist = path.resolve(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
   console.log(`[server] Serving static files from ${clientDist}`);
   app.use(express.static(clientDist));
-  // SPA fallback
-  app.get('*', (_req, res) => {
+  // Explicit root handler - Railway intercepts bare root
+  app.get('/', (_req, res) => {
+    res.redirect('/play');
+  });
+  // App lives at /play to avoid Railway API page at root
+  app.use('/play', express.static(clientDist));
+  app.get('/play*', (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 } else {

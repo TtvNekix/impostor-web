@@ -1,5 +1,12 @@
 import type { Player, Room, RoomSettings } from '@impostor/shared';
-import { MAX_PLAYERS, MIN_PLAYERS, DEFAULT_TIMER } from '@impostor/shared';
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  DEFAULT_TIMER,
+  DEFAULT_MAX_PLAYERS,
+  clampMaxPlayers,
+  clampTimer,
+} from '@impostor/shared';
 import { RoomStore } from './RoomStore';
 
 export interface JoinResult {
@@ -22,11 +29,21 @@ export class RoomManager {
 
   createRoom(code: string, username: string, settings?: Partial<RoomSettings>): JoinResult {
     const defaultSettings: RoomSettings = {
-      maxPlayers: MAX_PLAYERS,
+      maxPlayers: DEFAULT_MAX_PLAYERS,
       impostorCount: 1,
       discussionTime: DEFAULT_TIMER,
       ...settings,
     };
+    // Sanitize maxPlayers before persisting
+    if (defaultSettings.maxPlayers) {
+      defaultSettings.maxPlayers = Math.max(
+        MIN_PLAYERS,
+        Math.min(MAX_PLAYERS, defaultSettings.maxPlayers),
+      );
+    }
+    if (defaultSettings.discussionTime) {
+      defaultSettings.discussionTime = clampTimer(defaultSettings.discussionTime);
+    }
 
     const room = this.store.createRoom(code, defaultSettings);
 

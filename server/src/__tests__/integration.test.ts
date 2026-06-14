@@ -299,7 +299,7 @@ describe('Integration: WebSocket game lifecycle', () => {
     const hostJoined = waitForEvent(host, 'room_joined');
     host.send(JSON.stringify({
       event: 'create_room',
-      data: { code: 'FULL1', username: 'Host', settings: { maxPlayers: 2 } },
+      data: { code: 'FULL1', username: 'Host', settings: { maxPlayers: 3 } },
     }));
     await hostJoined;
 
@@ -313,7 +313,17 @@ describe('Integration: WebSocket game lifecycle', () => {
     }));
     await aliceJoined;
 
-    // Third player should get an error
+    const carol = await connect(server.port);
+    clients.push(carol);
+
+    const carolJoined = waitForEvent(carol, 'room_joined');
+    carol.send(JSON.stringify({
+      event: 'join_room',
+      data: { code: 'FULL1', username: 'Carol' },
+    }));
+    await carolJoined;
+
+    // Fourth player should get an error (room now at maxPlayers = 3)
     const bob = await connect(server.port);
     clients.push(bob);
 

@@ -3,15 +3,31 @@ import { useRoomStore } from '../stores/roomStore';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useGameStore } from '../stores/gameStore';
 import { PlayerList } from '../components/PlayerList';
-import { generateRoomCode } from '@impostor/shared';
+import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
+import {
+  generateRoomCode,
+  ALLOWED_MAX_PLAYERS,
+  DEFAULT_MAX_PLAYERS,
+} from '@impostor/shared';
 import es from '../i18n/es';
 
 interface LobbyScreenProps {
-  createRoom: (payload: { code: string; username: string }) => void;
+  createRoom: (payload: { code: string; username: string; settings?: { maxPlayers: number } }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
-  updateSettings: (payload: { impostorCount?: number; discussionTime?: number }) => void;
+  updateSettings: (payload: { impostorCount?: number; discussionTime?: number; maxPlayers?: number }) => void;
 }
+
+const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map((n) => ({
+  value: n,
+  label: String(n),
+}));
+
+const DISCUSSION_TIME_OPTIONS: CustomSelectOption<number>[] = [
+  { value: 60, label: `60 ${es.lobby.seconds}` },
+  { value: 90, label: `90 ${es.lobby.seconds}` },
+  { value: 120, label: `120 ${es.lobby.seconds}` },
+];
 
 export function LobbyScreen({
   createRoom,
@@ -31,6 +47,7 @@ export function LobbyScreen({
   const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<'create' | 'join'>('create');
+  const [maxPlayers, setMaxPlayers] = useState<number>(DEFAULT_MAX_PLAYERS);
   const [copied, setCopied] = useState(false);
 
   // Only show lobby UI when phase is LOBBY
@@ -42,7 +59,11 @@ export function LobbyScreen({
 
     if (mode === 'create') {
       const roomCode = code.trim().toUpperCase() || generateRoomCode();
-      createRoom({ code: roomCode, username: username.trim() });
+      createRoom({
+        code: roomCode,
+        username: username.trim(),
+        settings: { maxPlayers },
+      });
     } else {
       joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
     }
@@ -112,6 +133,39 @@ export function LobbyScreen({
             className="input"
           />
 
+          {mode === 'create' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                padding: '0.6rem 0.8rem',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <label
+                htmlFor="max-players-select"
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                }}
+              >
+                {es.lobby.maxPlayers}
+              </label>
+              <CustomSelect
+                value={maxPlayers}
+                options={MAX_PLAYER_OPTIONS}
+                onChange={setMaxPlayers}
+                ariaLabel={es.lobby.maxPlayers}
+                className="connection-max-players"
+              />
+            </div>
+          )}
+
           {mode === 'join' && (
             <input
               type="text"
@@ -177,35 +231,40 @@ export function LobbyScreen({
         <div className="settings-panel">
           <h3 className="settings-panel__title">{es.lobby.settings}</h3>
 
+          {/* Max players */}
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{es.lobby.maxPlayers}</label>
+            <CustomSelect
+              value={settings.maxPlayers}
+              options={MAX_PLAYER_OPTIONS}
+              onChange={(v) => updateSettings({ maxPlayers: v })}
+              ariaLabel={es.lobby.maxPlayers}
+            />
+          </div>
+
           {/* Impostor count */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.impostors}</label>
-            <select
+            <CustomSelect
               value={settings.impostorCount}
-              onChange={(e) =>
-                updateSettings({ impostorCount: Number(e.target.value) })
-              }
-              className="settings-panel__select"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-            </select>
+              options={[
+                { value: 1, label: '1' },
+                { value: 2, label: '2' },
+              ]}
+              onChange={(v) => updateSettings({ impostorCount: v })}
+              ariaLabel={es.lobby.impostors}
+            />
           </div>
 
           {/* Discussion time */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.discussionTime}</label>
-            <select
+            <CustomSelect
               value={settings.discussionTime}
-              onChange={(e) =>
-                updateSettings({ discussionTime: Number(e.target.value) })
-              }
-              className="settings-panel__select"
-            >
-              <option value={60}>60 {es.lobby.seconds}</option>
-              <option value={90}>90 {es.lobby.seconds}</option>
-              <option value={120}>120 {es.lobby.seconds}</option>
-            </select>
+              options={DISCUSSION_TIME_OPTIONS}
+              onChange={(v) => updateSettings({ discussionTime: v })}
+              ariaLabel={es.lobby.discussionTime}
+            />
           </div>
         </div>
       )}
@@ -216,7 +275,6 @@ export function LobbyScreen({
           onClick={handleStartMatch}
           disabled={!canStart}
           className={`btn btn--lg btn--block ${canStart ? 'btn--success' : ''}`}
-          style={!canStart ? { opacity: 0.4, cursor: 'not-allowed', background: '#333' } : undefined}
         >
           {players.length < 3
             ? es.lobby.minPlayersRequired.replace('{min}', '3')

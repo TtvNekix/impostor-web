@@ -5,6 +5,8 @@ import {
   ClientEvent,
   roomToDTO,
   clampTimer,
+  MIN_PLAYERS,
+  MAX_PLAYERS,
 } from '@impostor/shared';
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
@@ -202,16 +204,17 @@ export function registerHandlers(
               return;
             }
 
-            const { impostorCount, discussionTime } = data as {
+            const { impostorCount, discussionTime, maxPlayers } = data as {
               impostorCount?: number;
               discussionTime?: number;
+              maxPlayers?: number;
             };
 
             if (impostorCount !== undefined) {
               const activeCount = Array.from(room.players.values()).filter(
                 (p) => p.status === 'ACTIVE',
               ).length;
-              const maxImp = activeCount <= 6 ? 1 : 2;
+              const maxImp = activeCount <= 6 ? 1 : activeCount <= 10 ? 2 : activeCount <= 15 ? 3 : 4;
               if (impostorCount < 1 || impostorCount > maxImp) {
                 ws.send(JSON.stringify({
                   event: ServerEvent.ROOM_ERROR,
@@ -224,6 +227,36 @@ export function registerHandlers(
 
             if (discussionTime !== undefined) {
               room.settings.discussionTime = clampTimer(discussionTime);
+            }
+
+            if (maxPlayers !== undefined) {
+              const activeCount = Array.from(room.players.values()).filter(
+                (p) => p.status === 'ACTIVE',
+              ).length;
+              // Only allow increasing maxPlayers and only within allowed bounds.
+              // Never kick existing players.
+              if (maxPlayers < MIN_PLAYERS || maxPlayers > MAX_PLAYERS) {
+                ws.send(JSON.stringify({
+                  event: ServerEvent.ROOM_ERROR,
+                  data: { message: `Max players must be between ${MIN_PLAYERS} and ${MAX_PLAYERS}` },
+                }));
+                return;
+              }
+              if (maxPlayers < room.settings.maxPlayers && maxPlayers < activeCount) {
+                ws.send(JSON.stringify({
+                  event: ServerEvent.ROOM_ERROR,
+                  data: { message: 'Cannot reduce max players below current player count' },
+                }));
+                return;
+              }
+              if (maxPlayers < activeCount) {
+                ws.send(JSON.stringify({
+                  event: ServerEvent.ROOM_ERROR,
+                  data: { message: 'Max players cannot be lower than current player count' },
+                }));
+                return;
+              }
+              room.settings.maxPlayers = maxPlayers;
             }
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);

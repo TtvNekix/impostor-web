@@ -55,13 +55,14 @@ describe('RoomManager', () => {
 
     it('rejects join when room is full', () => {
       const { room } = manager.createRoom('ABC12', 'Host', {
-        maxPlayers: 2,
+        maxPlayers: 3,
       });
 
       manager.joinRoom('ABC12', 'Player2', 'socket-p2');
+      manager.joinRoom('ABC12', 'Player3', 'socket-p3');
 
       expect(() =>
-        manager.joinRoom('ABC12', 'Player3', 'socket-p3'),
+        manager.joinRoom('ABC12', 'Player4', 'socket-p4'),
       ).toThrow('Room is full');
     });
 

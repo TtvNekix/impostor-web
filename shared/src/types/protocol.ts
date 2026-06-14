@@ -59,6 +59,7 @@ export interface VotePayload {
 export interface UpdateSettingsPayload {
   impostorCount?: number;
   discussionTime?: number;
+  maxPlayers?: number;
 }
 
 /* Server → Client */

@@ -34,6 +34,7 @@ const es = {
     host: 'Anfitrión',
     you: 'Tú',
     settings: 'Configuración',
+    maxPlayers: 'Máx. jugadores',
     impostors: 'Impostores',
     discussionTime: 'Tiempo de discusión',
     seconds: 'segundos',
