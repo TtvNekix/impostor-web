@@ -50,7 +50,7 @@ export function useSocket() {
 
     const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
     const socket: TypedSocket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
     });
 
     socketRef.current = socket;
