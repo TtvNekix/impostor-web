@@ -7,10 +7,42 @@ import {
   clampTimer,
   MIN_PLAYERS,
   MAX_PLAYERS,
+  ErrorCode,
 } from '@impostor/shared';
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
 import { ConnectionManager } from '../connection/ConnectionManager';
+
+/** Helper to send a localized error code to a single socket. */
+function sendError(
+  ws: WebSocket,
+  code: string,
+  message: string,
+  data?: Record<string, string | number>,
+): void {
+  ws.send(JSON.stringify({
+    event: ServerEvent.ROOM_ERROR,
+    data: { code, message, ...(data ? { data } : {}) },
+  }));
+}
+
+/** Translate a thrown Error from RoomManager into a structured error code. */
+function roomErrorCode(err: Error): string {
+  switch (err.message) {
+    case 'Room not found':
+      return ErrorCode.ROOM_NOT_FOUND;
+    case 'Room is full':
+      return ErrorCode.ROOM_FULL;
+    case 'Username already taken':
+      return ErrorCode.USERNAME_TAKEN;
+    case 'Game already in progress':
+      return ErrorCode.GAME_IN_PROGRESS;
+    case 'Player not found in room':
+      return ErrorCode.GENERIC;
+    default:
+      return ErrorCode.GENERIC;
+  }
+}
 
 const PING_INTERVAL_MS = 25_000;
 const PONG_TIMEOUT_MS = 20_000;
@@ -79,6 +111,10 @@ export function registerHandlers(
             username: string;
             settings?: Record<string, unknown>;
           };
+          if (!code || !username) {
+            sendError(ws, ErrorCode.GENERIC, 'Missing room code or username');
+            return;
+          }
           try {
             const { room, player } = roomManager.createRoom(
               code.toUpperCase(),
@@ -94,10 +130,7 @@ export function registerHandlers(
               data: { room: roomToDTO(room) },
             }));
           } catch (err: any) {
-            ws.send(JSON.stringify({
-              event: ServerEvent.ROOM_ERROR,
-              data: { message: err.message },
-            }));
+            sendError(ws, roomErrorCode(err), err.message);
           }
           break;
         }
@@ -110,6 +143,10 @@ export function registerHandlers(
             code: string;
             username: string;
           };
+          if (!code || !username) {
+            sendError(ws, ErrorCode.GENERIC, 'Missing room code or username');
+            return;
+          }
           try {
             const roomCode = code.toUpperCase();
             const trimmedName = username.trim();
@@ -145,10 +182,7 @@ export function registerHandlers(
             // Broadcast to room (excluding the new joiner — they already got room_joined)
             connectionManager.broadcastToRoom(room.code, ServerEvent.PLAYER_JOINED, { player });
           } catch (err: any) {
-            ws.send(JSON.stringify({
-              event: ServerEvent.ROOM_ERROR,
-              data: { message: err.message },
-            }));
+            sendError(ws, roomErrorCode(err), err.message);
           }
           break;
         }
@@ -159,13 +193,14 @@ export function registerHandlers(
         case ClientEvent.START_MATCH: {
           const roomCode = connectionManager.getRoomCode(socketId);
           if (!roomCode) {
-            ws.send(JSON.stringify({
-              event: ServerEvent.ROOM_ERROR,
-              data: { message: 'Not in a room' },
-            }));
+            sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
             return;
           }
-          gameEngine.startMatch(roomCode, socketId);
+          try {
+            gameEngine.startMatch(roomCode, socketId);
+          } catch (err: any) {
+            sendError(ws, ErrorCode.MIN_PLAYERS, err.message, { min: MIN_PLAYERS });
+          }
           break;
         }
 
@@ -187,39 +222,33 @@ export function registerHandlers(
           try {
             const roomCode = connectionManager.getRoomCode(socketId);
             if (!roomCode) {
-              ws.send(JSON.stringify({
-                event: ServerEvent.ROOM_ERROR,
-                data: { message: 'Not in a room' },
-              }));
+              sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
               return;
             }
 
             const room = roomManager.getRoom(roomCode);
             const player = room.players.get(connectionManager.getUsername(socketId)!);
             if (!player?.isHost) {
-              ws.send(JSON.stringify({
-                event: ServerEvent.ROOM_ERROR,
-                data: { message: 'Only the host can change settings' },
-              }));
+              sendError(ws, ErrorCode.NOT_HOST, 'Only the host can change settings');
               return;
             }
 
-            const { impostorCount, discussionTime, maxPlayers } = data as {
+            const { impostorCount, discussionTime } = data as {
               impostorCount?: number;
               discussionTime?: number;
-              maxPlayers?: number;
             };
 
             if (impostorCount !== undefined) {
               const activeCount = Array.from(room.players.values()).filter(
                 (p) => p.status === 'ACTIVE',
               ).length;
-              const maxImp = activeCount <= 6 ? 1 : activeCount <= 10 ? 2 : activeCount <= 15 ? 3 : 4;
+              // Impostor cap: 1 for ≤5 players, 2 for 6-10
+              const maxImp = activeCount <= 5 ? 1 : 2;
               if (impostorCount < 1 || impostorCount > maxImp) {
-                ws.send(JSON.stringify({
-                  event: ServerEvent.ROOM_ERROR,
-                  data: { message: `Impostor count must be between 1 and ${maxImp}` },
-                }));
+                sendError(ws, ErrorCode.INVALID_IMPOSTOR_COUNT,
+                  `Impostor count must be between 1 and ${maxImp}`,
+                  { max: maxImp, players: activeCount },
+                );
                 return;
               }
               room.settings.impostorCount = impostorCount;
@@ -229,42 +258,9 @@ export function registerHandlers(
               room.settings.discussionTime = clampTimer(discussionTime);
             }
 
-            if (maxPlayers !== undefined) {
-              const activeCount = Array.from(room.players.values()).filter(
-                (p) => p.status === 'ACTIVE',
-              ).length;
-              // Only allow increasing maxPlayers and only within allowed bounds.
-              // Never kick existing players.
-              if (maxPlayers < MIN_PLAYERS || maxPlayers > MAX_PLAYERS) {
-                ws.send(JSON.stringify({
-                  event: ServerEvent.ROOM_ERROR,
-                  data: { message: `Max players must be between ${MIN_PLAYERS} and ${MAX_PLAYERS}` },
-                }));
-                return;
-              }
-              if (maxPlayers < room.settings.maxPlayers && maxPlayers < activeCount) {
-                ws.send(JSON.stringify({
-                  event: ServerEvent.ROOM_ERROR,
-                  data: { message: 'Cannot reduce max players below current player count' },
-                }));
-                return;
-              }
-              if (maxPlayers < activeCount) {
-                ws.send(JSON.stringify({
-                  event: ServerEvent.ROOM_ERROR,
-                  data: { message: 'Max players cannot be lower than current player count' },
-                }));
-                return;
-              }
-              room.settings.maxPlayers = maxPlayers;
-            }
-
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
           } catch (err: any) {
-            ws.send(JSON.stringify({
-              event: ServerEvent.ROOM_ERROR,
-              data: { message: err.message },
-            }));
+            sendError(ws, ErrorCode.GENERIC, err.message);
           }
           break;
         }
@@ -275,10 +271,7 @@ export function registerHandlers(
         case ClientEvent.NEW_MATCH: {
           const roomCode = connectionManager.getRoomCode(socketId);
           if (!roomCode) {
-            ws.send(JSON.stringify({
-              event: ServerEvent.ROOM_ERROR,
-              data: { message: 'Not in a room' },
-            }));
+            sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
             return;
           }
           gameEngine.startNewMatch(roomCode, socketId);

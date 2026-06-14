@@ -361,11 +361,7 @@ body {
 }
 
 .custom-select__menu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  right: 0;
-  z-index: 50;
+  z-index: 1000;
   margin: 0;
   padding: 0.3rem;
   list-style: none;
@@ -373,7 +369,6 @@ body {
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-sm);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px var(--accent-primary-glow);
-  max-height: 14rem;
   overflow-y: auto;
   animation: fadeIn 0.12s ease both;
 }
@@ -390,6 +385,14 @@ body {
   cursor: pointer;
   user-select: none;
   transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.custom-select__option-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .custom-select__option--active,
@@ -1221,6 +1224,19 @@ body {
 .settings-panel__label {
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.settings-panel__value {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 0.4rem 0.75rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  min-width: 3rem;
+  text-align: center;
 }
 
 .settings-panel__select {

@@ -69,8 +69,30 @@ export interface RoomJoinedPayload {
 }
 
 export interface RoomErrorPayload {
+  /** Machine-readable error code. Clients should map this to a localized string. */
+  code: string;
+  /** Human-readable fallback (English). */
   message: string;
+  /** Optional interpolation data for the localized message. */
+  data?: Record<string, string | number>;
 }
+
+/** Canonical error codes returned by the server. Keep in sync with the client i18n `errors` map. */
+export const ErrorCode = {
+  ROOM_NOT_FOUND: 'room_not_found',
+  ROOM_FULL: 'room_full',
+  ROOM_CODE_TAKEN: 'room_code_taken',
+  USERNAME_TAKEN: 'username_taken',
+  GAME_IN_PROGRESS: 'game_in_progress',
+  INVALID_IMPOSTOR_COUNT: 'invalid_impostor_count',
+  INVALID_MAX_PLAYERS: 'invalid_max_players',
+  MIN_PLAYERS: 'min_players',
+  NOT_HOST: 'not_host',
+  NOT_IN_ROOM: 'not_in_room',
+  GENERIC: 'generic',
+} as const;
+
+export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 export interface PlayerJoinedPayload {
   player: Player;

@@ -95,13 +95,16 @@ const es = {
   },
 
   errors: {
-    roomNotFound: 'Sala no encontrada',
-    roomFull: 'La sala está llena',
-    roomCodeTaken: 'El código de sala ya está en uso',
-    usernameTaken: 'El nombre de usuario ya está en uso',
-    minPlayers: 'Se necesitan al menos {min} jugadores',
-    invalidImpostorCount: 'Máximo {max} impostor(es) para {players} jugadores',
-    noWords: 'No hay palabras disponibles',
+    room_not_found: 'Sala no encontrada',
+    room_full: 'La sala está llena',
+    room_code_taken: 'El código de sala ya está en uso',
+    username_taken: 'El nombre de usuario ya está en uso',
+    game_in_progress: 'La partida ya está en progreso',
+    invalid_impostor_count: 'Máximo {max} impostor(es) para {players} jugadores',
+    invalid_max_players: 'El máximo de jugadores debe estar entre {min} y {max}',
+    min_players: 'Se necesitan al menos {min} jugadores',
+    not_host: 'Solo el anfitrión puede cambiar la configuración',
+    not_in_room: 'No estás en una sala',
     generic: 'Algo salió mal',
   },
 } as const;

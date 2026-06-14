@@ -15,7 +15,7 @@ interface LobbyScreenProps {
   createRoom: (payload: { code: string; username: string; settings?: { maxPlayers: number } }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
-  updateSettings: (payload: { impostorCount?: number; discussionTime?: number; maxPlayers?: number }) => void;
+  updateSettings: (payload: { impostorCount?: number; discussionTime?: number }) => void;
 }
 
 const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map((n) => ({
@@ -226,20 +226,15 @@ export function LobbyScreen({
         currentPlayerId={undefined}
       />
 
-      {/* Settings (host only) */}
+      {/* Settings (host only) — maxPlayers is set at create time and locked. */}
       {isHost && settings && (
         <div className="settings-panel">
           <h3 className="settings-panel__title">{es.lobby.settings}</h3>
 
-          {/* Max players */}
+          {/* Max players (read-only, set at room creation) */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.maxPlayers}</label>
-            <CustomSelect
-              value={settings.maxPlayers}
-              options={MAX_PLAYER_OPTIONS}
-              onChange={(v) => updateSettings({ maxPlayers: v })}
-              ariaLabel={es.lobby.maxPlayers}
-            />
+            <span className="settings-panel__value">{settings.maxPlayers}</span>
           </div>
 
           {/* Impostor count */}

@@ -7,10 +7,30 @@ import {
   type VotePayload,
   type UpdateSettingsPayload,
   type RoomSettings,
+  type RoomErrorPayload,
+  ErrorCode,
 } from '@impostor/shared';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
+import es from '../i18n/es';
+
+/**
+ * Translate a server error code into a localized Spanish string,
+ * interpolating any data values. Falls back to the raw English message
+ * or a generic string when the code is unknown.
+ */
+function localizeError(payload: RoomErrorPayload): string {
+  const { code, message, data } = payload;
+  const tmpl: string | undefined = (es.errors as Record<string, string | undefined>)[code];
+  if (tmpl) {
+    if (data) {
+      return tmpl.replace(/\{(\w+)\}/g, (_, k) => String(data[k] ?? `{${k}}`));
+    }
+    return tmpl;
+  }
+  return message || es.errors.generic;
+}
 
 /**
  * Creates a raw WebSocket connection, binds all server→client events to
@@ -100,7 +120,7 @@ export function useSocket() {
         }
 
         case ServerEvent.ROOM_ERROR: {
-          setDisconnected((data as { message: string }).message);
+          setDisconnected(localizeError(data as RoomErrorPayload));
           break;
         }
 
