@@ -80,3 +80,18 @@ Chain strategy: stacked-to-main
 - [x] 4.7 Integration: room lifecycle — create → join → leave → destroy → reconnection
 - [ ] 4.8 E2E: Playwright with 3 bot clients simulating a full game (stretch — optional for MVP)
 - [x] 4.9 Final: verify build, lint, and Vitest run pass without errors
+
+## Phase 5: Socket.IO → Raw WS Migration
+
+- [x] 5.1 Update `shared/src/types/protocol.ts` — remove Socket.IO types, add WsMessage + ConnectedPayload
+- [x] 5.2 Update `server/package.json` — remove `socket.io`, add `ws` + `@types/ws`
+- [x] 5.3 Update `server/src/index.ts` — replace `Server(socket.io)` with `WebSocketServer(ws)`
+- [x] 5.4 Rewrite `server/src/connection/ConnectionManager.ts` — track raw WebSocket, add broadcastToRoom/sendToSocket
+- [x] 5.5 Rewrite `server/src/game/GameEngine.ts` — use ConnectionManager for all emits
+- [x] 5.6 Create `server/src/ws/handlers.ts` — raw WebSocket message router with heartbeat
+- [x] 5.7 Remove `server/src/socket/handlers.ts` — old Socket.IO handlers
+- [x] 5.8 Update `client/package.json` — remove `socket.io-client`
+- [x] 5.9 Rewrite `client/src/hooks/useSocket.ts` — native WebSocket with heartbeat ping
+- [x] 5.10 Update `client/vite.config.ts` — remove Socket.IO proxy
+- [x] 5.11 Update integration test — use raw WebSocket instead of Socket.IO test client
+- [x] 5.12 Verify server and client compilation — both pass tsc

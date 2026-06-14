@@ -1,10 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import {
   ClientEvent,
   ServerEvent,
-  type ClientToServerEvents,
-  type ServerToClientEvents,
   type JoinRoomPayload,
   type CreateRoomPayload,
   type VotePayload,
@@ -15,16 +12,16 @@ import { useConnectionStore } from '../stores/connectionStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 
-type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
-
 /**
- * Creates a typed Socket.IO client, binds all server→client events to
- * Zustand stores, and returns typed emit helpers for client→server events.
+ * Creates a raw WebSocket connection, binds all server→client events to
+ * Zustand stores, and returns typed send helpers for client→server events.
  *
  * Auto-connects on mount and disconnects on unmount.
  */
 export function useSocket() {
-  const socketRef = useRef<TypedSocket | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const myIdRef = useRef<string | null>(null);
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const setConnected = useConnectionStore((s) => s.setConnected);
   const setDisconnected = useConnectionStore((s) => s.setDisconnected);
@@ -48,172 +45,210 @@ export function useSocket() {
   useEffect(() => {
     setConnecting();
 
-    const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
-    const socket: TypedSocket = io(serverUrl, {
-      transports: ['websocket'],
-      upgrade: false,
-    });
+    const serverUrl = import.meta.env.VITE_SERVER_URL;
+    const url = serverUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
-    socketRef.current = socket;
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
 
-    /* -------------------------------------------------------------- */
-    /*  Server → Client event bindings                                 */
-    /* -------------------------------------------------------------- */
-
-    socket.on(ServerEvent.ROOM_JOINED, (payload) => {
-      const { room } = payload;
-      const myId = socket.id;
-      if (!myId) return;
-
-      const me = room.players.find((p) => p.id === myId);
-      setRoom(room.code, room.players, me?.isHost ?? false, room.settings);
-      if (room.gameState) {
-        setPhase(room.gameState.phase);
-        setCategory(room.gameState.category);
-        setRoundNumber(room.gameState.roundNumber);
-        if (room.gameState.phase !== 'LOBBY') {
-          setVotes(room.gameState.votes);
-        }
-      } else {
-        resetGame();
-      }
-      clearError();
-    });
-
-    socket.on(ServerEvent.ROOM_ERROR, (payload) => {
-      setDisconnected(payload.message);
-    });
-
-    socket.on(ServerEvent.PLAYER_JOINED, (payload) => {
-      addPlayer(payload.player);
-    });
-
-    socket.on(ServerEvent.PLAYER_LEFT, (payload) => {
-      removePlayer(payload.playerId, payload.newHost);
-    });
-
-    socket.on(ServerEvent.GAME_STARTED, (payload) => {
-      setPhase('WORD_REVEAL');
-      setCategory(payload.category);
-      setRoundNumber(payload.roundNumber);
-    });
-
-    socket.on(ServerEvent.WORD_ASSIGNED, (payload) => {
-      setWord(payload.word);
-    });
-
-    socket.on(ServerEvent.PHASE_CHANGED, (payload) => {
-      setPhase(payload.phase);
-    });
-
-    socket.on(ServerEvent.VOTE_UPDATE, (_payload) => {
-      // Vote progress tracked by VotingScreen via live count display
-    });
-
-    socket.on(ServerEvent.VOTE_BROADCAST, (payload) => {
-      setVotes(payload.votes);
-    });
-
-    socket.on(ServerEvent.ROUND_RESULT, (payload) => {
-      setRoundResult(payload);
-    });
-
-    socket.on(ServerEvent.GAME_OVER, (payload) => {
-      setWinner(payload.winner);
-      setPhase('GAME_OVER');
-    });
-
-    socket.on(ServerEvent.SETTINGS_UPDATED, (payload: RoomSettings) => {
-      updateRoomSettings(payload);
-    });
-
-    socket.on(ServerEvent.PLAYER_DISCONNECTED, (_payload) => {
-      // Player status will update via room-level events
-    });
-
-    socket.on(ServerEvent.PLAYER_RECONNECTED, (_payload) => {
-      // Player status will update via room-level events
-    });
-
-    socket.on(ServerEvent.KICKED, (payload) => {
-      resetGame();
-      setDisconnected(payload.reason);
-    });
-
-    socket.on('connect', () => {
+    ws.addEventListener('open', () => {
       setConnected();
     });
 
-    socket.on('disconnect', () => {
-      setDisconnected();
+    ws.addEventListener('message', (event: MessageEvent) => {
+      let msg: { event: string; data: unknown };
+      try {
+        msg = JSON.parse(event.data as string);
+      } catch {
+        return;
+      }
+
+      const { event: eventName, data } = msg;
+
+      switch (eventName) {
+        /* ------------------------------------------------------------ */
+        /*  Connection established — save assigned ID                   */
+        /* ------------------------------------------------------------ */
+        case 'connected': {
+          myIdRef.current = (data as { id: string }).id;
+          break;
+        }
+
+        /* ------------------------------------------------------------ */
+        /*  Server → Client events                                      */
+        /* ------------------------------------------------------------ */
+
+        case ServerEvent.ROOM_JOINED: {
+          const { room } = data as { room: any };
+          const myId = myIdRef.current;
+          if (!myId) return;
+
+          const me = room.players.find((p: any) => p.id === myId);
+          setRoom(room.code, room.players, me?.isHost ?? false, room.settings);
+          if (room.gameState) {
+            setPhase(room.gameState.phase);
+            setCategory(room.gameState.category);
+            setRoundNumber(room.gameState.roundNumber);
+            if (room.gameState.phase !== 'LOBBY') {
+              setVotes(room.gameState.votes);
+            }
+          } else {
+            resetGame();
+          }
+          clearError();
+          break;
+        }
+
+        case ServerEvent.ROOM_ERROR: {
+          setDisconnected((data as { message: string }).message);
+          break;
+        }
+
+        case ServerEvent.PLAYER_JOINED: {
+          addPlayer((data as { player: any }).player);
+          break;
+        }
+
+        case ServerEvent.PLAYER_LEFT: {
+          const { playerId, newHost } = data as { playerId: string; newHost?: string };
+          removePlayer(playerId, newHost);
+          break;
+        }
+
+        case ServerEvent.GAME_STARTED: {
+          setPhase('WORD_REVEAL');
+          const gs = data as { category: string; roundNumber: number };
+          setCategory(gs.category);
+          setRoundNumber(gs.roundNumber);
+          break;
+        }
+
+        case ServerEvent.WORD_ASSIGNED: {
+          setWord((data as { word: string | null }).word);
+          break;
+        }
+
+        case ServerEvent.PHASE_CHANGED: {
+          setPhase((data as { phase: any }).phase);
+          break;
+        }
+
+        case ServerEvent.VOTE_BROADCAST: {
+          setVotes((data as { votes: any[] }).votes);
+          break;
+        }
+
+        case ServerEvent.ROUND_RESULT: {
+          setRoundResult(data as any);
+          break;
+        }
+
+        case ServerEvent.GAME_OVER: {
+          setWinner((data as { winner: any }).winner);
+          setPhase('GAME_OVER');
+          break;
+        }
+
+        case ServerEvent.SETTINGS_UPDATED: {
+          updateRoomSettings(data as RoomSettings);
+          break;
+        }
+
+        case ServerEvent.KICKED: {
+          resetGame();
+          setDisconnected((data as { reason: string }).reason);
+          break;
+        }
+
+        default:
+          break;
+      }
     });
 
-    socket.on('connect_error', () => {
+    ws.addEventListener('close', () => {
+      setDisconnected();
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+    });
+
+    ws.addEventListener('error', () => {
       setDisconnected('Error de conexión');
     });
 
-    /* -------------------------------------------------------------- */
-    /*  Cleanup                                                        */
-    /* -------------------------------------------------------------- */
+    /* ---------------------------------------------------------------- */
+    /*  Heartbeat — send pong every 25 s                                */
+    /* ---------------------------------------------------------------- */
+
+    pingIntervalRef.current = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: 'pong' }));
+      }
+    }, 25_000);
+
+    /* ---------------------------------------------------------------- */
+    /*  Cleanup                                                         */
+    /* ---------------------------------------------------------------- */
 
     return () => {
-      socket.removeAllListeners();
-      socket.disconnect();
-      socketRef.current = null;
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      ws.close();
+      wsRef.current = null;
     };
     // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ---------------------------------------------------------------- */
-  /*  Typed emit helpers                                                */
+  /*  Typed send helpers                                                */
   /* ---------------------------------------------------------------- */
 
-  const emit = useCallback(<K extends keyof ClientToServerEvents>(
-    event: K,
-    ...args: Parameters<ClientToServerEvents[K]>
-  ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (socketRef.current as any)?.emit(event, ...args);
+  const sendMessage = useCallback((event: string, data?: unknown) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ event, data }));
+    }
   }, []);
 
   const joinRoom = useCallback(
-    (payload: JoinRoomPayload) => emit(ClientEvent.JOIN_ROOM, payload),
-    [emit],
+    (payload: JoinRoomPayload) => sendMessage(ClientEvent.JOIN_ROOM, payload),
+    [sendMessage],
   );
 
   const createRoom = useCallback(
-    (payload: CreateRoomPayload) => emit(ClientEvent.CREATE_ROOM, payload),
-    [emit],
+    (payload: CreateRoomPayload) => sendMessage(ClientEvent.CREATE_ROOM, payload),
+    [sendMessage],
   );
 
   const startMatch = useCallback(
-    () => emit(ClientEvent.START_MATCH),
-    [emit],
+    () => sendMessage(ClientEvent.START_MATCH),
+    [sendMessage],
   );
 
   const vote = useCallback(
-    (payload: VotePayload) => emit(ClientEvent.VOTE, payload),
-    [emit],
+    (payload: VotePayload) => sendMessage(ClientEvent.VOTE, payload),
+    [sendMessage],
   );
 
   const sendSettings = useCallback(
-    (payload: UpdateSettingsPayload) => emit(ClientEvent.UPDATE_SETTINGS, payload),
-    [emit],
+    (payload: UpdateSettingsPayload) => sendMessage(ClientEvent.UPDATE_SETTINGS, payload),
+    [sendMessage],
   );
 
   const newMatch = useCallback(
-    () => emit(ClientEvent.NEW_MATCH),
-    [emit],
+    () => sendMessage(ClientEvent.NEW_MATCH),
+    [sendMessage],
   );
 
   const leaveRoom = useCallback(
-    () => emit(ClientEvent.LEAVE_ROOM),
-    [emit],
+    () => sendMessage(ClientEvent.LEAVE_ROOM),
+    [sendMessage],
   );
 
   return {
-    socket: socketRef,
     joinRoom,
     createRoom,
     startMatch,

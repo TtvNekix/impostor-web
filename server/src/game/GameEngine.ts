@@ -1,5 +1,4 @@
-import type { Server, Socket } from 'socket.io';
-import type { Room, GameState, GamePlayer, Vote, Player, GamePhase } from '@impostor/shared';
+import type { Room, GameState, GamePlayer, Player, GamePhase } from '@impostor/shared';
 import {
   ServerEvent,
   VOTING_TIMER,
@@ -8,6 +7,7 @@ import {
 import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
 import { WordBank } from '../words/WordBank';
+import { ConnectionManager } from '../connection/ConnectionManager';
 import { StateMachine } from './StateMachine';
 import { RoundManager } from './RoundManager';
 
@@ -16,7 +16,7 @@ export class GameEngine {
   private machines: Map<string, StateMachine> = new Map();
 
   constructor(
-    private io: Server,
+    private connManager: ConnectionManager,
     private roomStore: RoomStore,
     private roomManager: RoomManager,
     private wordBank: WordBank,
@@ -26,16 +26,16 @@ export class GameEngine {
   /*  Start a new match                                                  */
   /* ------------------------------------------------------------------ */
 
-  startMatch(roomCode: string, socket: Socket): boolean {
+  startMatch(roomCode: string, callerSocketId: string): boolean {
     const room = this.roomStore.getRoom(roomCode);
     if (!room) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Room not found' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Room not found' });
       return false;
     }
 
-    const host = this.findPlayerBySocket(room, socket.id);
+    const host = this.findPlayerBySocket(room, callerSocketId);
     if (!host || !host.isHost) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Only the host can start a match' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Only the host can start a match' });
       return false;
     }
 
@@ -43,21 +43,21 @@ export class GameEngine {
       (p) => p.status === 'ACTIVE',
     );
     if (activePlayers.length < MIN_PLAYERS) {
-      socket.emit(ServerEvent.ROOM_ERROR, {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
         message: `Minimum ${MIN_PLAYERS} players required to start`,
       });
       return false;
     }
 
     if (this.wordBank.isEmpty()) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'No words available in bank' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'No words available in bank' });
       return false;
     }
 
     // Validate impostor count against player count
     const maxImpostors = this.getMaxImpostors(activePlayers.length);
     if (room.settings.impostorCount > maxImpostors) {
-      socket.emit(ServerEvent.ROOM_ERROR, {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
         message: `Maximum ${maxImpostors} impostor(s) for ${activePlayers.length} players`,
       });
       return false;
@@ -75,7 +75,7 @@ export class GameEngine {
     // Select a word
     const wordPick = this.wordBank.randomWord();
     if (!wordPick) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Failed to select word' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Failed to select word' });
       return false;
     }
 
@@ -106,7 +106,7 @@ export class GameEngine {
     sm.transition('WORD_REVEAL', 0);
 
     // 2. Emit game_started to room
-    this.io.to(roomCode).emit(ServerEvent.GAME_STARTED, {
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.GAME_STARTED, {
       roundNumber: gameState.roundNumber,
       category: gameState.category,
       phaseEndsAt: 0,
@@ -115,14 +115,14 @@ export class GameEngine {
     // 3. Send word_assigned individually
     for (const gp of gamePlayers) {
       const word = gp.isImpostor ? null : gameState.word;
-      this.io.to(gp.id).emit(ServerEvent.WORD_ASSIGNED, { word });
+      this.connManager.sendToSocket(gp.id, ServerEvent.WORD_ASSIGNED, { word });
     }
 
     // 4. Transition to DISCUSSION
     const discussionMs = room.settings.discussionTime * 1000;
     sm.transition('DISCUSSION', discussionMs);
 
-    this.io.to(roomCode).emit(ServerEvent.PHASE_CHANGED, {
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
       phase: 'DISCUSSION',
       phaseEndsAt: sm.phaseEndsAt,
     });
@@ -158,7 +158,7 @@ export class GameEngine {
 
     // Broadcast vote progress
     const activeCount = gs.players.filter((p) => p.status === 'ACTIVE').length;
-    this.io.to(roomCode).emit(ServerEvent.VOTE_UPDATE, {
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.VOTE_UPDATE, {
       voterCount: gs.votes.length,
       totalPlayers: activeCount,
     });
@@ -173,21 +173,21 @@ export class GameEngine {
   /*  Start a new match (after GAME_OVER)                               */
   /* ------------------------------------------------------------------ */
 
-  startNewMatch(roomCode: string, socket: Socket): boolean {
+  startNewMatch(roomCode: string, callerSocketId: string): boolean {
     const room = this.roomStore.getRoom(roomCode);
     if (!room) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Room not found' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Room not found' });
       return false;
     }
 
-    const host = this.findPlayerBySocket(room, socket.id);
+    const host = this.findPlayerBySocket(room, callerSocketId);
     if (!host || !host.isHost) {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Only the host can start a new match' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Only the host can start a new match' });
       return false;
     }
 
     if (!room.gameState || room.gameState.phase !== 'GAME_OVER') {
-      socket.emit(ServerEvent.ROOM_ERROR, { message: 'Match is not over' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Match is not over' });
       return false;
     }
 
@@ -206,7 +206,7 @@ export class GameEngine {
     sm.transition('LOBBY');
     this.machines.set(roomCode, sm);
 
-    this.io.to(roomCode).emit(ServerEvent.PHASE_CHANGED, {
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
       phase: 'LOBBY',
       phaseEndsAt: 0,
     });
@@ -236,10 +236,10 @@ export class GameEngine {
     gs.result = roundResult;
 
     // Broadcast all votes
-    this.io.to(roomCode).emit(ServerEvent.VOTE_BROADCAST, { votes: gs.votes });
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.VOTE_BROADCAST, { votes: gs.votes });
 
     // Broadcast result
-    this.io.to(roomCode).emit(ServerEvent.ROUND_RESULT, roundResult);
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.ROUND_RESULT, roundResult);
 
     if (expelled) {
       // Update player status
@@ -257,8 +257,8 @@ export class GameEngine {
     if (roundResult.winner) {
       // Game over
       gs.phase = 'GAME_OVER';
-      this.io.to(roomCode).emit(ServerEvent.GAME_OVER, { winner: roundResult.winner });
-      this.io.to(roomCode).emit(ServerEvent.PHASE_CHANGED, {
+      this.connManager.broadcastToRoom(roomCode, ServerEvent.GAME_OVER, { winner: roundResult.winner });
+      this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
         phase: 'GAME_OVER',
         phaseEndsAt: 0,
       });
@@ -268,7 +268,7 @@ export class GameEngine {
       const discussionMs = room.settings.discussionTime * 1000;
       sm?.transition('DISCUSSION', discussionMs);
 
-      this.io.to(roomCode).emit(ServerEvent.PHASE_CHANGED, {
+      this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
         phase: 'DISCUSSION',
         phaseEndsAt: sm?.phaseEndsAt ?? 0,
       });
@@ -293,7 +293,7 @@ export class GameEngine {
       gs.phaseEndsAt = Date.now() + votingMs;
       sm.transition('VOTING', votingMs);
 
-      this.io.to(roomCode).emit(ServerEvent.PHASE_CHANGED, {
+      this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
         phase: 'VOTING',
         phaseEndsAt: sm.phaseEndsAt,
       });

@@ -3,13 +3,13 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
-import { Server } from 'socket.io';
+import { WebSocketServer } from 'ws';
 import { RoomStore } from './room/RoomStore';
 import { RoomManager } from './room/RoomManager';
 import { WordBank } from './words/WordBank';
 import { GameEngine } from './game/GameEngine';
 import { ConnectionManager } from './connection/ConnectionManager';
-import { registerHandlers } from './socket/handlers';
+import { registerHandlers } from './ws/handlers';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,17 +28,12 @@ const wordBankRaw = JSON.parse(
 const wordBank = new WordBank(wordBankRaw);
 
 /* ------------------------------------------------------------------ */
-/*  HTTP + Socket.IO server                                            */
+/*  HTTP + WebSocket server                                            */
 /* ------------------------------------------------------------------ */
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-});
+const wss = new WebSocketServer({ server });
 
 /* ------------------------------------------------------------------ */
 /*  Domain layer                                                        */
@@ -46,8 +41,8 @@ const io = new Server(server, {
 
 const roomStore = new RoomStore();
 const roomManager = new RoomManager(roomStore);
-const gameEngine = new GameEngine(io, roomStore, roomManager, wordBank);
-const connectionManager = new ConnectionManager(roomStore, roomManager, io);
+const connectionManager = new ConnectionManager(roomStore, roomManager);
+const gameEngine = new GameEngine(connectionManager, roomStore, roomManager, wordBank);
 
 /* ------------------------------------------------------------------ */
 /*  Health check (required for Railway)                                */
@@ -75,10 +70,10 @@ if (fs.existsSync(clientDist)) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Socket.IO handlers                                                 */
+/*  WebSocket handlers                                                 */
 /* ------------------------------------------------------------------ */
 
-registerHandlers(io, roomManager, gameEngine, connectionManager);
+registerHandlers(wss, roomManager, gameEngine, connectionManager);
 
 /* ------------------------------------------------------------------ */
 /*  Start                                                              */

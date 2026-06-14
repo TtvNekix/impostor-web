@@ -1,4 +1,4 @@
-import type { Server, Socket } from 'socket.io';
+import { WebSocket } from 'ws';
 import { ServerEvent } from '@impostor/shared';
 import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
@@ -6,6 +6,7 @@ import { RoomManager } from '../room/RoomManager';
 const DISCONNECT_TIMEOUT_MS = 30_000; // 30 seconds
 
 interface ConnectionEntry {
+  ws: WebSocket;
   roomCode: string;
   username: string;
   disconnectTimer: ReturnType<typeof setTimeout> | null;
@@ -18,19 +19,44 @@ export class ConnectionManager {
   constructor(
     private roomStore: RoomStore,
     private roomManager: RoomManager,
-    private io: Server,
   ) {}
 
   /* ------------------------------------------------------------------ */
   /*  Register a new connection                                          */
   /* ------------------------------------------------------------------ */
 
-  register(socketId: string, roomCode: string, username: string): void {
+  register(socketId: string, ws: WebSocket, roomCode: string, username: string): void {
     this.connections.set(socketId, {
+      ws,
       roomCode,
       username,
       disconnectTimer: null,
     });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Broadcast to all clients in a room                                 */
+  /* ------------------------------------------------------------------ */
+
+  broadcastToRoom(roomCode: string, event: string, data: unknown): void {
+    const payload = JSON.stringify({ event, data });
+    for (const [, entry] of this.connections) {
+      if (entry.roomCode === roomCode && entry.ws.readyState === WebSocket.OPEN) {
+        entry.ws.send(payload);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Send to a specific socket                                          */
+  /* ------------------------------------------------------------------ */
+
+  sendToSocket(socketId: string, event: string, data: unknown): void {
+    const entry = this.connections.get(socketId);
+    if (!entry) return;
+    if (entry.ws.readyState === WebSocket.OPEN) {
+      entry.ws.send(JSON.stringify({ event, data }));
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -49,7 +75,7 @@ export class ConnectionManager {
       const player = room.players.get(username);
       if (player) {
         player.status = 'DISCONNECTED';
-        this.io.to(roomCode).emit(ServerEvent.PLAYER_DISCONNECTED, {
+        this.broadcastToRoom(roomCode, ServerEvent.PLAYER_DISCONNECTED, {
           playerId: socketId,
           timeout: DISCONNECT_TIMEOUT_MS,
         });
@@ -72,7 +98,7 @@ export class ConnectionManager {
    * Attempt to reconnect a player. Returns true if reconnection was
    * accepted (player was within the timeout window).
    */
-  onReconnect(oldSocketId: string, newSocketId: string): boolean {
+  onReconnect(oldSocketId: string, newSocketId: string, newWs: WebSocket): boolean {
     const entry = this.connections.get(oldSocketId);
     if (!entry) return false;
 
@@ -87,9 +113,10 @@ export class ConnectionManager {
     // Update the player's socket ID in the room
     this.roomManager.updateSocketId(roomCode, username, newSocketId);
 
-    // Update connection tracking
+    // Update connection tracking (keep the old entry's metadata, swap ws + socketId)
     this.connections.delete(oldSocketId);
     this.connections.set(newSocketId, {
+      ws: newWs,
       roomCode,
       username,
       disconnectTimer: null,
@@ -110,7 +137,7 @@ export class ConnectionManager {
         }
       }
 
-      this.io.to(roomCode).emit(ServerEvent.PLAYER_RECONNECTED, {
+      this.broadcastToRoom(roomCode, ServerEvent.PLAYER_RECONNECTED, {
         playerId: newSocketId,
       });
     }
@@ -134,8 +161,8 @@ export class ConnectionManager {
         roomCode,
         username,
       );
-      if (!wasLastPlayer) {
-        this.io.to(roomCode).emit(ServerEvent.PLAYER_LEFT, {
+      if (!wasLastPlayer && room) {
+        this.broadcastToRoom(roomCode, ServerEvent.PLAYER_LEFT, {
           playerId: socketId,
           newHost,
         });

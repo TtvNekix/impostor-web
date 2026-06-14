@@ -17,6 +17,7 @@ export const ClientEvent = {
 } as const;
 
 export const ServerEvent = {
+  CONNECTED: 'connected',
   ROOM_JOINED: 'room_joined',
   ROOM_ERROR: 'room_error',
   PLAYER_JOINED: 'player_joined',
@@ -117,33 +118,18 @@ export interface KickedPayload {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Socket.IO typed event maps                                         */
+/*  Wire message envelope                                              */
 /* ------------------------------------------------------------------ */
 
-export interface ClientToServerEvents {
-  [ClientEvent.JOIN_ROOM]: (payload: JoinRoomPayload) => void;
-  [ClientEvent.CREATE_ROOM]: (payload: CreateRoomPayload) => void;
-  [ClientEvent.START_MATCH]: () => void;
-  [ClientEvent.VOTE]: (payload: VotePayload) => void;
-  [ClientEvent.UPDATE_SETTINGS]: (payload: UpdateSettingsPayload) => void;
-  [ClientEvent.NEW_MATCH]: () => void;
-  [ClientEvent.LEAVE_ROOM]: () => void;
+export interface WsMessage {
+  event: string;
+  data: unknown;
 }
 
-export interface ServerToClientEvents {
-  [ServerEvent.ROOM_JOINED]: (payload: RoomJoinedPayload) => void;
-  [ServerEvent.ROOM_ERROR]: (payload: RoomErrorPayload) => void;
-  [ServerEvent.PLAYER_JOINED]: (payload: PlayerJoinedPayload) => void;
-  [ServerEvent.PLAYER_LEFT]: (payload: PlayerLeftPayload) => void;
-  [ServerEvent.GAME_STARTED]: (payload: GameStartedPayload) => void;
-  [ServerEvent.WORD_ASSIGNED]: (payload: WordAssignedPayload) => void;
-  [ServerEvent.PHASE_CHANGED]: (payload: PhaseChangedPayload) => void;
-  [ServerEvent.VOTE_UPDATE]: (payload: VoteUpdatePayload) => void;
-  [ServerEvent.VOTE_BROADCAST]: (payload: VoteBroadcastPayload) => void;
-  [ServerEvent.ROUND_RESULT]: (payload: RoundResult) => void;
-  [ServerEvent.GAME_OVER]: (payload: { winner: Winner }) => void;
-  [ServerEvent.SETTINGS_UPDATED]: (payload: RoomSettings) => void;
-  [ServerEvent.PLAYER_DISCONNECTED]: (payload: PlayerDisconnectedPayload) => void;
-  [ServerEvent.PLAYER_RECONNECTED]: (payload: PlayerReconnectedPayload) => void;
-  [ServerEvent.KICKED]: (payload: KickedPayload) => void;
+/* ------------------------------------------------------------------ */
+/*  Connection-level payloads                                          */
+/* ------------------------------------------------------------------ */
+
+export interface ConnectedPayload {
+  id: string;
 }

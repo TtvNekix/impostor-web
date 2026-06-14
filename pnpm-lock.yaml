@@ -19,9 +19,6 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
-      socket.io-client:
-        specifier: ^4.7.0
-        version: 4.8.3
       zustand:
         specifier: ^4.5.0
         version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
@@ -50,9 +47,9 @@ importers:
       express:
         specifier: ^4.21.0
         version: 4.22.2
-      socket.io:
-        specifier: ^4.7.0
-        version: 4.8.3
+      ws:
+        specifier: ^8.16.0
+        version: 8.20.1
     devDependencies:
       '@types/express':
         specifier: ^4.17.21
@@ -60,6 +57,12 @@ importers:
       '@types/node':
         specifier: ^20.11.0
         version: 20.19.43
+      '@types/ws':
+        specifier: ^8.5.10
+        version: 8.18.1
+      socket.io:
+        specifier: ^4.7.0
+        version: 4.8.3
       socket.io-client:
         specifier: ^4.7.0
         version: 4.8.3
