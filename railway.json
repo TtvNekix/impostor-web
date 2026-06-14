@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "pnpm --filter @impostor/server exec tsx src/index.ts",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
 }

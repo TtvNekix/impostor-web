@@ -50,6 +50,14 @@ const gameEngine = new GameEngine(io, roomStore, roomManager, wordBank);
 const connectionManager = new ConnectionManager(roomStore, roomManager, io);
 
 /* ------------------------------------------------------------------ */
+/*  Health check (required for Railway)                                */
+/* ------------------------------------------------------------------ */
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+/* ------------------------------------------------------------------ */
 /*  Static serve (client build)                                        */
 /* ------------------------------------------------------------------ */
 
