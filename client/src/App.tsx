@@ -7,7 +7,6 @@ import { DiscussionScreen } from './screens/DiscussionScreen';
 import { VotingScreen } from './screens/VotingScreen';
 import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
-import { TimerBar } from './components/TimerBar';
 import es from './i18n/es';
 
 type GamePhase = import('@impostor/shared').GamePhase;
@@ -34,7 +33,7 @@ function isInGame(phase: GamePhase): boolean {
  *
  * - ConnectionGuard: shows loading/disconnected states
  * - Phase-based screen router
- * - In-game header with room code
+ * - In-game header with room code + cyberpunk theme
  */
 export default function App() {
   const socketStatus = useConnectionStore((s) => s.socketStatus);
@@ -58,60 +57,25 @@ export default function App() {
 
   if (socketStatus === 'connecting') {
     return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '1rem',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: '3px solid #3a3a6a',
-            borderTopColor: '#6366f1',
-            animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <p style={{ color: '#9ca3af' }}>{es.connection.connecting}</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="connection-screen">
+        <div className="spinner" />
+        <p className="connection-screen__text">{es.connection.connecting}</p>
       </div>
     );
   }
 
   if (socketStatus === 'disconnected' && !roomCode) {
     return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '1rem',
-          padding: '2rem',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '2.5rem',
-            fontWeight: 800,
-            color: '#fff',
-          }}
-        >
+      <div className="connection-screen">
+        <h1 className="connection-screen__title">
           {es.common.appName}
         </h1>
         {connectionError && (
-          <p style={{ color: '#ef4444', textAlign: 'center' }}>
+          <p className="connection-screen__error">
             {connectionError}
           </p>
         )}
-        <p style={{ color: '#9ca3af', textAlign: 'center' }}>
+        <p className="connection-screen__text">
           {es.connection.connectionLost}
         </p>
       </div>
@@ -125,33 +89,12 @@ export default function App() {
   const showHeader = roomCode && isInGame(phase);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f23' }}>
+    <div className="app-container">
       {/* In-game header with room code */}
       {showHeader && (
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1rem',
-            background: '#1a1a3a',
-            borderBottom: '1px solid #3a3a6a',
-          }}
-        >
-          <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>
-            Sala:
-          </span>
-          <span
-            style={{
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              color: '#facc15',
-              letterSpacing: '0.15em',
-            }}
-          >
-            {roomCode}
-          </span>
+        <header className="game-header">
+          <span className="game-header__label">Sala:</span>
+          <span className="game-header__code">{roomCode}</span>
         </header>
       )}
 
@@ -205,7 +148,6 @@ function ScreenRouter({
 
     case 'WORD_REVEAL':
     case 'DISCUSSION':
-      // Both WORD_REVEAL and DISCUSSION show the discussion screen
       return <DiscussionScreen totalTime={90} />;
 
     case 'VOTING':
@@ -219,16 +161,8 @@ function ScreenRouter({
 
     default:
       return (
-        <div
-          style={{
-            height: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#9ca3af',
-          }}
-        >
-          {es.common.loading}
+        <div className="connection-screen">
+          <p className="connection-screen__text">{es.common.loading}</p>
         </div>
       );
   }

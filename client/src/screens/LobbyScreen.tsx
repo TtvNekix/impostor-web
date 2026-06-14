@@ -66,58 +66,25 @@ export function LobbyScreen({
 
   const canStart = isHost && players.length >= 3;
 
-  // No room → show create/join form
+  // No room → show create/join form (connection screen)
   if (!roomCode) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2rem',
-          gap: '2rem',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '2.5rem',
-            fontWeight: 800,
-            color: '#fff',
-            textAlign: 'center',
-          }}
-        >
+      <div className="connection-screen">
+        <h1 className="connection-screen__title">
           {es.common.appName}
         </h1>
 
         {/* Mode toggle */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="toggle-group">
           <button
             onClick={() => { setMode('create'); clearError(); }}
-            style={{
-              padding: '0.5rem 1.5rem',
-              borderRadius: '0.5rem 0 0 0.5rem',
-              border: '1px solid #555',
-              background: mode === 'create' ? '#4a4a8a' : '#1a1a3a',
-              color: '#fff',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
+            className={`toggle-group__btn${mode === 'create' ? ' toggle-group__btn--active' : ''}`}
           >
             {es.lobby.createRoom}
           </button>
           <button
             onClick={() => { setMode('join'); clearError(); }}
-            style={{
-              padding: '0.5rem 1.5rem',
-              borderRadius: '0 0.5rem 0.5rem 0',
-              border: '1px solid #555',
-              background: mode === 'join' ? '#4a4a8a' : '#1a1a3a',
-              color: '#fff',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
+            className={`toggle-group__btn${mode === 'join' ? ' toggle-group__btn--active' : ''}`}
           >
             {es.lobby.joinRoom}
           </button>
@@ -140,14 +107,7 @@ export function LobbyScreen({
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             maxLength={20}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '0.5rem',
-              border: '1px solid #555',
-              background: '#1a1a3a',
-              color: '#fff',
-              fontSize: '1rem',
-            }}
+            className="input"
           />
 
           {mode === 'join' && (
@@ -157,45 +117,21 @@ export function LobbyScreen({
               value={code}
               onChange={(e) => setCode(e.target.value)}
               maxLength={6}
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #555',
-                background: '#1a1a3a',
-                color: '#fff',
-                fontSize: '1rem',
-                textTransform: 'uppercase',
-              }}
+              className="input"
+              style={{ textTransform: 'uppercase' }}
             />
           )}
 
           <button
             type="submit"
             disabled={!username.trim() || (mode === 'join' && !code.trim())}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '0.5rem',
-              border: 'none',
-              background:
-                !username.trim() || (mode === 'join' && !code.trim())
-                  ? '#555'
-                  : '#4a4a8a',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '1rem',
-              cursor:
-                !username.trim() || (mode === 'join' && !code.trim())
-                  ? 'not-allowed'
-                  : 'pointer',
-            }}
+            className="btn btn--primary btn--block"
           >
             {mode === 'create' ? es.lobby.create : es.lobby.join}
           </button>
 
           {error && (
-            <p style={{ color: '#ef4444', textAlign: 'center', fontSize: '0.9rem' }}>
-              {error}
-            </p>
+            <p className="connection-screen__error">{error}</p>
           )}
         </form>
       </div>
@@ -204,65 +140,29 @@ export function LobbyScreen({
 
   // Room exists → show lobby with player list, settings, and start button
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        gap: '1.5rem',
-      }}
-    >
+    <div className="page">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <h2 style={{ color: '#fff', fontWeight: 700 }}>{es.lobby.title}</h2>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '1.2rem',
-              fontWeight: 700,
-              color: '#facc15',
-              letterSpacing: '0.2em',
-            }}
-          >
-            {roomCode}
-          </span>
+      <div className="page-header">
+        <div className="page-header__title">{es.lobby.title}</div>
+      </div>
+
+      {/* Room code + copy */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="room-code-display">
+          <span className="room-code-display__code">{roomCode}</span>
           <button
             onClick={handleCopyCode}
-            style={{
-              background: 'transparent',
-              border: '1px solid #555',
-              color: '#ccc',
-              padding: '0.25rem 0.6rem',
-              borderRadius: '0.25rem',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-            }}
+            className="btn btn--ghost btn--sm"
           >
             {copied ? es.lobby.codeCopied : es.lobby.copyCode}
           </button>
         </div>
+        <span className="player-count">
+          {es.lobby.playerCount
+            .replace('{count}', String(players.length))
+            .replace('{max}', String(settings?.maxPlayers ?? 10))}
+        </span>
       </div>
-
-      {/* Player count */}
-      <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
-        {es.lobby.playerCount.replace('{count}', String(players.length)).replace('{max}', String(settings?.maxPlayers ?? 10))}
-      </p>
 
       {/* Player list */}
       <PlayerList
@@ -272,41 +172,18 @@ export function LobbyScreen({
 
       {/* Settings (host only) */}
       {isHost && settings && (
-        <div
-          style={{
-            background: '#1a1a3a',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-          }}
-        >
-          <h3 style={{ color: '#ccc', fontSize: '0.9rem', fontWeight: 600 }}>
-            {es.lobby.settings}
-          </h3>
+        <div className="settings-panel">
+          <h3 className="settings-panel__title">{es.lobby.settings}</h3>
 
           {/* Impostor count */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <label style={{ color: '#ccc' }}>{es.lobby.impostors}</label>
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{es.lobby.impostors}</label>
             <select
               value={settings.impostorCount}
               onChange={(e) =>
                 updateSettings({ impostorCount: Number(e.target.value) })
               }
-              style={{
-                padding: '0.4rem 0.75rem',
-                borderRadius: '0.25rem',
-                border: '1px solid #555',
-                background: '#2a2a4a',
-                color: '#fff',
-              }}
+              className="settings-panel__select"
             >
               <option value={1}>1</option>
               <option value={2}>2</option>
@@ -314,26 +191,14 @@ export function LobbyScreen({
           </div>
 
           {/* Discussion time */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <label style={{ color: '#ccc' }}>{es.lobby.discussionTime}</label>
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{es.lobby.discussionTime}</label>
             <select
               value={settings.discussionTime}
               onChange={(e) =>
                 updateSettings({ discussionTime: Number(e.target.value) })
               }
-              style={{
-                padding: '0.4rem 0.75rem',
-                borderRadius: '0.25rem',
-                border: '1px solid #555',
-                background: '#2a2a4a',
-                color: '#fff',
-              }}
+              className="settings-panel__select"
             >
               <option value={60}>60 {es.lobby.seconds}</option>
               <option value={90}>90 {es.lobby.seconds}</option>
@@ -348,19 +213,8 @@ export function LobbyScreen({
         <button
           onClick={handleStartMatch}
           disabled={!canStart}
-          style={{
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            border: 'none',
-            background: canStart
-              ? 'linear-gradient(135deg, #4ade80, #22c55e)'
-              : '#555',
-            color: canStart ? '#0f0f23' : '#999',
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            cursor: canStart ? 'pointer' : 'not-allowed',
-            transition: 'opacity 0.2s',
-          }}
+          className={`btn btn--lg btn--block ${canStart ? 'btn--success' : ''}`}
+          style={!canStart ? { opacity: 0.4, cursor: 'not-allowed', background: '#333' } : undefined}
         >
           {players.length < 3
             ? es.lobby.minPlayersRequired.replace('{min}', '3')

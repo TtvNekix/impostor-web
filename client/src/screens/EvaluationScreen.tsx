@@ -30,52 +30,29 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
     !roundResult ||
     (roundResult.expelledId === null && roundResult.winner === null);
 
-  const expelledId = roundResult?.expelledId;
+  // Determine result card style
+  let resultCardClass = 'result-card--no-expulsion';
+  if (!isNoOneExpelled) {
+    resultCardClass = roundResult?.wasImpostor
+      ? 'result-card--impostor-found'
+      : 'result-card--innocent-expelled';
+  }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        gap: '1.5rem',
-      }}
-    >
+    <div className="page">
       {/* Title */}
-      <h2
-        style={{
-          textAlign: 'center',
-          color: '#fff',
-          fontWeight: 700,
-          fontSize: '1.5rem',
-        }}
-      >
-        {es.evaluation.title}
-      </h2>
+      <div className="page-header">
+        <div className="page-header__title">{es.evaluation.title}</div>
+      </div>
 
       {/* Expulsion result */}
-      <div
-        style={{
-          background: '#1a1a3a',
-          borderRadius: '0.75rem',
-          padding: '1.5rem',
-          textAlign: 'center',
-          border: isNoOneExpelled
-            ? '1px solid #555'
-            : roundResult?.wasImpostor
-              ? '1px solid #4ade80'
-              : '1px solid #ef4444',
-        }}
-      >
+      <div className={`result-card ${resultCardClass}`}>
         {isNoOneExpelled ? (
           <>
-            <p style={{ color: '#facc15', fontWeight: 700, fontSize: '1.2rem' }}>
+            <p className="result-card__title" style={{ color: 'var(--accent-warning)' }}>
               {es.evaluation.noOneExpelled}
             </p>
-            <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            <p className="result-card__info" style={{ marginTop: 'var(--space-sm)' }}>
               {roundResult?.expelledId === null &&
               roundResult?.expelledUsername === ''
                 ? es.evaluation.allSkipped
@@ -84,13 +61,7 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
           </>
         ) : (
           <>
-            <p
-              style={{
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '1.3rem',
-              }}
-            >
+            <p className="result-card__title">
               {roundResult &&
                 es.evaluation.expelled.replace(
                   '{player}',
@@ -98,12 +69,11 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
                 )}
             </p>
             <p
-              style={{
-                color: roundResult?.wasImpostor ? '#4ade80' : '#ef4444',
-                fontWeight: 600,
-                fontSize: '1rem',
-                marginTop: '0.5rem',
-              }}
+              className={`result-card__sub ${
+                roundResult?.wasImpostor
+                  ? 'result-card__sub--success'
+                  : 'result-card__sub--danger'
+              }`}
             >
               {roundResult?.wasImpostor
                 ? es.evaluation.expelledWasImpostor.replace(
@@ -121,13 +91,7 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
 
       {/* Alive counts */}
       {roundResult && (
-        <div
-          style={{
-            textAlign: 'center',
-            color: '#9ca3af',
-            fontSize: '0.9rem',
-          }}
-        >
+        <div className="result-card__info" style={{ textAlign: 'center' }}>
           {es.evaluation.aliveInfo
             .replace('{impostors}', String(roundResult.aliveImpostors))
             .replace('{nonImpostors}', String(roundResult.aliveNonImpostors))}
@@ -141,29 +105,12 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
 
       {/* Player list */}
       <div>
-        <h3
-          style={{
-            color: '#9ca3af',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            marginBottom: '0.5rem',
-          }}
-        >
-          Jugadores
-        </h3>
+        <h3 className="section-header">Jugadores</h3>
         <PlayerList players={players} />
       </div>
 
       {/* Auto-transition info */}
-      <p
-        style={{
-          textAlign: 'center',
-          color: '#9ca3af',
-          fontSize: '0.85rem',
-        }}
-      >
-        {es.evaluation.autoTransition}
-      </p>
+      <p className="auto-transition-info">{es.evaluation.autoTransition}</p>
     </div>
   );
 }

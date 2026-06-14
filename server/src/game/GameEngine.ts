@@ -97,6 +97,9 @@ export class GameEngine {
     // Create state machine for this room
     const sm = new StateMachine();
     sm.onTimerExpired = (phase) => this.handleTimerExpiry(roomCode, phase);
+    sm.onTransition = (_from, to) => {
+      if (room.gameState) room.gameState.phase = to;
+    };
     this.machines.set(roomCode, sm);
 
     // 1. Transition WORD_REVEAL (instant, duration 0)

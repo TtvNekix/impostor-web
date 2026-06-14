@@ -71,12 +71,12 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Testing & Polish
 
-- [ ] 4.1 Unit: WordBank tests — random selection, missing category, empty bank edge case
-- [ ] 4.2 Unit: StateMachine tests — all 6 phase transitions, timer cancellation
-- [ ] 4.3 Unit: GameEngine tests — impostor assignment, vote processing, win conditions
-- [ ] 4.4 Unit: RoomManager tests — create, join, leave, host reassignment, max players
-- [ ] 4.5 Unit: RoundManager tests — tally, tie-break, skip vote handling
-- [ ] 4.6 Integration: Socket.IO full match lifecycle — 3 bot clients play a complete match
-- [ ] 4.7 Integration: room lifecycle — create → join → leave → destroy → reconnection
+- [x] 4.1 Unit: WordBank tests — random selection, missing category, empty bank edge case
+- [x] 4.2 Unit: StateMachine tests — all 6 phase transitions, timer cancellation
+- [x] 4.3 Unit: GameEngine tests — impostor assignment, vote processing, win conditions
+- [x] 4.4 Unit: RoomManager tests — create, join, leave, host reassignment, max players
+- [x] 4.5 Unit: RoundManager tests — tally, tie-break, skip vote handling
+- [x] 4.6 Integration: Socket.IO full match lifecycle — 3 bot clients play a complete match
+- [x] 4.7 Integration: room lifecycle — create → join → leave → destroy → reconnection
 - [ ] 4.8 E2E: Playwright with 3 bot clients simulating a full game (stretch — optional for MVP)
-- [ ] 4.9 Final: verify build, lint, and Vitest run pass without errors
+- [x] 4.9 Final: verify build, lint, and Vitest run pass without errors

@@ -13,6 +13,7 @@ interface TimerBarProps {
  * Visual countdown bar that shrinks from 100% to 0% width.
  * Shows "MM:SS" remaining text centered on the bar.
  * Changes color from green → yellow → red as time runs out.
+ * Cyberpunk theme with pulsing glow when low.
  */
 export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
   const [displayTime, setDisplayTime] = useState(remaining);
@@ -34,8 +35,12 @@ export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
 
   const pct = total > 0 ? Math.max(0, (remaining / total) * 100) : 0;
 
-  const barColor =
-    pct > 50 ? '#4ade80' : pct > 25 ? '#facc15' : '#ef4444';
+  const fillClass =
+    pct > 50
+      ? 'timer-bar__fill--safe'
+      : pct > 25
+        ? 'timer-bar__fill--warning'
+        : 'timer-bar__fill--danger';
 
   const formatTime = (s: number): string => {
     const m = Math.floor(Math.max(0, s) / 60);
@@ -44,43 +49,12 @@ export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '2.5rem',
-        background: '#1e1e3a',
-        borderRadius: '0.5rem',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
+    <div className="timer-bar">
       <div
-        style={{
-          width: `${pct}%`,
-          height: '100%',
-          background: barColor,
-          transition: 'width 1s linear, background 0.3s ease',
-          borderRadius: '0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className={`timer-bar__fill ${fillClass}`}
+        style={{ width: `${pct}%` }}
       >
-        <span
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: '1rem',
-            color: '#fff',
-            textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-          }}
-        >
-          {formatTime(displayTime)}
-        </span>
+        <span className="timer-bar__text">{formatTime(displayTime)}</span>
       </div>
     </div>
   );

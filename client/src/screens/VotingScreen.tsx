@@ -45,50 +45,27 @@ export function VotingScreen({
   const isSpectator = myRole === null;
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        gap: '1.5rem',
-      }}
-    >
+    <div className="page">
       {/* Header */}
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: '#fff', fontWeight: 700 }}>{es.voting.title}</h2>
+      <div className="page-header">
+        <div className="page-header__title">{es.voting.title}</div>
         {roomCode && (
-          <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            Sala: {roomCode}
-          </p>
+          <div className="page-header__subtitle">Sala: {roomCode}</div>
         )}
       </div>
 
       {/* Phase info */}
-      <div
-        style={{
-          textAlign: 'center',
-          color: '#facc15',
-          fontSize: '0.85rem',
-          fontWeight: 600,
-        }}
-      >
-        {es.voting.phaseInfo}
+      <div className="card" style={{ textAlign: 'center', padding: '0.6rem 1rem' }}>
+        <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
+          {es.voting.phaseInfo}
+        </span>
       </div>
 
       {/* Timer bar */}
       <TimerBar total={totalTime} remaining={timer > 0 ? timer : totalTime} />
 
       {/* Live vote count */}
-      <div
-        style={{
-          textAlign: 'center',
-          color: '#9ca3af',
-          fontSize: '0.9rem',
-        }}
-      >
+      <div className="vote-count">
         {totalPlayers > 0
           ? es.voting.voteCount
               .replace('{count}', String(voterCount))

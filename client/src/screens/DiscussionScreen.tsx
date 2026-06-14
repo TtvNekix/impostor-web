@@ -34,26 +34,14 @@ export function DiscussionScreen({ totalTime }: DiscussionScreenProps) {
   const isWordReveal = phase === 'WORD_REVEAL';
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        gap: '1.5rem',
-      }}
-    >
+    <div className="page">
       {/* Header */}
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: '#fff', fontWeight: 700 }}>
+      <div className="page-header">
+        <div className="page-header__title">
           {isWordReveal ? 'Palabra asignada' : es.discussion.title}
-        </h2>
+        </div>
         {roomCode && (
-          <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            Sala: {roomCode}
-          </p>
+          <div className="page-header__subtitle">Sala: {roomCode}</div>
         )}
       </div>
 
@@ -64,17 +52,11 @@ export function DiscussionScreen({ totalTime }: DiscussionScreenProps) {
 
       {/* Category */}
       {category && (
-        <div
-          style={{
-            textAlign: 'center',
-            color: '#9ca3af',
-            fontSize: '0.9rem',
-          }}
-        >
-          <span style={{ color: '#facc15', fontWeight: 600 }}>
+        <div className="card" style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>
+          <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>
             {es.discussion.category}:
           </span>{' '}
-          {category}
+          <span style={{ color: 'var(--text-secondary)' }}>{category}</span>
         </div>
       )}
 
@@ -85,34 +67,15 @@ export function DiscussionScreen({ totalTime }: DiscussionScreenProps) {
 
       {/* Spectator info */}
       {isSpectator && (
-        <div
-          style={{
-            background: '#2a2a4a',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            textAlign: 'center',
-            border: '1px solid #555',
-          }}
-        >
-          <p style={{ color: '#facc15', fontWeight: 600 }}>
-            {es.discussion.youAreSpectator}
-          </p>
-          <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            {es.discussion.waitingForVoting}
-          </p>
+        <div className="spectator-info">
+          <p className="spectator-info__title">{es.discussion.youAreSpectator}</p>
+          <p className="spectator-info__desc">{es.discussion.waitingForVoting}</p>
         </div>
       )}
 
       {/* Player list */}
       <div>
-        <h3
-          style={{
-            color: '#9ca3af',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            marginBottom: '0.5rem',
-          }}
-        >
+        <h3 className="section-header">
           Jugadores ({players.length})
         </h3>
         <PlayerList players={players} />
