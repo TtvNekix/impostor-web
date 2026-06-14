@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm build:shared"
+    "buildCommand": "pnpm build:shared && pnpm --filter @impostor/client exec vite build"
   },
   "deploy": {
     "startCommand": "pnpm --filter @impostor/server exec tsx src/index.ts",
