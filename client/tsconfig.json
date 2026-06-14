@@ -19,7 +19,8 @@
       "@impostor/shared": ["../shared/src"],
       "@impostor/shared/*": ["../shared/src/*"]
     },
-    "baseUrl": "."
+    "baseUrl": ".",
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "references": [{ "path": "../shared" }]
