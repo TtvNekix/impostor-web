@@ -3,6 +3,7 @@ import { useRoomStore } from '../stores/roomStore';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useGameStore } from '../stores/gameStore';
 import { PlayerList } from '../components/PlayerList';
+import { generateRoomCode } from '@impostor/shared';
 import es from '../i18n/es';
 
 interface LobbyScreenProps {
@@ -40,7 +41,8 @@ export function LobbyScreen({
     if (!username.trim()) return;
 
     if (mode === 'create') {
-      createRoom({ code: code.trim().toUpperCase(), username: username.trim() });
+      const roomCode = code.trim().toUpperCase() || generateRoomCode();
+      createRoom({ code: roomCode, username: username.trim() });
     } else {
       joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
     }
