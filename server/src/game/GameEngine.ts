@@ -3,6 +3,7 @@ import {
   ServerEvent,
   VOTING_TIMER,
   MIN_PLAYERS,
+  ErrorCode,
 } from '@impostor/shared';
 import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
@@ -29,13 +30,17 @@ export class GameEngine {
   startMatch(roomCode: string, callerSocketId: string): boolean {
     const room = this.roomStore.getRoom(roomCode);
     if (!room) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Room not found' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.ROOM_NOT_FOUND, message: 'Room not found',
+      });
       return false;
     }
 
     const host = this.findPlayerBySocket(room, callerSocketId);
     if (!host || !host.isHost) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Only the host can start a match' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.NOT_HOST, message: 'Only the host can start a match',
+      });
       return false;
     }
 
@@ -44,23 +49,27 @@ export class GameEngine {
     );
     if (activePlayers.length < MIN_PLAYERS) {
       this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.MIN_PLAYERS,
         message: `Minimum ${MIN_PLAYERS} players required to start`,
+        data: { min: MIN_PLAYERS },
       });
       return false;
     }
 
     if (this.wordBank.isEmpty()) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'No words available in bank' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC, message: 'No words available in bank',
+      });
       return false;
     }
 
-    // Validate impostor count against player count
+    // Validate impostor count against player count. If the host configured
+    // too many impostors for the current player count, auto-clamp the
+    // setting, broadcast the change so the UI updates, and proceed.
     const maxImpostors = this.getMaxImpostors(activePlayers.length);
     if (room.settings.impostorCount > maxImpostors) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
-        message: `Maximum ${maxImpostors} impostor(s) for ${activePlayers.length} players`,
-      });
-      return false;
+      room.settings.impostorCount = maxImpostors;
+      this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
     }
 
     // Create GamePlayer snapshot
@@ -75,7 +84,9 @@ export class GameEngine {
     // Select a word
     const wordPick = this.wordBank.randomWord();
     if (!wordPick) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Failed to select word' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC, message: 'Failed to select word',
+      });
       return false;
     }
 
@@ -176,18 +187,24 @@ export class GameEngine {
   startNewMatch(roomCode: string, callerSocketId: string): boolean {
     const room = this.roomStore.getRoom(roomCode);
     if (!room) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Room not found' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.ROOM_NOT_FOUND, message: 'Room not found',
+      });
       return false;
     }
 
     const host = this.findPlayerBySocket(room, callerSocketId);
     if (!host || !host.isHost) {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Only the host can start a new match' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.NOT_HOST, message: 'Only the host can start a new match',
+      });
       return false;
     }
 
     if (!room.gameState || room.gameState.phase !== 'GAME_OVER') {
-      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, { message: 'Match is not over' });
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC, message: 'Match is not over',
+      });
       return false;
     }
 

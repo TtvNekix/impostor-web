@@ -144,15 +144,28 @@ describe('GameEngine', () => {
       }
     });
 
-    it('rejects start when impostor count exceeds limit', () => {
+    it('auto-clamps impostor count when it exceeds the limit for the current player count', () => {
       roomManager.createRoom('ABC12', 'Host', { impostorCount: 2 });
       store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
       roomManager.joinRoom('ABC12', 'Alice', 'socket-alice');
       roomManager.joinRoom('ABC12', 'Bob', 'socket-bob');
-      // 3 players, max 1 impostor
+      // 3 players, max 1 impostor — server should clamp to 1 and start the match
 
       const result = engine.startMatch('ABC12', 'socket-host');
-      expect(result).toBe(false);
+      expect(result).toBe(true);
+      // Settings were clamped to 1
+      expect(store.getRoom('ABC12')!.settings.impostorCount).toBe(1);
+      // Settings update was broadcast
+      expect(connManager.broadcastToRoom).toHaveBeenCalledWith(
+        'ABC12',
+        ServerEvent.SETTINGS_UPDATED,
+        expect.objectContaining({ impostorCount: 1 }),
+      );
+      // Game started with 1 impostor
+      const impostors = store.getRoom('ABC12')!.gameState!.players.filter(
+        (p) => p.isImpostor,
+      );
+      expect(impostors.length).toBe(1);
     });
   });
 

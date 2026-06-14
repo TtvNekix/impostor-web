@@ -238,16 +238,14 @@ export function registerHandlers(
               discussionTime?: number;
             };
 
+            // impostorCount: accepted freely in the lobby (host plans ahead).
+            // The game engine clamps it at start_match time if the value is
+            // too high for the current player count.
             if (impostorCount !== undefined) {
-              const activeCount = Array.from(room.players.values()).filter(
-                (p) => p.status === 'ACTIVE',
-              ).length;
-              // Impostor cap: 1 for ≤5 players, 2 for 6-10
-              const maxImp = activeCount <= 5 ? 1 : 2;
-              if (impostorCount < 1 || impostorCount > maxImp) {
+              if (impostorCount < 1 || impostorCount > 2) {
                 sendError(ws, ErrorCode.INVALID_IMPOSTOR_COUNT,
-                  `Impostor count must be between 1 and ${maxImp}`,
-                  { max: maxImp, players: activeCount },
+                  'Impostor count must be 1 or 2',
+                  { max: 2, players: 0 },
                 );
                 return;
               }
