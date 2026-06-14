@@ -58,14 +58,15 @@ app.get('/health', (_req, res) => {
 
 const clientDist = path.resolve(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
+  console.log(`[server] Serving static files from ${clientDist}`);
   app.use(express.static(clientDist));
-  // SPA fallback
-  app.get('*', (_req, res) => {
+  // SPA fallback — must come before any Railway default routes
+  app.get(['/', '/**'], (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 } else {
   console.warn(
-    '[server] client/dist not found — serving API only. Build the client with `pnpm build:client`.',
+    `[server] client/dist not found at ${clientDist}. Build the client with \`pnpm build:client\`.`,
   );
 }
 
