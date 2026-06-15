@@ -1004,6 +1004,20 @@ body {
   font-style: italic;
 }
 
+.voting-table__voted-msg {
+  text-align: center;
+  padding: 1.25rem 1rem;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--accent-success);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px var(--accent-success-glow);
+  animation: fadeInScale 0.25s ease both;
+}
+
 /* ----------------------------------------------------------- */
 /*  Role Reveal Card                                             */
 /* ----------------------------------------------------------- */

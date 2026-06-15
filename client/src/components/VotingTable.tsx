@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Player } from '@impostor/shared';
 
 interface VotingTableProps {
@@ -7,6 +7,8 @@ interface VotingTableProps {
   isSpectator: boolean;
   onVote: (targetId: string | null) => void;
   disabled?: boolean;
+  /** True after this client has already cast a vote in the current round. */
+  hasVoted?: boolean;
 }
 
 /**
@@ -15,6 +17,7 @@ interface VotingTableProps {
  * - Disabled for spectators
  * - Shows a "Skip" button
  * - Hover glow effect on candidate cards
+ * - Locks the selection after voting (the server rejects double votes)
  */
 export function VotingTable({
   players,
@@ -22,27 +25,37 @@ export function VotingTable({
   isSpectator,
   onVote,
   disabled = false,
+  hasVoted = false,
 }: VotingTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [voted, setVoted] = useState(hasVoted);
+
+  useEffect(() => {
+    setVoted(hasVoted);
+  }, [hasVoted]);
 
   const activePlayers = players.filter(
     (p) => p.status === 'ACTIVE' && p.id !== currentPlayerId,
   );
 
+  const locked = disabled || voted;
+
   const handleSelect = (id: string) => {
-    if (isSpectator || disabled) return;
+    if (isSpectator || locked) return;
     setSelectedId(id === selectedId ? null : id);
   };
 
   const handleConfirm = () => {
-    if (selectedId && !isSpectator && !disabled) {
+    if (selectedId && !isSpectator && !locked) {
       onVote(selectedId);
+      setVoted(true);
     }
   };
 
   const handleSkip = () => {
-    if (!isSpectator && !disabled) {
+    if (!isSpectator && !locked) {
       onVote(null);
+      setVoted(true);
     }
   };
 
@@ -50,6 +63,14 @@ export function VotingTable({
     return (
       <div className="voting-table__spectator-msg">
         Los espectadores no pueden votar
+      </div>
+    );
+  }
+
+  if (voted) {
+    return (
+      <div className="voting-table__voted-msg">
+        ✓ Voto registrado
       </div>
     );
   }
@@ -68,7 +89,7 @@ export function VotingTable({
             <button
               key={player.id}
               onClick={() => handleSelect(player.id)}
-              disabled={disabled}
+              disabled={locked}
               className={`voting-table__player-btn${isSelected ? ' voting-table__player-btn--selected' : ''}`}
             >
               {player.username}
@@ -86,7 +107,7 @@ export function VotingTable({
       <div className="voting-table__actions">
         <button
           onClick={handleSkip}
-          disabled={disabled}
+          disabled={locked}
           className="btn btn--ghost"
         >
           Saltar voto
@@ -94,7 +115,7 @@ export function VotingTable({
 
         <button
           onClick={handleConfirm}
-          disabled={!selectedId || disabled}
+          disabled={!selectedId || locked}
           className="btn btn--danger"
         >
           Votar

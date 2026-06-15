@@ -53,6 +53,7 @@ export default function App() {
     addWords,
     newMatch,
     leaveRoom,
+    myId,
   } = useSocket();
 
   /* ---------------------------------------------------------------- */
@@ -129,6 +130,7 @@ export default function App() {
         updateSettings={updateSettings}
         addCategory={addCategory}
         addWords={addWords}
+        myId={myId}
         newMatch={newMatch}
       />
     </div>
@@ -154,6 +156,7 @@ interface ScreenRouterProps {
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
   newMatch: () => void;
+  myId: string | null;
 }
 
 function ScreenRouter({
@@ -167,6 +170,7 @@ function ScreenRouter({
   addCategory: addCategoryAction,
   addWords: addWordsAction,
   newMatch,
+  myId,
 }: ScreenRouterProps) {
   switch (phase) {
     case 'LOBBY':
@@ -186,7 +190,7 @@ function ScreenRouter({
       return <DiscussionScreen totalTime={90} startVoting={startVoting} />;
 
     case 'VOTING':
-      return <VotingScreen vote={vote} />;
+      return <VotingScreen vote={vote} myId={myId ?? ''} />;
 
     case 'EVALUATION':
       return <EvaluationScreen />;

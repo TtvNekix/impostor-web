@@ -2,15 +2,15 @@ import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 import { TimerBar } from '../components/TimerBar';
 import { VotingTable } from '../components/VotingTable';
+import { usePhaseTimer } from '../hooks/usePhaseTimer';
 import es from '../i18n/es';
 
 interface VotingScreenProps {
   vote: (payload: { targetId: string | null }) => void;
   /** Total voting duration in seconds (default 30) */
   totalTime?: number;
-  /** Current vote count info */
-  voterCount?: number;
-  totalPlayers?: number;
+  /** This client's socket id (so we can filter ourselves from the list) */
+  myId?: string;
 }
 
 /**
@@ -25,21 +25,23 @@ interface VotingScreenProps {
 export function VotingScreen({
   vote,
   totalTime = 30,
-  voterCount = 0,
-  totalPlayers = 0,
+  myId = '',
 }: VotingScreenProps) {
   const players = useRoomStore((s) => s.players);
   const roomCode = useRoomStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
-  const timer = useGameStore((s) => s.timer);
   const myRole = useGameStore((s) => s.myRole);
+  const voterCount = useGameStore((s) => s.voterCount);
+  const totalVoters = useGameStore((s) => s.totalVoters);
+  const votes = useGameStore((s) => s.votes);
+  const hasVoted = !!myId && votes.some((v) => v.voterId === myId);
+
+  // Local timer tick — the server sets phaseEndsAt in phase_changed, this
+  // hook recomputes the remaining seconds on a 250ms interval.
+  const remaining = usePhaseTimer();
 
   // If phase is not VOTING, don't render
   if (phase !== 'VOTING') return null;
-
-  // Current player ID — in a real app, this would come from auth/socket
-  // For now, derive from room store or leave as unknown
-  const currentPlayerId = '';
 
   // Check if current player is spectator (no role or was expelled)
   const isSpectator = myRole === null;
@@ -62,22 +64,23 @@ export function VotingScreen({
       </div>
 
       {/* Timer bar */}
-      <TimerBar total={totalTime} remaining={timer > 0 ? timer : totalTime} />
+      <TimerBar total={totalTime} remaining={remaining > 0 ? remaining : totalTime} />
 
       {/* Live vote count */}
       <div className="vote-count">
-        {totalPlayers > 0
+        {totalVoters > 0
           ? es.voting.voteCount
               .replace('{count}', String(voterCount))
-              .replace('{total}', String(totalPlayers))
+              .replace('{total}', String(totalVoters))
           : es.voting.waitingForVotes}
       </div>
 
       {/* Voting table */}
       <VotingTable
         players={players}
-        currentPlayerId={currentPlayerId}
+        currentPlayerId={myId}
         isSpectator={isSpectator}
+        hasVoted={hasVoted}
         onVote={(targetId) => vote({ targetId })}
       />
     </div>

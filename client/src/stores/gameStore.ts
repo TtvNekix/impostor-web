@@ -18,6 +18,10 @@ interface GameState {
   phaseTotal: number;
   /** Last-tick computed remaining time in seconds (0 if no timer). */
   timer: number;
+  /** Live count of players that have voted in the current round. */
+  voterCount: number;
+  /** Total number of active players who can vote. */
+  totalVoters: number;
   roundNumber: number;
 
   setPhase: (phase: GamePhase, phaseEndsAt?: number) => void;
@@ -28,6 +32,7 @@ interface GameState {
   setRoundResult: (result: RoundResult) => void;
   setWinner: (winner: Winner) => void;
   setTimer: (seconds: number) => void;
+  setVoterCount: (voterCount: number, totalVoters?: number) => void;
   setRoundNumber: (n: number) => void;
   resetGame: () => void;
 }
@@ -43,6 +48,8 @@ const initialState = {
   phaseEndsAt: 0,
   phaseTotal: 0,
   timer: 0,
+  voterCount: 0,
+  totalVoters: 0,
   roundNumber: 0,
 };
 
@@ -59,6 +66,10 @@ export const useGameStore = create<GameState>((set) => ({
       // directly for accurate countdowns.
       phaseTotal: remaining,
       timer: remaining,
+      // Reset the live voter count when the phase changes (e.g. fresh
+      // voting round after a new round starts).
+      voterCount: 0,
+      totalVoters: 0,
     });
   },
 
@@ -76,6 +87,11 @@ export const useGameStore = create<GameState>((set) => ({
   setWinner: (winner) => set({ winner }),
 
   setTimer: (timer) => set({ timer }),
+
+  setVoterCount: (voterCount, totalVoters) => set((state) => ({
+    voterCount,
+    totalVoters: totalVoters !== undefined ? totalVoters : state.totalVoters,
+  })),
 
   setRoundNumber: (roundNumber) => set({ roundNumber }),
 

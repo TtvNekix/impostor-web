@@ -65,6 +65,7 @@ export function useSocket() {
   const setWord = useGameStore((s) => s.setWord);
   const setCategory = useGameStore((s) => s.setCategory);
   const setVotes = useGameStore((s) => s.setVotes);
+  const setVoterCount = useGameStore((s) => s.setVoterCount);
   const setRoundResult = useGameStore((s) => s.setRoundResult);
   const setWinner = useGameStore((s) => s.setWinner);
   const setRoundNumber = useGameStore((s) => s.setRoundNumber);
@@ -175,6 +176,15 @@ export function useSocket() {
 
         case ServerEvent.VOTE_BROADCAST: {
           setVotes((data as { votes: any[] }).votes);
+          break;
+        }
+
+        case ServerEvent.VOTE_UPDATE: {
+          const { voterCount, totalPlayers } = data as {
+            voterCount: number;
+            totalPlayers: number;
+          };
+          setVoterCount(voterCount, totalPlayers);
           break;
         }
 
@@ -310,19 +320,15 @@ export function useSocket() {
   );
 
   const leaveRoom = useCallback(() => {
+    // Tell the server to remove us from the room. The WebSocket stays
+    // open so the user lands directly on the create/join form (the
+    // socketStatus is still 'connected'). Closing the WS here would
+    // bounce the user onto the "Reconectando" screen.
     sendMessage(ClientEvent.LEAVE_ROOM);
-    // Optimistically reset local state so the user is back at the
-    // connection screen even before the server closes the socket.
     clearRoom();
     resetGame();
-    setDisconnected('');
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current);
-      pingIntervalRef.current = null;
-    }
-    wsRef.current?.close();
-    wsRef.current = null;
-  }, [sendMessage, clearRoom, resetGame, setDisconnected]);
+    setError('');
+  }, [sendMessage, clearRoom, resetGame, setError]);
 
   return {
     joinRoom,
@@ -335,5 +341,7 @@ export function useSocket() {
     addWords: sendAddWords,
     newMatch,
     leaveRoom,
+    /** This client's assigned socket id (server sends it on connect). */
+    get myId() { return myIdRef.current; },
   };
 }
