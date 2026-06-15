@@ -290,8 +290,37 @@ describe('GameEngine', () => {
 
       engine.cleanupRoom('ABC12');
 
-      // No error — cleanup should work
+      // No error - cleanup should work
       engine.cleanupRoom('NONEXIST'); // Should not throw
+    });
+  });
+
+  describe('selectImpostors randomness', () => {
+    // Each of 4 players should be picked as impostor roughly 1/4 of the
+    // time, never monopolized. With Fisher-Yates the distribution is
+    // uniform within ±10% over 4000 runs.
+    it('picks a uniform random subset across many runs', () => {
+      const players = [
+        { id: 'a', username: 'A', status: 'ACTIVE' as const, isHost: false, joinedAt: 0 },
+        { id: 'b', username: 'B', status: 'ACTIVE' as const, isHost: false, joinedAt: 1 },
+        { id: 'c', username: 'C', status: 'ACTIVE' as const, isHost: false, joinedAt: 2 },
+        { id: 'd', username: 'D', status: 'ACTIVE' as const, isHost: false, joinedAt: 3 },
+      ];
+      const counts: Record<string, number> = { a: 0, b: 0, c: 0, d: 0 };
+      const N = 4000;
+      const engineProto = engine as unknown as {
+        selectImpostors: (players: typeof players, count: number) => Set<string>;
+      };
+      for (let i = 0; i < N; i++) {
+        const picked = engineProto.selectImpostors(players, 1);
+        for (const id of picked) counts[id] = (counts[id] ?? 0) + 1;
+      }
+      const expected = N / 4;
+      for (const id of ['a', 'b', 'c', 'd']) {
+        const got = counts[id];
+        const deviation = Math.abs(got - expected) / expected;
+        expect(deviation).toBeLessThan(0.15);
+      }
     });
   });
 });

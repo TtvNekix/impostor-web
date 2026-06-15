@@ -1,5 +1,6 @@
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
+import { useConnectionStore } from '../stores/connectionStore';
 import { TimerBar } from '../components/TimerBar';
 import { PlayerList } from '../components/PlayerList';
 import { RoleReveal } from '../components/RoleReveal';
@@ -34,6 +35,7 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
   const myRole = useGameStore((s) => s.myRole);
 
   const getDisplayName = useCategoryStore((s) => s.getDisplayName);
+  const lastError = useConnectionStore((s) => s.error);
 
   // Local timer tick — uses phaseEndsAt to recompute remaining seconds
   const remaining = usePhaseTimer();
@@ -79,8 +81,10 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
         <TimerBar total={totalTime} remaining={remaining} />
       )}
 
-      {/* Host: start the voting phase. Now the only way to advance. */}
-      {isDiscussion && isHost && !isSpectator && (
+      {/* Host: start the voting phase. Now the only way to advance.
+          Available in both WORD_REVEAL and DISCUSSION so the host can
+          start voting as soon as the word has been seen. */}
+      {(isDiscussion || phase === 'WORD_REVEAL') && isHost && !isSpectator && (
         <button
           onClick={startVoting}
           className="btn btn--primary btn--block btn--lg"
@@ -88,6 +92,10 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
         >
           ▶ {es.discussion.startVoting} (30s)
         </button>
+      )}
+
+      {lastError && (
+        <p className="connection-screen__error">{lastError}</p>
       )}
 
       {/* Non-host: tell them to wait for the host */}

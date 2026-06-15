@@ -385,7 +385,13 @@ export class GameEngine {
     activePlayers: Player[],
     count: number,
   ): Set<string> {
-    const shuffled = [...activePlayers].sort(() => Math.random() - 0.5);
+    // Fisher-Yates shuffle: uniform distribution, unlike
+    // `Array.sort(() => Math.random() - 0.5)` which has known bias.
+    const shuffled = [...activePlayers];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     const ids = new Set<string>();
     for (let i = 0; i < count && i < shuffled.length; i++) {
       ids.add(shuffled[i].id);

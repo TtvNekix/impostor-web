@@ -34,9 +34,7 @@ export function VotingTable({
     setVoted(hasVoted);
   }, [hasVoted]);
 
-  const activePlayers = players.filter(
-    (p) => p.status === 'ACTIVE' && p.id !== currentPlayerId,
-  );
+  const activePlayers = players.filter((p) => p.status === 'ACTIVE');
 
   const locked = disabled || voted;
 
@@ -85,14 +83,21 @@ export function VotingTable({
       <div className="voting-table__grid">
         {activePlayers.map((player) => {
           const isSelected = selectedId === player.id;
+          const isMe = player.id === currentPlayerId;
           return (
             <button
               key={player.id}
               onClick={() => handleSelect(player.id)}
               disabled={locked}
-              className={`voting-table__player-btn${isSelected ? ' voting-table__player-btn--selected' : ''}`}
+              className={
+                `voting-table__player-btn${isSelected ? ' voting-table__player-btn--selected' : ''}` +
+                `${isMe ? ' voting-table__player-btn--me' : ''}`
+              }
             >
               {player.username}
+              {isMe && !isSelected && (
+                <div className="voting-table__me-label">(Tú)</div>
+              )}
               {isSelected && (
                 <div className="voting-table__selected-label">
                   ✓ SELECCIONADO
