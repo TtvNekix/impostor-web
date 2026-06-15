@@ -49,6 +49,7 @@ export function useSocket() {
 
   const setConnected = useConnectionStore((s) => s.setConnected);
   const setDisconnected = useConnectionStore((s) => s.setDisconnected);
+  const setError = useConnectionStore((s) => s.setError);
   const setConnecting = useConnectionStore((s) => s.setConnecting);
   const clearError = useConnectionStore((s) => s.clearError);
 
@@ -133,7 +134,12 @@ export function useSocket() {
         }
 
         case ServerEvent.ROOM_ERROR: {
-          setDisconnected(localizeError(data as RoomErrorPayload));
+          // A room-level error (e.g. room_not_found, room_full). The
+          // WebSocket is still healthy — only set the error message so the
+          // create/join form can display it inline. Do NOT flip
+          // socketStatus to 'disconnected', or the user gets the
+          // misleading "Conexión perdida" screen.
+          setError(localizeError(data as RoomErrorPayload));
           break;
         }
 

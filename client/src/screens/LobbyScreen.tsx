@@ -141,7 +141,7 @@ export function LobbyScreen({
             type="text"
             placeholder={es.lobby.enterUsername}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => { setUsername(e.target.value); if (error) clearError(); }}
             maxLength={20}
             className="input"
           />
@@ -184,7 +184,7 @@ export function LobbyScreen({
               type="text"
               placeholder={es.lobby.enterRoomCode}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => { setCode(e.target.value); if (error) clearError(); }}
               maxLength={6}
               className="input"
               style={{ textTransform: 'uppercase' }}

@@ -82,6 +82,13 @@ export default function App() {
         <p className="connection-screen__text">
           {es.connection.connectionLost}
         </p>
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => window.location.reload()}
+        >
+          {es.common.retry}
+        </button>
       </div>
     );
   }

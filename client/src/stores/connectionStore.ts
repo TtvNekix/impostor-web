@@ -7,6 +7,8 @@ interface ConnectionState {
   error: string | null;
   setConnected: () => void;
   setDisconnected: (error?: string) => void;
+  /** Set the error message without changing the connection status. */
+  setError: (error: string) => void;
   setConnecting: () => void;
   clearError: () => void;
 }
@@ -19,6 +21,8 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
 
   setDisconnected: (error?: string) =>
     set({ socketStatus: 'disconnected', error: error ?? null }),
+
+  setError: (error) => set({ error: error || null }),
 
   setConnecting: () => set({ socketStatus: 'connecting' }),
 
