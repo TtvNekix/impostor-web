@@ -169,6 +169,57 @@ describe('GameEngine', () => {
       expect(impostors.length).toBe(1);
     });
 
+    it('forces 2 impostors when there are 5+ players, even if room was created with impostorCount=1', () => {
+      // 5 players, server must override the stored setting to 2
+      roomManager.createRoom('ABC12', 'Host', { impostorCount: 1 });
+      store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
+      for (const [i, name] of ['Alice', 'Bob', 'Carol', 'Dave'].entries()) {
+        roomManager.joinRoom('ABC12', name, `socket-p${i}`);
+      }
+
+      const result = engine.startMatch('ABC12', 'socket-host');
+      expect(result).toBe(true);
+      // Settings were forced to 2
+      expect(store.getRoom('ABC12')!.settings.impostorCount).toBe(2);
+      // Settings update was broadcast
+      expect(connManager.broadcastToRoom).toHaveBeenCalledWith(
+        'ABC12',
+        ServerEvent.SETTINGS_UPDATED,
+        expect.objectContaining({ impostorCount: 2 }),
+      );
+      // Game started with 2 impostors
+      const impostors = store.getRoom('ABC12')!.gameState!.players.filter(
+        (p) => p.isImpostor,
+      );
+      expect(impostors.length).toBe(2);
+    });
+
+    it('sends impostorIds in the GAME_STARTED broadcast so the client can name them on game over', () => {
+      roomManager.createRoom('ABC12', 'Host');
+      store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('ABC12', 'Alice', 'socket-alice');
+      roomManager.joinRoom('ABC12', 'Bob', 'socket-bob');
+
+      engine.startMatch('ABC12', 'socket-host');
+
+      expect(connManager.broadcastToRoom).toHaveBeenCalledWith(
+        'ABC12',
+        ServerEvent.GAME_STARTED,
+        expect.objectContaining({
+          impostorIds: expect.any(Array),
+        }),
+      );
+      // The impostorIds should have exactly one entry (3 players → 1 impostor)
+      const call = (connManager.broadcastToRoom as any).mock.calls.find(
+        ([code, event]: any) => code === 'ABC12' && event === ServerEvent.GAME_STARTED,
+      );
+      const payload = call[2] as { impostorIds: string[] };
+      expect(payload.impostorIds).toHaveLength(1);
+      // And that ID must correspond to a real player
+      const playerIds = ['socket-host', 'socket-alice', 'socket-bob'];
+      expect(playerIds).toContain(payload.impostorIds[0]);
+    });
+
     it('picks a word from the configured category', () => {
       const cat = bank.getCategories()[0];
       roomManager.createRoom('ABC12', 'Host', { category: cat.name });

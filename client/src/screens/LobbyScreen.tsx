@@ -18,7 +18,6 @@ interface LobbyScreenProps {
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
   updateSettings: (payload: {
-    impostorCount?: number;
     category?: string | null;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
@@ -272,18 +271,14 @@ export function LobbyScreen({
             </div>
           </div>
 
-          {/* Impostor count */}
+          {/* Impostor count — derived from player count, not a setting.
+              < 5 players → 1 impostor.  5+ players → 2 impostors.
+              Server enforces the same rule in startMatch. */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.impostors}</label>
-            <CustomSelect
-              value={settings.impostorCount}
-              options={[
-                { value: 1, label: '1' },
-                { value: 2, label: '2' },
-              ]}
-              onChange={(v) => updateSettings({ impostorCount: v })}
-              ariaLabel={es.lobby.impostors}
-            />
+            <span className="settings-panel__value">
+              {players.length >= 5 ? 2 : 1}
+            </span>
           </div>
 
           <p className="settings-panel__hint">

@@ -15,6 +15,14 @@ import { RoundManager } from './RoundManager';
 export class GameEngine {
   /** Per-room state machine instances. */
   private machines: Map<string, StateMachine> = new Map();
+  /**
+   * Impostor history per room. For each roomCode, an array of the impostor
+   * ID lists from the last 2 matches (most recent last). Used to enforce
+   * the "max 2 in a row" safeguard: a player who was impostor in BOTH of
+   * the last 2 matches is excluded from the candidate pool on the next
+   * match (when possible).
+   */
+  private impostorHistory: Map<string, string[][]> = new Map();
 
   constructor(
     private connManager: ConnectionManager,
@@ -63,12 +71,15 @@ export class GameEngine {
       return false;
     }
 
-    // Validate impostor count against player count. If the host configured
-    // too many impostors for the current player count, auto-clamp the
-    // setting, broadcast the change so the UI updates, and proceed.
-    const maxImpostors = this.getMaxImpostors(activePlayers.length);
-    if (room.settings.impostorCount > maxImpostors) {
-      room.settings.impostorCount = maxImpostors;
+    // Force the impostor count based on the current player count:
+    //   - 4 or fewer players → 1 impostor
+    //   - 5 or more players  → 2 impostors
+    // The host can't pick — the count is purely a function of lobby size.
+    // If the room's stored setting disagrees, overwrite + broadcast so
+    // every client sees the new value.
+    const forcedImpostorCount = this.getMaxImpostors(activePlayers.length);
+    if (room.settings.impostorCount !== forcedImpostorCount) {
+      room.settings.impostorCount = forcedImpostorCount;
       this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
     }
 
@@ -126,6 +137,7 @@ export class GameEngine {
       roundNumber: gameState.roundNumber,
       category: gameState.category,
       phaseEndsAt: 0,
+      impostorIds: gameState.impostorIds,
     });
 
     // 3. Send word_assigned individually
@@ -399,8 +411,14 @@ export class GameEngine {
     return ids;
   }
 
+  /**
+   * Impostor count is purely a function of the lobby size:
+   *   - 4 or fewer players → 1 impostor
+   *   - 5 or more players  → 2 impostors
+   * The host cannot pick a different value.
+   */
   private getMaxImpostors(playerCount: number): number {
-    if (playerCount <= 6) return 1;
+    if (playerCount < 5) return 1;
     return 2;
   }
 

@@ -17,7 +17,7 @@ export function GameOverScreen({ newMatch }: GameOverScreenProps) {
   const phase = useGameStore((s) => s.phase);
   const winner = useGameStore((s) => s.winner);
   const roundNumber = useGameStore((s) => s.roundNumber);
-  const myRole = useGameStore((s) => s.myRole);
+  const impostorIds = useGameStore((s) => s.impostorIds);
   const isHost = useRoomStore((s) => s.isHost);
   const players = useRoomStore((s) => s.players);
 
@@ -25,6 +25,17 @@ export function GameOverScreen({ newMatch }: GameOverScreenProps) {
   if (phase !== 'GAME_OVER') return null;
 
   const nonImpostorsWin = winner === 'NON_IMPOSTORS';
+
+  // Resolve impostor usernames from the room's player list. We map IDs
+  // → username so the label says "El impostor era Alice" (or "Alice, Bob"
+  // when there are two) instead of the old vague "Tú" / "Otro jugador".
+  const impostorNames = impostorIds
+    .map((id) => players.find((p) => p.id === id)?.username)
+    .filter((name): name is string => Boolean(name));
+  const impostorLabel =
+    impostorNames.length === 0
+      ? '—'
+      : impostorNames.join(', ');
 
   return (
     <div className="page page--centered">
@@ -59,9 +70,7 @@ export function GameOverScreen({ newMatch }: GameOverScreenProps) {
 
         <div className="stats-card__row">
           <span className="stats-card__label">{es.gameOver.impostorWas}</span>
-          <span className="stats-card__value">
-            {myRole === 'impostor' ? 'Tú' : 'Otro jugador'}
-          </span>
+          <span className="stats-card__value">{impostorLabel}</span>
         </div>
       </div>
 

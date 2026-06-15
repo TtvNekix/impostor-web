@@ -71,6 +71,7 @@ export function useSocket() {
   const setRoundResult = useGameStore((s) => s.setRoundResult);
   const setWinner = useGameStore((s) => s.setWinner);
   const setRoundNumber = useGameStore((s) => s.setRoundNumber);
+  const setImpostorIds = useGameStore((s) => s.setImpostorIds);
   const resetGame = useGameStore((s) => s.resetGame);
 
   useEffect(() => {
@@ -143,6 +144,7 @@ export function useSocket() {
               setPhase(room.gameState.phase, room.gameState.phaseEndsAt);
               setCategory(room.gameState.category);
               setRoundNumber(room.gameState.roundNumber);
+              setImpostorIds(room.gameState.impostorIds ?? []);
               if (room.gameState.phase !== 'LOBBY') {
                 setVotes(room.gameState.votes);
               }
@@ -171,9 +173,10 @@ export function useSocket() {
 
           case ServerEvent.GAME_STARTED: {
             setPhase('WORD_REVEAL', 0);
-            const gs = data as { category: string; roundNumber: number };
+            const gs = data as { category: string; roundNumber: number; impostorIds: string[] };
             setCategory(gs.category);
             setRoundNumber(gs.roundNumber);
+            setImpostorIds(gs.impostorIds ?? []);
             break;
           }
 

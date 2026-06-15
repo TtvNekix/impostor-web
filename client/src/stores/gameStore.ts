@@ -23,6 +23,8 @@ interface GameState {
   /** Total number of active players who can vote. */
   totalVoters: number;
   roundNumber: number;
+  /** Player IDs who are impostors in the current match (set on game start). */
+  impostorIds: string[];
 
   setPhase: (phase: GamePhase, phaseEndsAt?: number) => void;
   setWord: (word: string | null) => void;
@@ -34,6 +36,7 @@ interface GameState {
   setTimer: (seconds: number) => void;
   setVoterCount: (voterCount: number, totalVoters?: number) => void;
   setRoundNumber: (n: number) => void;
+  setImpostorIds: (ids: string[]) => void;
   resetGame: () => void;
 }
 
@@ -51,6 +54,7 @@ const initialState = {
   voterCount: 0,
   totalVoters: 0,
   roundNumber: 0,
+  impostorIds: [] as string[],
 };
 
 export const useGameStore = create<GameState>((set) => ({
@@ -98,6 +102,8 @@ export const useGameStore = create<GameState>((set) => ({
   })),
 
   setRoundNumber: (roundNumber) => set({ roundNumber }),
+
+  setImpostorIds: (impostorIds) => set({ impostorIds }),
 
   resetGame: () => set({ ...initialState }),
 }));
