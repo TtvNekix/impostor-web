@@ -40,12 +40,14 @@ function localizeError(payload: RoomErrorPayload): string {
  * Creates a raw WebSocket connection, binds all server→client events to
  * Zustand stores, and returns typed send helpers for client→server events.
  *
- * Auto-connects on mount and disconnects on unmount.
+ * Auto-connects on mount, auto-reconnects on close (with backoff), and
+ * replies to server pings immediately so the 20s pong timeout can't fire.
  */
 export function useSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const myIdRef = useRef<string | null>(null);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setConnected = useConnectionStore((s) => s.setConnected);
   const setDisconnected = useConnectionStore((s) => s.setDisconnected);
@@ -77,190 +79,205 @@ export function useSocket() {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
     const url = serverUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    let reconnectAttempt = 0;
 
-    ws.addEventListener('open', () => {
-      setConnected();
-    });
+    const scheduleReconnect = () => {
+      if (reconnectTimerRef.current) return;
+      // Exponential backoff capped at 10s: 1s, 2s, 4s, 8s, 10s, 10s...
+      const delay = Math.min(10000, 1000 * Math.pow(2, reconnectAttempt));
+      reconnectAttempt++;
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, delay);
+    };
 
-    ws.addEventListener('message', (event: MessageEvent) => {
-      let msg: { event: string; data: unknown };
-      try {
-        msg = JSON.parse(event.data as string);
-      } catch {
-        return;
-      }
+    function connect() {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      reconnectAttempt = 0;
 
-      const { event: eventName, data } = msg;
+      ws.addEventListener('open', () => {
+        setConnected();
+      });
 
-      switch (eventName) {
-        /* ------------------------------------------------------------ */
-        /*  Connection established — save assigned ID                   */
-        /* ------------------------------------------------------------ */
-        case 'connected': {
-          myIdRef.current = (data as { id: string }).id;
-          break;
+      ws.addEventListener('message', (event: MessageEvent) => {
+        let msg: { event: string; data: unknown };
+        try {
+          msg = JSON.parse(event.data as string);
+        } catch {
+          return;
         }
 
-        /* ------------------------------------------------------------ */
-        /*  Server → Client events                                      */
-        /* ------------------------------------------------------------ */
+        const { event: eventName, data } = msg;
 
-        case ServerEvent.CATEGORIES: {
-          const { categories } = data as { categories: CategoryInfo[] };
-          setCategories(categories);
-          break;
-        }
-
-        case ServerEvent.ROOM_JOINED: {
-          const { room } = data as { room: any };
-          const myId = myIdRef.current;
-          if (!myId) return;
-
-          const me = room.players.find((p: any) => p.id === myId);
-          setRoom(room.code, room.players, me?.isHost ?? false, room.settings);
-          if (room.gameState) {
-            setPhase(room.gameState.phase, room.gameState.phaseEndsAt);
-            setCategory(room.gameState.category);
-            setRoundNumber(room.gameState.roundNumber);
-            if (room.gameState.phase !== 'LOBBY') {
-              setVotes(room.gameState.votes);
-            }
-          } else {
-            resetGame();
+        // Heartbeat: reply to server pings immediately. The server
+        // only waits 20s for a pong, so relying on the 25s periodic
+        // interval is a race condition that kills the connection.
+        if (eventName === 'ping') {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ event: 'pong' }));
           }
-          clearError();
-          break;
+          return;
         }
 
-        case ServerEvent.ROOM_ERROR: {
-          // A room-level error (e.g. room_not_found, room_full). The
-          // WebSocket is still healthy — only set the error message so the
-          // create/join form can display it inline. Do NOT flip
-          // socketStatus to 'disconnected', or the user gets the
-          // misleading "Conexión perdida" screen.
-          setError(localizeError(data as RoomErrorPayload));
-          break;
+        switch (eventName) {
+          case 'connected': {
+            myIdRef.current = (data as { id: string }).id;
+            break;
+          }
+
+          case ServerEvent.CATEGORIES: {
+            const { categories } = data as { categories: CategoryInfo[] };
+            setCategories(categories);
+            break;
+          }
+
+          case ServerEvent.ROOM_JOINED: {
+            const { room } = data as { room: any };
+            const myId = myIdRef.current;
+            if (!myId) return;
+            const me = room.players.find((p: any) => p.id === myId);
+            setRoom(room.code, room.players, me?.isHost ?? false, room.settings);
+            if (room.gameState) {
+              setPhase(room.gameState.phase, room.gameState.phaseEndsAt);
+              setCategory(room.gameState.category);
+              setRoundNumber(room.gameState.roundNumber);
+              if (room.gameState.phase !== 'LOBBY') {
+                setVotes(room.gameState.votes);
+              }
+            } else {
+              resetGame();
+            }
+            clearError();
+            break;
+          }
+
+          case ServerEvent.ROOM_ERROR: {
+            setError(localizeError(data as RoomErrorPayload));
+            break;
+          }
+
+          case ServerEvent.PLAYER_JOINED: {
+            addPlayer((data as { player: any }).player);
+            break;
+          }
+
+          case ServerEvent.PLAYER_LEFT: {
+            const { playerId, newHost } = data as { playerId: string; newHost?: string };
+            removePlayer(playerId, newHost);
+            break;
+          }
+
+          case ServerEvent.GAME_STARTED: {
+            setPhase('WORD_REVEAL', 0);
+            const gs = data as { category: string; roundNumber: number };
+            setCategory(gs.category);
+            setRoundNumber(gs.roundNumber);
+            break;
+          }
+
+          case ServerEvent.WORD_ASSIGNED: {
+            setWord((data as { word: string | null }).word);
+            break;
+          }
+
+          case ServerEvent.PHASE_CHANGED: {
+            const { phase, phaseEndsAt } = data as { phase: any; phaseEndsAt: number };
+            setPhase(phase, phaseEndsAt);
+            break;
+          }
+
+          case ServerEvent.VOTE_BROADCAST: {
+            setVotes((data as { votes: any[] }).votes);
+            break;
+          }
+
+          case ServerEvent.VOTE_UPDATE: {
+            const { voterCount, totalPlayers } = data as {
+              voterCount: number;
+              totalPlayers: number;
+            };
+            setVoterCount(voterCount, totalPlayers);
+            break;
+          }
+
+          case ServerEvent.ROUND_RESULT: {
+            setRoundResult(data as any);
+            break;
+          }
+
+          case ServerEvent.GAME_OVER: {
+            setWinner((data as { winner: any }).winner);
+            setPhase('GAME_OVER', 0);
+            break;
+          }
+
+          case ServerEvent.SETTINGS_UPDATED: {
+            updateRoomSettings(data as RoomSettings);
+            break;
+          }
+
+          case ServerEvent.HOST_LEFT: {
+            const payload = data as { message: string };
+            clearRoom();
+            resetGame();
+            setDisconnected(payload.message || es.errors.generic);
+            break;
+          }
+
+          case ServerEvent.KICKED: {
+            resetGame();
+            setDisconnected((data as { reason: string }).reason);
+            break;
+          }
+
+          default:
+            break;
         }
+      });
 
-        case ServerEvent.PLAYER_JOINED: {
-          addPlayer((data as { player: any }).player);
-          break;
+      ws.addEventListener('close', () => {
+        setDisconnected();
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
         }
-
-        case ServerEvent.PLAYER_LEFT: {
-          const { playerId, newHost } = data as { playerId: string; newHost?: string };
-          removePlayer(playerId, newHost);
-          break;
+        // Auto-reconnect unless we deliberately left
+        // (leaveRoom sets wsRef.current = null first).
+        if (wsRef.current !== null) {
+          scheduleReconnect();
         }
+      });
 
-        case ServerEvent.GAME_STARTED: {
-          setPhase('WORD_REVEAL', 0);
-          const gs = data as { category: string; roundNumber: number };
-          setCategory(gs.category);
-          setRoundNumber(gs.roundNumber);
-          break;
+      ws.addEventListener('error', () => {
+        setDisconnected('Error de conexión');
+      });
+
+      // Backup periodic pong in case the immediate response is missed
+      pingIntervalRef.current = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ event: 'pong' }));
         }
+      }, 25_000);
+    }
 
-        case ServerEvent.WORD_ASSIGNED: {
-          setWord((data as { word: string | null }).word);
-          break;
-        }
-
-        case ServerEvent.PHASE_CHANGED: {
-          const { phase, phaseEndsAt } = data as { phase: any; phaseEndsAt: number };
-          setPhase(phase, phaseEndsAt);
-          break;
-        }
-
-        case ServerEvent.VOTE_BROADCAST: {
-          setVotes((data as { votes: any[] }).votes);
-          break;
-        }
-
-        case ServerEvent.VOTE_UPDATE: {
-          const { voterCount, totalPlayers } = data as {
-            voterCount: number;
-            totalPlayers: number;
-          };
-          setVoterCount(voterCount, totalPlayers);
-          break;
-        }
-
-        case ServerEvent.ROUND_RESULT: {
-          setRoundResult(data as any);
-          break;
-        }
-
-        case ServerEvent.GAME_OVER: {
-          setWinner((data as { winner: any }).winner);
-          setPhase('GAME_OVER', 0);
-          break;
-        }
-
-        case ServerEvent.SETTINGS_UPDATED: {
-          updateRoomSettings(data as RoomSettings);
-          break;
-        }
-
-        case ServerEvent.HOST_LEFT: {
-          // The admin dropped — the server has already destroyed the room.
-          // Reset all local state and bounce the user back to the
-          // connection screen with the message in tow.
-          const payload = data as { message: string };
-          clearRoom();
-          resetGame();
-          setDisconnected(payload.message || es.errors.generic);
-          break;
-        }
-
-        case ServerEvent.KICKED: {
-          resetGame();
-          setDisconnected((data as { reason: string }).reason);
-          break;
-        }
-
-        default:
-          break;
-      }
-    });
-
-    ws.addEventListener('close', () => {
-      setDisconnected();
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-        pingIntervalRef.current = null;
-      }
-    });
-
-    ws.addEventListener('error', () => {
-      setDisconnected('Error de conexión');
-    });
-
-    /* ---------------------------------------------------------------- */
-    /*  Heartbeat — send pong every 25 s                                */
-    /* ---------------------------------------------------------------- */
-
-    pingIntervalRef.current = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ event: 'pong' }));
-      }
-    }, 25_000);
-
-    /* ---------------------------------------------------------------- */
-    /*  Cleanup                                                         */
-    /* ---------------------------------------------------------------- */
+    connect();
 
     return () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
         pingIntervalRef.current = null;
       }
-      ws.close();
+      const ws = wsRef.current;
+      // null it first so the close handler doesn't trigger a reconnect
       wsRef.current = null;
+      if (ws) ws.close();
     };
-    // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -320,10 +337,10 @@ export function useSocket() {
   );
 
   const leaveRoom = useCallback(() => {
-    // Tell the server to remove us from the room. The WebSocket stays
-    // open so the user lands directly on the create/join form (the
-    // socketStatus is still 'connected'). Closing the WS here would
-    // bounce the user onto the "Reconectando" screen.
+    // Tell the server to remove us. The WebSocket stays open so the
+    // socketStatus remains 'connected' and the user lands on the
+    // create/join form. If they need to fully disconnect, the X
+    // button does a hard navigation.
     sendMessage(ClientEvent.LEAVE_ROOM);
     clearRoom();
     resetGame();

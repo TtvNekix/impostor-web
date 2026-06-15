@@ -110,7 +110,14 @@ export default function App() {
           <button
             type="button"
             className="game-header__leave"
-            onClick={leaveRoom}
+            onClick={() => {
+              // Best-effort: tell the server to remove us, then hard
+              // navigate to the main page. The hard navigation closes
+              // the WebSocket and reloads the UI, which is the most
+              // reliable way to land the user back on the form.
+              try { leaveRoom(); } catch { /* ignore */ }
+              window.location.href = '/play';
+            }}
             aria-label="Salir de la partida"
             title="Salir de la partida"
           >

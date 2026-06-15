@@ -9,6 +9,9 @@ interface VotingTableProps {
   disabled?: boolean;
   /** True after this client has already cast a vote in the current round. */
   hasVoted?: boolean;
+  /** When true (default), the host can force-tally even if some players haven't voted. */
+  showForceEnd?: boolean;
+  onForceEnd?: () => void;
 }
 
 /**
@@ -18,6 +21,8 @@ interface VotingTableProps {
  * - Shows a "Skip" button
  * - Hover glow effect on candidate cards
  * - Locks the selection after voting (the server rejects double votes)
+ * - Host gets a "Forzar fin" button once they've voted (so they can break
+ *   ties when an AFK player is blocking the tally).
  */
 export function VotingTable({
   players,
@@ -26,6 +31,8 @@ export function VotingTable({
   onVote,
   disabled = false,
   hasVoted = false,
+  showForceEnd = false,
+  onForceEnd,
 }: VotingTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [voted, setVoted] = useState(hasVoted);
@@ -69,6 +76,16 @@ export function VotingTable({
     return (
       <div className="voting-table__voted-msg">
         ✓ Voto registrado
+        {showForceEnd && onForceEnd && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm voting-table__force-end"
+            onClick={onForceEnd}
+            style={{ marginTop: '0.75rem' }}
+          >
+            Forzar fin de votación
+          </button>
+        )}
       </div>
     );
   }
