@@ -1,6 +1,4 @@
 import {
-  MIN_TIMER,
-  MAX_TIMER,
   DEFAULT_TIMER,
   MIN_PLAYERS,
   MAX_PLAYERS,
@@ -22,14 +20,14 @@ export function generateRoomCode(): string {
 }
 
 /**
- * Clamp a discussion timer value within [MIN_TIMER, MAX_TIMER].
- * Falls back to DEFAULT_TIMER when the input is not a valid number.
+ * Clamp a discussion timer value. Returns 0 (= no auto-end; host must
+ * press "Iniciar votación") when the input is not a valid positive number.
  */
 export function clampTimer(value: number): number {
   if (typeof value !== 'number' || isNaN(value) || value <= 0) {
     return DEFAULT_TIMER;
   }
-  return Math.max(MIN_TIMER, Math.min(MAX_TIMER, Math.round(value)));
+  return Math.round(value);
 }
 
 /**

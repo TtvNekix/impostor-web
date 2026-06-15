@@ -22,7 +22,8 @@ describe('RoomManager', () => {
       expect(room.players.size).toBe(1);
       expect(room.settings.maxPlayers).toBe(10);
       expect(room.settings.impostorCount).toBe(1);
-      expect(room.settings.discussionTime).toBe(90);
+      // No discussion time by default — host must press "Iniciar votación"
+      expect(room.settings.discussionTime).toBe(0);
     });
 
     it('accepts custom settings', () => {

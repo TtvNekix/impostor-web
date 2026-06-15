@@ -1,9 +1,9 @@
 export const MAX_PLAYERS = 10;
 export const MIN_PLAYERS = 3;
 export const DEFAULT_MAX_PLAYERS = 10;
-export const DEFAULT_TIMER = 90;
-export const MIN_TIMER = 60;
-export const MAX_TIMER = 120;
+/** Default discussion time (in seconds). 0 = no auto-end; the host must
+ *  press "Iniciar votación" to advance to the voting phase. */
+export const DEFAULT_TIMER = 0;
 export const VOTING_TIMER = 30;
 
 /** Impostor count constraints keyed by player count ceiling. */

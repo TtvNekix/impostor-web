@@ -19,7 +19,6 @@ interface LobbyScreenProps {
   startMatch: () => void;
   updateSettings: (payload: {
     impostorCount?: number;
-    discussionTime?: number;
     category?: string | null;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
@@ -30,12 +29,6 @@ const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map
   value: n,
   label: String(n),
 }));
-
-const DISCUSSION_TIME_OPTIONS: CustomSelectOption<number>[] = [
-  { value: 60, label: `60 ${es.lobby.seconds}` },
-  { value: 90, label: `90 ${es.lobby.seconds}` },
-  { value: 120, label: `120 ${es.lobby.seconds}` },
-];
 
 export function LobbyScreen({
   createRoom,
@@ -293,16 +286,9 @@ export function LobbyScreen({
             />
           </div>
 
-          {/* Discussion time */}
-          <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.discussionTime}</label>
-            <CustomSelect
-              value={settings.discussionTime}
-              options={DISCUSSION_TIME_OPTIONS}
-              onChange={(v) => updateSettings({ discussionTime: v })}
-              ariaLabel={es.lobby.discussionTime}
-            />
-          </div>
+          <p className="settings-panel__hint">
+            {es.lobby.discussionHint}
+          </p>
         </div>
       )}
 

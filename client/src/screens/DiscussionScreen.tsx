@@ -73,20 +73,28 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
         </div>
       )}
 
-      {/* Timer bar */}
-      {!isWordReveal && totalTime > 0 && (
+      {/* Timer bar (only when there's a real countdown; phaseEndsAt=0 means
+          no auto-end and the host advances manually) */}
+      {!isWordReveal && totalTime > 0 && remaining > 0 && (
         <TimerBar total={totalTime} remaining={remaining} />
       )}
 
-      {/* Host: skip to voting */}
+      {/* Host: start the voting phase. Now the only way to advance. */}
       {isDiscussion && isHost && !isSpectator && (
         <button
           onClick={startVoting}
-          className="btn btn--primary btn--block"
+          className="btn btn--primary btn--block btn--lg"
           aria-label="Iniciar votación para expulsar a un jugador"
         >
-          {es.discussion.startVoting}
+          ▶ {es.discussion.startVoting} (30s)
         </button>
+      )}
+
+      {/* Non-host: tell them to wait for the host */}
+      {isDiscussion && !isHost && !isSpectator && (
+        <p className="auto-transition-info">
+          {es.discussion.waitingForHost}
+        </p>
       )}
 
       {/* Spectator info */}

@@ -50,8 +50,7 @@ const es = {
     wordsAdded: '{added} palabras añadidas ({total} en total)',
     noNewWords: 'Todas las palabras ya estaban',
     impostors: 'Impostores',
-    discussionTime: 'Tiempo de discusión',
-    seconds: 'segundos',
+    discussionHint: 'Sin tiempo de discusión: el anfitrión inicia la votación manualmente. Tendrás 30s para votar.',
     startMatch: 'Iniciar Partida',
     minPlayersRequired: 'Se necesitan al menos {min} jugadores',
     startError: 'Error al iniciar la partida',
@@ -68,6 +67,7 @@ const es = {
     timeRemaining: 'Tiempo restante',
     lobbyLink: 'Volver a sala',
     waitingForVoting: 'Esperando a que termine la discusión...',
+    waitingForHost: 'Esperando a que el anfitrión inicie la votación…',
     startVoting: 'Iniciar votación',
   },
 

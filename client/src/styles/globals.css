@@ -1348,6 +1348,15 @@ body {
   padding: 0.35rem 0.7rem;
 }
 
+.settings-panel__hint {
+  margin: 0;
+  padding: 0.4rem 0.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-style: italic;
+  line-height: 1.3;
+}
+
 .settings-panel__select {
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
