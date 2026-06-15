@@ -50,6 +50,7 @@ export default function App() {
     vote,
     updateSettings,
     newMatch,
+    leaveRoom,
   } = useSocket();
 
   /* ---------------------------------------------------------------- */
@@ -91,11 +92,20 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* In-game header with room code */}
+      {/* In-game header with room code + leave button */}
       {showHeader && (
         <header className="game-header">
           <span className="game-header__label">Sala:</span>
           <span className="game-header__code">{roomCode}</span>
+          <button
+            type="button"
+            className="game-header__leave"
+            onClick={leaveRoom}
+            aria-label="Salir de la partida"
+            title="Salir de la partida"
+          >
+            ✕
+          </button>
         </header>
       )}
 

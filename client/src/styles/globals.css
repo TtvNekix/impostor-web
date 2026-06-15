@@ -1,7 +1,54 @@
 /* ============================================================ */
 /*  El Impostor — Cyberpunk Dark Theme                          */
-/*  Google Fonts are imported in index.html via <link>          */
+/*  Local fonts: SF Pro Display (Apple) for body text           */
 /* ============================================================ */
+
+/* ----------------------------------------------------------- */
+/*  Local fonts (SF Pro Display)                                 */
+/* ----------------------------------------------------------- */
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYMEDIUM.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYBOLD.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYSEMIBOLDITALIC.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: italic;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYHEAVYITALIC.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: italic;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/SFPRODISPLAYBLACKITALIC.OTF') format('opentype');
+}
 
 /* ----------------------------------------------------------- */
 /*  CSS Reset                                                    */
@@ -26,7 +73,7 @@ body {
   min-height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'SF Pro Display', 'SF Pro Display', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
 }
 
@@ -72,8 +119,8 @@ body {
   --blur-bg: blur(12px);
 
   /* Fonts */
-  --font-heading: 'Orbitron', 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-heading: 'SF Pro Display', 'Orbitron', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Pro Display', 'Fira Code', monospace;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -256,7 +303,7 @@ body {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
   font-size: 1rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
   transition: all var(--transition-fast);
   outline: none;
 }
@@ -279,7 +326,7 @@ body {
   color: var(--text-primary);
   font-size: 0.9rem;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
   transition: border-color var(--transition-fast);
   outline: none;
 }
@@ -302,7 +349,7 @@ body {
   position: relative;
   display: inline-block;
   min-width: 7.5rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
 }
 
 .custom-select--disabled {
@@ -322,7 +369,7 @@ body {
   background: rgba(0, 0, 0, 0.3);
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
   cursor: pointer;
   outline: none;
   transition: all var(--transition-fast);
@@ -449,7 +496,7 @@ body {
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -582,7 +629,7 @@ body {
   font-size: 0.9rem;
   cursor: pointer;
   transition: all var(--transition-fast);
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
 }
 
 .toggle-group__btn--active {
@@ -605,7 +652,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 3rem 0.85rem 1rem;
+  position: relative;
   background: rgba(13, 13, 20, 0.85);
   border-bottom: 1px solid var(--border-subtle);
   backdrop-filter: var(--blur-bg);
@@ -631,6 +679,39 @@ body {
   background: rgba(0, 212, 255, 0.08);
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-sm);
+}
+
+.game-header__leave {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 0, 68, 0.1);
+  border: 1px solid rgba(255, 0, 68, 0.4);
+  border-radius: 50%;
+  color: var(--accent-danger);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+  padding: 0;
+}
+
+.game-header__leave:hover {
+  background: rgba(255, 0, 68, 0.2);
+  border-color: var(--accent-danger);
+  box-shadow: 0 0 8px var(--accent-danger-glow);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.game-header__leave:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 /* ----------------------------------------------------------- */
@@ -878,7 +959,7 @@ body {
   font-size: 0.9rem;
   text-align: center;
   transition: all var(--transition-fast);
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
   position: relative;
 }
 
@@ -1250,7 +1331,7 @@ body {
   font-size: 0.85rem;
   cursor: pointer;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'SF Pro Display', sans-serif;
 }
 
 .settings-panel__select:focus {

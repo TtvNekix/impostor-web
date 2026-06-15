@@ -80,7 +80,7 @@ describe('RoomManager', () => {
       ).toThrow('Room not found');
     });
 
-    it('rejects join during an active game', () => {
+    it('joins as SPECTATOR during an active game (no rejection)', () => {
       const { room } = manager.createRoom('ABC12', 'Host');
       room.gameState = {
         phase: 'DISCUSSION',
@@ -94,9 +94,30 @@ describe('RoomManager', () => {
         impostorIds: [],
       };
 
-      expect(() =>
-        manager.joinRoom('ABC12', 'LatePlayer', 'socket-late'),
-      ).toThrow('Game already in progress');
+      const result = manager.joinRoom('ABC12', 'LatePlayer', 'socket-late');
+      expect(result.player.status).toBe('SPECTATOR');
+      expect(result.player.isHost).toBe(false);
+      expect(room.players.get('LatePlayer')?.status).toBe('SPECTATOR');
+    });
+
+    it('spectator does not count toward the maxPlayers ceiling', () => {
+      const { room } = manager.createRoom('ABC12', 'Host', { maxPlayers: 2 });
+      room.gameState = {
+        phase: 'DISCUSSION',
+        word: 'test',
+        category: 'test',
+        players: [],
+        votes: [],
+        roundNumber: 1,
+        phaseEndsAt: 0,
+        result: null,
+        impostorIds: [],
+      };
+
+      // Add 2 spectators — should be allowed even though maxPlayers=2
+      manager.joinRoom('ABC12', 'Late1', 'socket-late1');
+      manager.joinRoom('ABC12', 'Late2', 'socket-late2');
+      expect(room.players.size).toBe(3);
     });
   });
 

@@ -70,16 +70,38 @@ export class RoomManager {
       throw new Error('Room not found');
     }
 
-    if (room.players.size >= room.settings.maxPlayers) {
-      throw new Error('Room is full');
-    }
-
     if (room.players.has(username)) {
       throw new Error('Username already taken');
     }
 
-    if (room.gameState && room.gameState.phase !== 'LOBBY' && room.gameState.phase !== 'GAME_OVER') {
-      throw new Error('Game already in progress');
+    const isMidGame =
+      room.gameState !== null &&
+      room.gameState.phase !== 'LOBBY' &&
+      room.gameState.phase !== 'GAME_OVER';
+
+    // When a game is in progress, newcomers can still join as spectators.
+    // Spectators don't count toward the max-player ceiling and they don't
+    // receive a role or word. They watch until the host starts a new match,
+    // at which point the engine flips all current players (including
+    // latecomers) back to ACTIVE.
+    if (isMidGame) {
+      const player: Player = {
+        id: socketId,
+        username,
+        status: 'SPECTATOR',
+        isHost: false,
+        joinedAt: Date.now(),
+      };
+      room.players.set(username, player);
+      return { room, player };
+    }
+
+    // LOBBY / GAME_OVER: normal join — counts toward maxPlayers.
+    const activeCount = Array.from(room.players.values()).filter(
+      (p) => p.status === 'ACTIVE',
+    ).length;
+    if (activeCount >= room.settings.maxPlayers) {
+      throw new Error('Room is full');
     }
 
     const player: Player = {

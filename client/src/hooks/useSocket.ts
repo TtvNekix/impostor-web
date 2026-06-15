@@ -291,10 +291,20 @@ export function useSocket() {
     [sendMessage],
   );
 
-  const leaveRoom = useCallback(
-    () => sendMessage(ClientEvent.LEAVE_ROOM),
-    [sendMessage],
-  );
+  const leaveRoom = useCallback(() => {
+    sendMessage(ClientEvent.LEAVE_ROOM);
+    // Optimistically reset local state so the user is back at the
+    // connection screen even before the server closes the socket.
+    clearRoom();
+    resetGame();
+    setDisconnected('');
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+    wsRef.current?.close();
+    wsRef.current = null;
+  }, [sendMessage, clearRoom, resetGame, setDisconnected]);
 
   return {
     joinRoom,
