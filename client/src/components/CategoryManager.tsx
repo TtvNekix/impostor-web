@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCategoryStore } from '../stores/categoryStore';
-import es from '../i18n/es';
+import { useT } from '../i18n/I18nContext';
 
 interface CategoryManagerProps {
   onClose: () => void;
@@ -18,6 +18,7 @@ interface CategoryManagerProps {
  * New categories become available to all rooms on the server immediately.
  */
 export function CategoryManager({ onClose, addCategory, addWords }: CategoryManagerProps) {
+  const t = useT();
   const categories = useCategoryStore((s) => s.categories);
   const getDisplayName = useCategoryStore((s) => s.getDisplayName);
 
@@ -33,7 +34,7 @@ export function CategoryManager({ onClose, addCategory, addWords }: CategoryMana
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !newWords.trim()) {
-      setStatus({ type: 'err', text: 'Completá el nombre y al menos una palabra' });
+      setStatus({ type: 'err', text: t.lobby.fillNameAndWord });
       return;
     }
     addCategory({
@@ -44,30 +45,30 @@ export function CategoryManager({ onClose, addCategory, addWords }: CategoryMana
     setName('');
     setDisplayName('');
     setNewWords('');
-    setStatus({ type: 'ok', text: 'Categoría creada' });
+    setStatus({ type: 'ok', text: t.lobby.categoryCreated });
   };
 
   const handleAddWords = (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetCategory || !extraWords.trim()) {
-      setStatus({ type: 'err', text: 'Elegí una categoría y al menos una palabra' });
+      setStatus({ type: 'err', text: t.lobby.fillCategoryAndWord });
       return;
     }
     addWords({ category: targetCategory, words: extraWords });
     setExtraWords('');
-    setStatus({ type: 'ok', text: es.lobby.wordsAdded.replace('{added}', '?').replace('{total}', '?') });
+    setStatus({ type: 'ok', text: t.lobby.wordsAdded.replace('{added}', '?').replace('{total}', '?') });
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <h2 className="modal__title">{es.lobby.manageCategories}</h2>
+          <h2 className="modal__title">{t.lobby.manageCategories}</h2>
           <button
             type="button"
             className="modal__close"
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t.common.close}
           >
             ✕
           </button>
@@ -85,42 +86,42 @@ export function CategoryManager({ onClose, addCategory, addWords }: CategoryMana
 
           {/* Create new category */}
           <form onSubmit={handleCreate} className="cat-form">
-            <h3 className="cat-form__title">{es.lobby.addCategory}</h3>
+            <h3 className="cat-form__title">{t.lobby.addCategory}</h3>
             <label className="cat-form__label">
-              {es.lobby.categoryName}
+              {t.lobby.categoryName}
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="ej: familia"
+                placeholder={t.lobby.namePlaceholder}
                 maxLength={32}
                 className="input"
               />
             </label>
             <label className="cat-form__label">
-              {es.lobby.categoryDisplayName}
+              {t.lobby.categoryDisplayName}
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={es.lobby.categoryDisplayName}
+                placeholder={t.lobby.categoryDisplayName}
                 maxLength={48}
                 className="input"
               />
             </label>
             <label className="cat-form__label">
-              {es.lobby.categoryWords}
+              {t.lobby.categoryWords}
               <textarea
                 value={newWords}
                 onChange={(e) => setNewWords(e.target.value)}
-                placeholder="hola;adios;fresco"
+                placeholder={t.lobby.wordsPlaceholder}
                 rows={3}
                 className="input cat-form__textarea"
               />
-              <span className="cat-form__hint">Separá con ; (punto y coma)</span>
+              <span className="cat-form__hint">{t.lobby.separateHint}</span>
             </label>
             <button type="submit" className="btn btn--primary btn--block">
-              {es.lobby.save}
+              {t.lobby.save}
             </button>
           </form>
 
@@ -128,9 +129,9 @@ export function CategoryManager({ onClose, addCategory, addWords }: CategoryMana
 
           {/* Add words to existing */}
           <form onSubmit={handleAddWords} className="cat-form">
-            <h3 className="cat-form__title">{es.lobby.addWords}</h3>
+            <h3 className="cat-form__title">{t.lobby.addWords}</h3>
             <label className="cat-form__label">
-              {es.lobby.category}
+              {t.lobby.category}
               <select
                 value={targetCategory}
                 onChange={(e) => setTargetCategory(e.target.value)}
@@ -144,17 +145,17 @@ export function CategoryManager({ onClose, addCategory, addWords }: CategoryMana
               </select>
             </label>
             <label className="cat-form__label">
-              {es.lobby.addWordsHint}
+              {t.lobby.addWordsHint}
               <textarea
                 value={extraWords}
                 onChange={(e) => setExtraWords(e.target.value)}
-                placeholder="nuevas palabras;separadas;por;puntoycoma"
+                placeholder={t.lobby.extraWordsPlaceholder}
                 rows={3}
                 className="input cat-form__textarea"
               />
             </label>
             <button type="submit" className="btn btn--primary btn--block">
-              {es.lobby.save}
+              {t.lobby.save}
             </button>
           </form>
         </div>

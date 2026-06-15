@@ -1,17 +1,11 @@
 import { useState } from 'react';
 import { useRoomStore } from '../stores/roomStore';
-import { useConnectionStore } from '../stores/connectionStore';
 import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { PlayerList } from '../components/PlayerList';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import { CategoryManager } from '../components/CategoryManager';
-import {
-  generateRoomCode,
-  ALLOWED_MAX_PLAYERS,
-  DEFAULT_MAX_PLAYERS,
-} from '@impostor/shared';
-import es from '../i18n/es';
+import { useT } from '../i18n/I18nContext';
 
 interface LobbyScreenProps {
   createRoom: (payload: { code: string; username: string; settings?: { maxPlayers: number } }) => void;
@@ -24,55 +18,27 @@ interface LobbyScreenProps {
   addWords: (payload: { category: string; words: string }) => void;
 }
 
-const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map((n) => ({
-  value: n,
-  label: String(n),
-}));
-
 export function LobbyScreen({
-  createRoom,
-  joinRoom,
   startMatch,
   updateSettings,
   addCategory,
   addWords,
 }: LobbyScreenProps) {
+  const t = useT();
   const roomCode = useRoomStore((s) => s.roomCode);
   const players = useRoomStore((s) => s.players);
   const isHost = useRoomStore((s) => s.isHost);
   const settings = useRoomStore((s) => s.settings);
-  const error = useConnectionStore((s) => s.error);
-  const clearError = useConnectionStore((s) => s.clearError);
 
   const gamePhase = useGameStore((s) => s.phase);
   const categories = useCategoryStore((s) => s.categories);
   const getDisplayName = useCategoryStore((s) => s.getDisplayName);
 
-  const [username, setUsername] = useState('');
-  const [code, setCode] = useState('');
-  const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [maxPlayers, setMaxPlayers] = useState<number>(DEFAULT_MAX_PLAYERS);
   const [copied, setCopied] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // Only show lobby UI when phase is LOBBY
   if (gamePhase !== 'LOBBY') return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
-
-    if (mode === 'create') {
-      const roomCode = code.trim().toUpperCase() || generateRoomCode();
-      createRoom({
-        code: roomCode,
-        username: username.trim(),
-        settings: { maxPlayers },
-      });
-    } else {
-      joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
-    }
-  };
 
   const handleCopyCode = async () => {
     if (roomCode) {
@@ -94,115 +60,10 @@ export function LobbyScreen({
 
   const canStart = isHost && players.length >= 3;
 
-  // No room → show create/join form (connection screen)
-  if (!roomCode) {
-    return (
-      <div className="connection-screen">
-        <h1 className="connection-screen__title">
-          {es.common.appName}
-        </h1>
-
-        {/* Mode toggle */}
-        <div className="toggle-group">
-          <button
-            onClick={() => { setMode('create'); clearError(); }}
-            className={`toggle-group__btn${mode === 'create' ? ' toggle-group__btn--active' : ''}`}
-          >
-            {es.lobby.createRoom}
-          </button>
-          <button
-            onClick={() => { setMode('join'); clearError(); }}
-            className={`toggle-group__btn${mode === 'join' ? ' toggle-group__btn--active' : ''}`}
-          >
-            {es.lobby.joinRoom}
-          </button>
-        </div>
-
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            width: '100%',
-            maxWidth: '320px',
-          }}
-        >
-          <input
-            type="text"
-            placeholder={es.lobby.enterUsername}
-            value={username}
-            onChange={(e) => { setUsername(e.target.value); if (error) clearError(); }}
-            maxLength={20}
-            className="input"
-          />
-
-          {mode === 'create' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.75rem',
-                padding: '0.6rem 0.8rem',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(0, 0, 0, 0.2)',
-              }}
-            >
-              <label
-                htmlFor="max-players-select"
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                }}
-              >
-                {es.lobby.maxPlayers}
-              </label>
-              <CustomSelect
-                value={maxPlayers}
-                options={MAX_PLAYER_OPTIONS}
-                onChange={setMaxPlayers}
-                ariaLabel={es.lobby.maxPlayers}
-                className="connection-max-players"
-              />
-            </div>
-          )}
-
-          {mode === 'join' && (
-            <input
-              type="text"
-              placeholder={es.lobby.enterRoomCode}
-              value={code}
-              onChange={(e) => { setCode(e.target.value); if (error) clearError(); }}
-              maxLength={6}
-              className="input"
-              style={{ textTransform: 'uppercase' }}
-            />
-          )}
-
-          <button
-            type="submit"
-            disabled={!username.trim() || (mode === 'join' && !code.trim())}
-            className="btn btn--primary btn--block"
-          >
-            {mode === 'create' ? es.lobby.create : es.lobby.join}
-          </button>
-
-          {error && (
-            <p className="connection-screen__error">{error}</p>
-          )}
-        </form>
-      </div>
-    );
-  }
-
   // Build category options for the in-lobby selector. The first option is
   // the special "Aleatoria" entry (null) that means random category.
   const categoryOptions: CustomSelectOption<string>[] = [
-    { value: '', label: es.lobby.randomCategory },
+    { value: '', label: t.lobby.randomCategory },
     ...categories.map((c) => ({ value: c.name, label: c.displayName })),
   ];
 
@@ -211,7 +72,7 @@ export function LobbyScreen({
     <div className="page">
       {/* Header */}
       <div className="page-header">
-        <div className="page-header__title">{es.lobby.title}</div>
+        <div className="page-header__title">{t.lobby.title}</div>
       </div>
 
       {/* Room code + copy */}
@@ -222,11 +83,11 @@ export function LobbyScreen({
             onClick={handleCopyCode}
             className="btn btn--ghost btn--sm"
           >
-            {copied ? es.lobby.codeCopied : es.lobby.copyCode}
+            {copied ? t.lobby.codeCopied : t.lobby.copyCode}
           </button>
         </div>
         <span className="player-count">
-          {es.lobby.playerCount
+          {t.lobby.playerCount
             .replace('{count}', String(players.length))
             .replace('{max}', String(settings?.maxPlayers ?? 10))}
         </span>
@@ -241,32 +102,32 @@ export function LobbyScreen({
       {/* Settings (host only) — maxPlayers is set at create time and locked. */}
       {isHost && settings && (
         <div className="settings-panel">
-          <h3 className="settings-panel__title">{es.lobby.settings}</h3>
+          <h3 className="settings-panel__title">{t.lobby.settings}</h3>
 
           {/* Max players (read-only, set at room creation) */}
           <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.maxPlayers}</label>
+            <label className="settings-panel__label">{t.lobby.maxPlayers}</label>
             <span className="settings-panel__value">{settings.maxPlayers}</span>
           </div>
 
           {/* Category (host picks) */}
           <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.category}</label>
+            <label className="settings-panel__label">{t.lobby.category}</label>
             <div className="settings-panel__category-controls">
               <CustomSelect
                 value={settings.category ?? ''}
                 options={categoryOptions}
                 onChange={(v) => updateSettings({ category: v === '' ? null : v })}
-                ariaLabel={es.lobby.category}
+                ariaLabel={t.lobby.category}
               />
               <button
                 type="button"
                 className="btn btn--ghost btn--sm settings-panel__manage-btn"
                 onClick={() => setCategoryModalOpen(true)}
-                aria-label={es.lobby.manageCategories}
-                title={es.lobby.manageCategories}
+                aria-label={t.lobby.manageCategories}
+                title={t.lobby.manageCategories}
               >
-                {es.lobby.manageCategories}
+                {t.lobby.manageCategories}
               </button>
             </div>
           </div>
@@ -275,14 +136,14 @@ export function LobbyScreen({
               < 5 players → 1 impostor.  5+ players → 2 impostors.
               Server enforces the same rule in startMatch. */}
           <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.impostors}</label>
+            <label className="settings-panel__label">{t.lobby.impostors}</label>
             <span className="settings-panel__value">
               {players.length >= 5 ? 2 : 1}
             </span>
           </div>
 
           <p className="settings-panel__hint">
-            {es.lobby.discussionHint}
+            {t.lobby.discussionHint}
           </p>
         </div>
       )}
@@ -291,7 +152,7 @@ export function LobbyScreen({
       {!isHost && settings?.category && (
         <div className="card" style={{ textAlign: 'center', padding: '0.6rem 0.9rem' }}>
           <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
-            {es.lobby.category}:
+            {t.lobby.category}:
           </span>{' '}
           <span style={{ color: 'var(--text-secondary)' }}>
             {getDisplayName(settings.category)}
@@ -307,8 +168,8 @@ export function LobbyScreen({
           className={`btn btn--lg btn--block ${canStart ? 'btn--success' : ''}`}
         >
           {players.length < 3
-            ? es.lobby.minPlayersRequired.replace('{min}', '3')
-            : es.lobby.startMatch}
+            ? t.lobby.minPlayersRequired.replace('{min}', '3')
+            : t.lobby.startMatch}
         </button>
       )}
 

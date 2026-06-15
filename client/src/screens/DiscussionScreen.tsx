@@ -6,7 +6,7 @@ import { PlayerList } from '../components/PlayerList';
 import { RoleReveal } from '../components/RoleReveal';
 import { usePhaseTimer } from '../hooks/usePhaseTimer';
 import { useCategoryStore } from '../stores/categoryStore';
-import es from '../i18n/es';
+import { useT } from '../i18n/I18nContext';
 
 interface DiscussionScreenProps {
   /** Total discussion duration in seconds */
@@ -17,14 +17,15 @@ interface DiscussionScreenProps {
 
 /**
  * Discussion screen shows:
- * - The secret word (or "Eres el impostor") via RoleReveal
+ * - The secret word (or "You are the impostor") via RoleReveal
  * - Category (humanized)
  * - Timer bar counting down
  * - Player list with status indicators
- * - "Iniciar votación" button (host only) to skip ahead to voting
+ * - "Start voting" button (host only) to skip ahead to voting
  * - Spectator info if applicable
  */
 export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenProps) {
+  const t = useT();
   const players = useRoomStore((s) => s.players);
   const roomCode = useRoomStore((s) => s.roomCode);
   const isHost = useRoomStore((s) => s.isHost);
@@ -51,10 +52,12 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
       {/* Header */}
       <div className="page-header">
         <div className="page-header__title">
-          {isWordReveal ? 'Palabra asignada' : es.discussion.title}
+          {isWordReveal ? t.discussion.wordReveal : t.discussion.title}
         </div>
         {roomCode && (
-          <div className="page-header__subtitle">Sala: {roomCode}</div>
+          <div className="page-header__subtitle">
+            {t.lobby.roomCode}: {roomCode}
+          </div>
         )}
       </div>
 
@@ -67,7 +70,7 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
       {category && (
         <div className="card" style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>
           <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>
-            {es.discussion.category}:
+            {t.discussion.category}:
           </span>{' '}
           <span style={{ color: 'var(--text-secondary)' }}>
             {getDisplayName(category)}
@@ -88,9 +91,9 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
         <button
           onClick={startVoting}
           className="btn btn--primary btn--block btn--lg"
-          aria-label="Iniciar votación para expulsar a un jugador"
+          aria-label={t.discussion.startVoting}
         >
-          ▶ {es.discussion.startVoting} (30s)
+          ▶ {t.discussion.startVoting} (30s)
         </button>
       )}
 
@@ -101,22 +104,22 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
       {/* Non-host: tell them to wait for the host */}
       {isDiscussion && !isHost && !isSpectator && (
         <p className="auto-transition-info">
-          {es.discussion.waitingForHost}
+          {t.discussion.waitingForHost}
         </p>
       )}
 
       {/* Spectator info */}
       {isSpectator && (
         <div className="spectator-info">
-          <p className="spectator-info__title">{es.discussion.youAreSpectator}</p>
-          <p className="spectator-info__desc">{es.discussion.waitingForVoting}</p>
+          <p className="spectator-info__title">{t.discussion.youAreSpectator}</p>
+          <p className="spectator-info__desc">{t.discussion.waitingForVoting}</p>
         </div>
       )}
 
       {/* Player list */}
       <div>
         <h3 className="section-header">
-          Jugadores ({players.length})
+          {t.lobby.players} ({players.length})
         </h3>
         <PlayerList players={players} />
       </div>

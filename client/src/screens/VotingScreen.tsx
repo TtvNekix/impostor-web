@@ -3,7 +3,7 @@ import { useGameStore } from '../stores/gameStore';
 import { TimerBar } from '../components/TimerBar';
 import { VotingTable } from '../components/VotingTable';
 import { usePhaseTimer } from '../hooks/usePhaseTimer';
-import es from '../i18n/es';
+import { useT } from '../i18n/I18nContext';
 
 interface VotingScreenProps {
   vote: (payload: { targetId: string | null }) => void;
@@ -18,7 +18,7 @@ interface VotingScreenProps {
  * - VotingTable with clickable player cards
  * - Timer bar for vote phase
  * - Skip vote button
- * - Live vote count ("X/Y votaron")
+ * - Live vote count ("X/Y voted")
  * - Phase info
  * - Spectators see results but cannot vote
  */
@@ -27,6 +27,7 @@ export function VotingScreen({
   totalTime = 30,
   myId = '',
 }: VotingScreenProps) {
+  const t = useT();
   const players = useRoomStore((s) => s.players);
   const roomCode = useRoomStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
@@ -50,16 +51,18 @@ export function VotingScreen({
     <div className="page">
       {/* Header */}
       <div className="page-header">
-        <div className="page-header__title">{es.voting.title}</div>
+        <div className="page-header__title">{t.voting.title}</div>
         {roomCode && (
-          <div className="page-header__subtitle">Sala: {roomCode}</div>
+          <div className="page-header__subtitle">
+            {t.lobby.roomCode}: {roomCode}
+          </div>
         )}
       </div>
 
       {/* Phase info */}
       <div className="card" style={{ textAlign: 'center', padding: '0.6rem 1rem' }}>
         <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
-          {es.voting.phaseInfo}
+          {t.voting.phaseInfo}
         </span>
       </div>
 
@@ -69,10 +72,10 @@ export function VotingScreen({
       {/* Live vote count */}
       <div className="vote-count">
         {totalVoters > 0
-          ? es.voting.voteCount
+          ? t.voting.voteCount
               .replace('{count}', String(voterCount))
               .replace('{total}', String(totalVoters))
-          : es.voting.waitingForVotes}
+          : t.voting.waitingForVotes}
       </div>
 
       {/* Voting table */}

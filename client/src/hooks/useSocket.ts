@@ -17,23 +17,26 @@ import { useConnectionStore } from '../stores/connectionStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
-import es from '../i18n/es';
+import { useT } from '../i18n/I18nContext';
 
 /**
- * Translate a server error code into a localized Spanish string,
- * interpolating any data values. Falls back to the raw English message
- * or a generic string when the code is unknown.
+ * Translate a server error code into a localized string in the user's
+ * active language, interpolating any data values. Falls back to the raw
+ * English message or a generic string when the code is unknown.
  */
-function localizeError(payload: RoomErrorPayload): string {
-  const { code, message, data } = payload;
-  const tmpl: string | undefined = (es.errors as Record<string, string | undefined>)[code];
-  if (tmpl) {
-    if (data) {
-      return tmpl.replace(/\{(\w+)\}/g, (_, k) => String(data[k] ?? `{${k}}`));
+function useLocalizeError() {
+  const t = useT();
+  return useCallback((payload: RoomErrorPayload): string => {
+    const { code, message, data } = payload;
+    const tmpl: string | undefined = (t.errors as Record<string, string | undefined>)[code];
+    if (tmpl) {
+      if (data) {
+        return tmpl.replace(/\{(\w+)\}/g, (_, k) => String(data[k] ?? `{${k}}`));
+      }
+      return tmpl;
     }
-    return tmpl;
-  }
-  return message || es.errors.generic;
+    return message || t.errors.generic;
+  }, [t]);
 }
 
 /**
@@ -48,6 +51,9 @@ export function useSocket() {
   const myIdRef = useRef<string | null>(null);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const t = useT();
+  const localizeError = useLocalizeError();
 
   const setConnected = useConnectionStore((s) => s.setConnected);
   const setDisconnected = useConnectionStore((s) => s.setDisconnected);
@@ -225,7 +231,7 @@ export function useSocket() {
             const payload = data as { message: string };
             clearRoom();
             resetGame();
-            setDisconnected(payload.message || es.errors.generic);
+            setDisconnected(payload.message || t.errors.generic);
             break;
           }
 

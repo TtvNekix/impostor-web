@@ -7,7 +7,8 @@ import { DiscussionScreen } from './screens/DiscussionScreen';
 import { VotingScreen } from './screens/VotingScreen';
 import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
-import es from './i18n/es';
+import { EntryPage } from './screens/EntryPage';
+import { useT } from './i18n/I18nContext';
 
 type GamePhase = import('@impostor/shared').GamePhase;
 
@@ -36,6 +37,7 @@ function isInGame(phase: GamePhase): boolean {
  * - In-game header with room code + cyberpunk theme
  */
 export default function App() {
+  const t = useT();
   const socketStatus = useConnectionStore((s) => s.socketStatus);
   const connectionError = useConnectionStore((s) => s.error);
 
@@ -64,7 +66,7 @@ export default function App() {
     return (
       <div className="connection-screen">
         <div className="spinner" />
-        <p className="connection-screen__text">{es.connection.connecting}</p>
+        <p className="connection-screen__text">{t.connection.connecting}</p>
       </div>
     );
   }
@@ -73,7 +75,7 @@ export default function App() {
     return (
       <div className="connection-screen">
         <h1 className="connection-screen__title">
-          {es.common.appName}
+          {t.common.appName}
         </h1>
         {connectionError && (
           <p className="connection-screen__error">
@@ -81,14 +83,14 @@ export default function App() {
           </p>
         )}
         <p className="connection-screen__text">
-          {es.connection.connectionLost}
+          {t.connection.connectionLost}
         </p>
         <button
           type="button"
           className="btn btn--primary"
           onClick={() => window.location.reload()}
         >
-          {es.common.retry}
+          {t.common.retry}
         </button>
       </div>
     );
@@ -105,7 +107,7 @@ export default function App() {
       {/* In-game header with room code + leave button */}
       {showHeader && (
         <header className="game-header">
-          <span className="game-header__label">Sala:</span>
+          <span className="game-header__label">{t.lobby.roomCode}:</span>
           <span className="game-header__code">{roomCode}</span>
           <button
             type="button"
@@ -118,8 +120,8 @@ export default function App() {
               try { leaveRoom(); } catch { /* ignore */ }
               window.location.href = '/';
             }}
-            aria-label="Salir de la partida"
-            title="Salir de la partida"
+            aria-label={t.common.leaveRoom}
+            title={t.common.leaveRoom}
           >
             ✕
           </button>
@@ -129,6 +131,7 @@ export default function App() {
       {/* Phase-based screen router */}
       <ScreenRouter
         phase={phase}
+        roomCode={roomCode}
         createRoom={createRoom}
         joinRoom={joinRoom}
         startMatch={startMatch}
@@ -150,6 +153,7 @@ export default function App() {
 
 interface ScreenRouterProps {
   phase: GamePhase;
+  roomCode: string | null;
   createRoom: (payload: { code: string; username: string }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
@@ -168,6 +172,7 @@ interface ScreenRouterProps {
 
 function ScreenRouter({
   phase,
+  roomCode,
   createRoom,
   joinRoom,
   startMatch,
@@ -179,6 +184,13 @@ function ScreenRouter({
   newMatch,
   myId,
 }: ScreenRouterProps) {
+  const t = useT();
+
+  // No room yet → show the entry page (game mode selector + create/join).
+  if (!roomCode) {
+    return <EntryPage createRoom={createRoom} joinRoom={joinRoom} />;
+  }
+
   switch (phase) {
     case 'LOBBY':
       return (
@@ -208,7 +220,7 @@ function ScreenRouter({
     default:
       return (
         <div className="connection-screen">
-          <p className="connection-screen__text">{es.common.loading}</p>
+          <p className="connection-screen__text">{t.common.loading}</p>
         </div>
       );
   }

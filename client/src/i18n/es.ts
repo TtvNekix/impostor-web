@@ -8,6 +8,7 @@ const es = {
     retry: 'Reintentar',
     back: 'Volver',
     close: 'Cerrar',
+    leaveRoom: 'Salir de la partida',
   },
 
   connection: {
@@ -17,6 +18,23 @@ const es = {
     reconnecting: 'Reconectando...',
     connectionLost: 'Conexión perdida. Reconectando...',
     serverError: 'Error del servidor',
+  },
+
+  entry: {
+    title: 'El Impostor',
+    subtitle: 'Encontrá al impostor antes de que te encuentre a vos',
+    wordMode: {
+      title: 'Por palabra',
+      minPlayers: '3+ jugadores',
+      description: 'Todos reciben la misma palabra secreta. El impostor no. Hablen y voten para echarlo.',
+      play: 'Jugar',
+    },
+    imageMode: {
+      title: 'Por imagen',
+      maxPlayers: 'Hasta 5 jugadores',
+      description: 'Todos reciben la misma imagen secreta. El impostor no. Lean las reacciones de los demás.',
+      comingSoon: 'Próximamente',
+    },
   },
 
   lobby: {
@@ -49,6 +67,13 @@ const es = {
     addWordsHint: 'Palabras nuevas separadas por ;',
     wordsAdded: '{added} palabras añadidas ({total} en total)',
     noNewWords: 'Todas las palabras ya estaban',
+    fillNameAndWord: 'Completá el nombre y al menos una palabra',
+    categoryCreated: 'Categoría creada',
+    fillCategoryAndWord: 'Elegí una categoría y al menos una palabra',
+    separateHint: 'Separá con ; (punto y coma)',
+    namePlaceholder: 'ej: familia',
+    wordsPlaceholder: 'hola;adios;fresco',
+    extraWordsPlaceholder: 'nuevas palabras;separadas;por;puntoycoma',
     impostors: 'Impostores',
     discussionHint: 'Sin tiempo de discusión: el anfitrión inicia la votación manualmente. Tendrás 30s para votar.',
     startMatch: 'Iniciar Partida',
@@ -60,6 +85,7 @@ const es = {
 
   discussion: {
     title: 'Discusión',
+    wordReveal: 'Palabra asignada',
     wordHint: 'La palabra es:',
     youAreImpostor: 'Eres el impostor',
     youAreSpectator: 'Eres espectador',
@@ -69,6 +95,7 @@ const es = {
     waitingForVoting: 'Esperando a que termine la discusión...',
     waitingForHost: 'Esperando a que el anfitrión inicie la votación…',
     startVoting: 'Iniciar votación',
+    waitingForRole: 'Esperando asignación de rol...',
   },
 
   voting: {
@@ -76,6 +103,7 @@ const es = {
     voteFor: 'Votar a',
     skip: 'Saltar voto',
     voted: 'Votaste',
+    voteRegistered: 'Voto registrado',
     voteCount: '{count}/{total} votaron',
     waitingForVotes: 'Esperando votos...',
     selectTarget: 'Selecciona a quién expulsar',
@@ -83,6 +111,9 @@ const es = {
     alreadyVoted: 'Ya votaste',
     disabledSpectator: 'Los espectadores no pueden votar',
     phaseInfo: 'Fase de Votación',
+    selected: 'SELECCIONADO',
+    castVote: 'Votar',
+    forceEnd: 'Forzar fin de votación',
   },
 
   evaluation: {
@@ -125,7 +156,3 @@ const es = {
 } as const;
 
 export default es;
-export type TranslationKeys = keyof typeof es;
-export type NestedKeys = {
-  [K in keyof typeof es]: keyof (typeof es)[K];
-};

@@ -1442,6 +1442,229 @@ body {
 }
 
 /* ----------------------------------------------------------- */
+/*  Entry Page (game mode selector)                              */
+/* ----------------------------------------------------------- */
+
+.entry-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 3rem;
+  gap: 1.25rem;
+}
+
+.entry-page__lang {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.entry-page__hero {
+  text-align: center;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entry-page__title {
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary) 0%,
+    var(--accent-secondary) 50%,
+    var(--accent-primary) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 18px var(--accent-primary-glow);
+  margin: 0;
+}
+
+.entry-page__subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.entry-page__modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .entry-page__modes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------------------------------------------------------- */
+/*  Mode Card                                                     */
+/* ----------------------------------------------------------- */
+
+.mode-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.mode-card--active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 24px var(--accent-primary-glow);
+}
+
+.mode-card--active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 32px var(--accent-primary-glow);
+}
+
+.mode-card--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+}
+
+.mode-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mode-card__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.mode-card--active .mode-card__title {
+  text-shadow: 0 0 12px var(--accent-primary-glow);
+}
+
+.mode-card__meta {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.mode-card__desc {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.mode-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1rem;
+}
+
+.mode-card__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.mode-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.mode-card__row-label {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.mode-card__badge {
+  margin-top: auto;
+  align-self: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-warning);
+  border: 1px dashed var(--accent-warning);
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 10px rgba(255, 184, 0, 0.4);
+}
+
+/* ----------------------------------------------------------- */
+/*  Language Toggle (top right of entry page)                    */
+/* ----------------------------------------------------------- */
+
+.lang-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+}
+
+.lang-toggle__btn {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.lang-toggle__btn:hover {
+  color: var(--text-primary);
+}
+
+.lang-toggle__btn--active {
+  background: var(--accent-primary);
+  color: var(--bg-base);
+  text-shadow: 0 0 8px var(--accent-primary-glow);
+}
+
+/* ----------------------------------------------------------- */
 /*  Auto-transition info                                         */
 /* ----------------------------------------------------------- */
 

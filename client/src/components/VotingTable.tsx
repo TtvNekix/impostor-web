@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Player } from '@impostor/shared';
+import { useT } from '../i18n/I18nContext';
 
 interface VotingTableProps {
   players: Player[];
@@ -21,7 +22,7 @@ interface VotingTableProps {
  * - Shows a "Skip" button
  * - Hover glow effect on candidate cards
  * - Locks the selection after voting (the server rejects double votes)
- * - Host gets a "Forzar fin" button once they've voted (so they can break
+ * - Host gets a "Force end" button once they've voted (so they can break
  *   ties when an AFK player is blocking the tally).
  */
 export function VotingTable({
@@ -34,6 +35,7 @@ export function VotingTable({
   showForceEnd = false,
   onForceEnd,
 }: VotingTableProps) {
+  const t = useT();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [voted, setVoted] = useState(hasVoted);
 
@@ -67,7 +69,7 @@ export function VotingTable({
   if (isSpectator) {
     return (
       <div className="voting-table__spectator-msg">
-        Los espectadores no pueden votar
+        {t.voting.disabledSpectator}
       </div>
     );
   }
@@ -75,7 +77,7 @@ export function VotingTable({
   if (voted) {
     return (
       <div className="voting-table__voted-msg">
-        ✓ Voto registrado
+        ✓ {t.voting.voteRegistered}
         {showForceEnd && onForceEnd && (
           <button
             type="button"
@@ -83,7 +85,7 @@ export function VotingTable({
             onClick={onForceEnd}
             style={{ marginTop: '0.75rem' }}
           >
-            Forzar fin de votación
+            {t.voting.forceEnd}
           </button>
         )}
       </div>
@@ -93,7 +95,7 @@ export function VotingTable({
   return (
     <div className="voting-table">
       <p className="voting-table__label">
-        Selecciona a quién expulsar
+        {t.voting.selectTarget}
       </p>
 
       {/* Player grid */}
@@ -113,11 +115,11 @@ export function VotingTable({
             >
               {player.username}
               {isMe && !isSelected && (
-                <div className="voting-table__me-label">(Tú)</div>
+                <div className="voting-table__me-label">({t.lobby.you})</div>
               )}
               {isSelected && (
                 <div className="voting-table__selected-label">
-                  ✓ SELECCIONADO
+                  ✓ {t.voting.selected}
                 </div>
               )}
             </button>
@@ -132,7 +134,7 @@ export function VotingTable({
           disabled={locked}
           className="btn btn--ghost"
         >
-          Saltar voto
+          {t.voting.skip}
         </button>
 
         <button
@@ -140,7 +142,7 @@ export function VotingTable({
           disabled={!selectedId || locked}
           className="btn btn--danger"
         >
-          Votar
+          {t.voting.castVote}
         </button>
       </div>
     </div>

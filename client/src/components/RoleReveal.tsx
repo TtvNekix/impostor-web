@@ -1,4 +1,5 @@
 import type { PlayerRole } from '../stores/gameStore';
+import { useT, useLocale } from '../i18n/I18nContext';
 
 interface RoleRevealProps {
   role: PlayerRole;
@@ -6,9 +7,14 @@ interface RoleRevealProps {
   animate?: boolean;
 }
 
+const ROLE_HINT = {
+  en: 'Try to figure out the word without being discovered',
+  es: 'Intenta descubrir la palabra sin ser descubierto',
+} as const;
+
 /**
  * Animated card that reveals the player's role with a flip animation.
- * - Impostor: dark red card with neon red glow, "ERES EL IMPOSTOR"
+ * - Impostor: dark red card with neon red glow, "YOU ARE THE IMPOSTOR"
  * - Non-impostor: dark green card with neon green glow, shows the secret word
  * - null: waiting state
  * Uses cyberpunk neon theme with card flip animation.
@@ -18,10 +24,13 @@ export function RoleReveal({
   word,
   animate = false,
 }: RoleRevealProps) {
+  const t = useT();
+  const locale = useLocale();
+
   if (!role) {
     return (
       <div className="role-reveal--waiting">
-        Esperando asignación de rol...
+        {t.discussion.waitingForRole}
       </div>
     );
   }
@@ -40,17 +49,17 @@ export function RoleReveal({
     >
       {/* Role label */}
       <div className={`role-reveal__label ${labelClass}`}>
-        {isImpostor ? 'Tu rol' : 'Tu palabra'}
+        {isImpostor ? t.discussion.youAreImpostor : t.discussion.wordHint}
       </div>
 
       {/* Main content */}
       <div className="role-reveal__main">
-        {isImpostor ? 'ERES EL IMPOSTOR' : word}
+        {isImpostor ? t.discussion.youAreImpostor.toUpperCase() : word}
       </div>
 
       {isImpostor && (
         <div className="role-reveal__sub">
-          Intenta descubrir la palabra sin ser descubierto
+          {ROLE_HINT[locale]}
         </div>
       )}
     </div>
