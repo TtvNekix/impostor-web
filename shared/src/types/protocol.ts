@@ -13,6 +13,8 @@ export const ClientEvent = {
   START_VOTING: 'start_voting',
   VOTE: 'vote',
   UPDATE_SETTINGS: 'update_settings',
+  ADD_CATEGORY: 'add_category',
+  ADD_WORDS: 'add_words',
   NEW_MATCH: 'new_match',
   LEAVE_ROOM: 'leave_room',
 } as const;
@@ -34,6 +36,7 @@ export const ServerEvent = {
   SETTINGS_UPDATED: 'settings_updated',
   PLAYER_DISCONNECTED: 'player_disconnected',
   PLAYER_RECONNECTED: 'player_reconnected',
+  WORDS_ADDED: 'words_added',
   HOST_LEFT: 'host_left',
   KICKED: 'kicked',
 } as const;
@@ -64,6 +67,22 @@ export interface UpdateSettingsPayload {
   discussionTime?: number;
   category?: string | null;
   maxPlayers?: number;
+}
+
+export interface AddCategoryPayload {
+  /** Kebab-case identifier. Will be normalized. */
+  name: string;
+  /** Optional human-readable label. Defaults to title-cased name. */
+  displayName?: string;
+  /** Words separated by ';' (or any delimiter), trimmed, deduplicated. */
+  words: string;
+}
+
+export interface AddWordsPayload {
+  /** Target category name (kebab-case). */
+  category: string;
+  /** New words separated by ';'. */
+  words: string;
 }
 
 /* Server → Client */

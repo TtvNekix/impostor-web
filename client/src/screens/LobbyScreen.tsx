@@ -5,6 +5,7 @@ import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { PlayerList } from '../components/PlayerList';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
+import { CategoryManager } from '../components/CategoryManager';
 import {
   generateRoomCode,
   ALLOWED_MAX_PLAYERS,
@@ -21,6 +22,8 @@ interface LobbyScreenProps {
     discussionTime?: number;
     category?: string | null;
   }) => void;
+  addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
+  addWords: (payload: { category: string; words: string }) => void;
 }
 
 const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map((n) => ({
@@ -39,6 +42,8 @@ export function LobbyScreen({
   joinRoom,
   startMatch,
   updateSettings,
+  addCategory,
+  addWords,
 }: LobbyScreenProps) {
   const roomCode = useRoomStore((s) => s.roomCode);
   const players = useRoomStore((s) => s.players);
@@ -56,6 +61,7 @@ export function LobbyScreen({
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [maxPlayers, setMaxPlayers] = useState<number>(DEFAULT_MAX_PLAYERS);
   const [copied, setCopied] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // Only show lobby UI when phase is LOBBY
   if (gamePhase !== 'LOBBY') return null;
@@ -254,12 +260,23 @@ export function LobbyScreen({
           {/* Category (host picks) */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.category}</label>
-            <CustomSelect
-              value={settings.category ?? ''}
-              options={categoryOptions}
-              onChange={(v) => updateSettings({ category: v === '' ? null : v })}
-              ariaLabel={es.lobby.category}
-            />
+            <div className="settings-panel__category-controls">
+              <CustomSelect
+                value={settings.category ?? ''}
+                options={categoryOptions}
+                onChange={(v) => updateSettings({ category: v === '' ? null : v })}
+                ariaLabel={es.lobby.category}
+              />
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm settings-panel__manage-btn"
+                onClick={() => setCategoryModalOpen(true)}
+                aria-label={es.lobby.manageCategories}
+                title={es.lobby.manageCategories}
+              >
+                {es.lobby.manageCategories}
+              </button>
+            </div>
           </div>
 
           {/* Impostor count */}
@@ -312,6 +329,15 @@ export function LobbyScreen({
             ? es.lobby.minPlayersRequired.replace('{min}', '3')
             : es.lobby.startMatch}
         </button>
+      )}
+
+      {/* Category management modal */}
+      {categoryModalOpen && (
+        <CategoryManager
+          onClose={() => setCategoryModalOpen(false)}
+          addCategory={addCategory}
+          addWords={addWords}
+        />
       )}
     </div>
   );

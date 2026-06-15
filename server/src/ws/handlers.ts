@@ -27,6 +27,15 @@ function sendError(
   }));
 }
 
+/** Helper to send a generic event payload to a single socket. */
+function sendEvent(
+  ws: WebSocket,
+  event: string,
+  data: unknown,
+): void {
+  ws.send(JSON.stringify({ event, data }));
+}
+
 /** Translate a thrown Error from RoomManager into a structured error code. */
 function roomErrorCode(err: Error): string {
   switch (err.message) {
@@ -290,6 +299,93 @@ export function registerHandlers(
             }
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
+          } catch (err: any) {
+            sendError(ws, ErrorCode.GENERIC, err.message);
+          }
+          break;
+        }
+
+        /* ------------------------------------------------------------ */
+        /*  ADD_CATEGORY (host only, lobby phase)                       */
+        /* ------------------------------------------------------------ */
+        case ClientEvent.ADD_CATEGORY: {
+          try {
+            const roomCode = connectionManager.getRoomCode(socketId);
+            if (!roomCode) {
+              sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
+              return;
+            }
+            const room = roomManager.getRoom(roomCode);
+            const player = room.players.get(connectionManager.getUsername(socketId)!);
+            if (!player?.isHost) {
+              sendError(ws, ErrorCode.NOT_HOST, 'Solo el anfitrión puede crear categorías');
+              return;
+            }
+            if (room.gameState && room.gameState.phase !== 'LOBBY' && room.gameState.phase !== 'GAME_OVER') {
+              sendError(ws, ErrorCode.GENERIC, 'No se pueden crear categorías durante la partida');
+              return;
+            }
+
+            const { name, displayName, words } = data as {
+              name: string;
+              displayName?: string;
+              words: string;
+            };
+
+            // Accept ';', ',', '\n' as separators
+            const wordList = words.split(/[;,\n]/);
+            const created = wordBank.addCategory(name, displayName, wordList);
+
+            // Auto-select the new category so the host doesn't have to pick again
+            room.settings.category = created.name;
+            connectionManager.broadcastToRoom(roomCode, ServerEvent.CATEGORIES, {
+              categories: wordBank.getCategories(),
+            });
+            connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
+          } catch (err: any) {
+            sendError(ws, ErrorCode.GENERIC, err.message);
+          }
+          break;
+        }
+
+        /* ------------------------------------------------------------ */
+        /*  ADD_WORDS (host only, lobby phase)                          */
+        /* ------------------------------------------------------------ */
+        case ClientEvent.ADD_WORDS: {
+          try {
+            const roomCode = connectionManager.getRoomCode(socketId);
+            if (!roomCode) {
+              sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
+              return;
+            }
+            const room = roomManager.getRoom(roomCode);
+            const player = room.players.get(connectionManager.getUsername(socketId)!);
+            if (!player?.isHost) {
+              sendError(ws, ErrorCode.NOT_HOST, 'Solo el anfitrión puede añadir palabras');
+              return;
+            }
+            if (room.gameState && room.gameState.phase !== 'LOBBY' && room.gameState.phase !== 'GAME_OVER') {
+              sendError(ws, ErrorCode.GENERIC, 'No se pueden añadir palabras durante la partida');
+              return;
+            }
+
+            const { category, words } = data as {
+              category: string;
+              words: string;
+            };
+
+            const wordList = words.split(/[;,\n]/);
+            const result = wordBank.addWords(category, wordList);
+
+            connectionManager.broadcastToRoom(roomCode, ServerEvent.CATEGORIES, {
+              categories: wordBank.getCategories(),
+            });
+            // Notify the host about the success (sent only to caller)
+            sendEvent(ws, ServerEvent.WORDS_ADDED, {
+              category,
+              added: result.added,
+              total: result.total,
+            });
           } catch (err: any) {
             sendError(ws, ErrorCode.GENERIC, err.message);
           }

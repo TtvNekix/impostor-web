@@ -127,4 +127,83 @@ describe('WordBank', () => {
       expect(bank.isEmpty()).toBe(true);
     });
   });
+
+  describe('addCategory', () => {
+    it('creates a new category with the provided words', () => {
+      const bank = createSampleBank();
+      const created = bank.addCategory('mi-categoria', 'Mi categoría', ['a', 'b', 'c']);
+      expect(created.name).toBe('mi-categoria');
+      expect(created.displayName).toBe('Mi categoría');
+      expect(bank.getWords('mi-categoria')).toEqual(['a', 'b', 'c']);
+    });
+
+    it('derives a display name when none is provided', () => {
+      const bank = createSampleBank();
+      const created = bank.addCategory('familia', undefined, ['mama', 'papa']);
+      expect(created.displayName).toBe('Familia');
+    });
+
+    it('rejects a name that already exists', () => {
+      const bank = createSampleBank();
+      expect(() => bank.addCategory('videojuegos', undefined, ['x']))
+        .toThrow(/ya existe/);
+    });
+
+    it('rejects an empty word list', () => {
+      const bank = createSampleBank();
+      expect(() => bank.addCategory('vacia', undefined, []))
+        .toThrow(/al menos una palabra/);
+    });
+
+    it('normalizes the name to kebab-case ASCII', () => {
+      const bank = createSampleBank();
+      const created = bank.addCategory('Mi Categoría Nueva!', undefined, ['a']);
+      expect(created.name).toBe('mi-categoria-nueva');
+    });
+
+    it('deduplicates and trims words', () => {
+      const bank = createSampleBank();
+      bank.addCategory('test', undefined, [' a ', 'b', 'a', '  c']);
+      expect(bank.getWords('test')).toEqual(['a', 'b', 'c']);
+    });
+  });
+
+  describe('addWords', () => {
+    it('appends new words to an existing built-in category', () => {
+      const bank = createSampleBank();
+      const before = bank.getWords('videojuegos').length;
+      const result = bank.addWords('videojuegos', ['mod1', 'mod2']);
+      expect(result.added).toBe(2);
+      expect(bank.getWords('videojuegos').length).toBe(before + 2);
+    });
+
+    it('skips words that already exist (case-insensitive)', () => {
+      const bank = createSampleBank();
+      const result = bank.addWords('videojuegos', ['speedrun', 'SPEEDRUN', 'nuevo']);
+      expect(result.added).toBe(1);
+    });
+
+    it('throws on a missing category', () => {
+      const bank = createSampleBank();
+      expect(() => bank.addWords('no-existe', ['a'])).toThrow(/no encontrada/);
+    });
+
+    it('throws when no new words are provided', () => {
+      const bank = createSampleBank();
+      expect(() => bank.addWords('videojuegos', [])).toThrow(/palabras/i);
+    });
+  });
+
+  describe('isBuiltIn', () => {
+    it('returns true for loaded categories', () => {
+      const bank = createSampleBank();
+      expect(bank.isBuiltIn('videojuegos')).toBe(true);
+    });
+
+    it('returns false for custom categories', () => {
+      const bank = createSampleBank();
+      bank.addCategory('custom', undefined, ['a']);
+      expect(bank.isBuiltIn('custom')).toBe(false);
+    });
+  });
 });

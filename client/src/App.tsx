@@ -49,6 +49,8 @@ export default function App() {
     startVoting,
     vote,
     updateSettings,
+    addCategory,
+    addWords,
     newMatch,
     leaveRoom,
   } = useSocket();
@@ -118,6 +120,8 @@ export default function App() {
         startVoting={startVoting}
         vote={vote}
         updateSettings={updateSettings}
+        addCategory={addCategory}
+        addWords={addWords}
         newMatch={newMatch}
       />
     </div>
@@ -140,6 +144,8 @@ interface ScreenRouterProps {
     discussionTime?: number;
     category?: string | null;
   }) => void;
+  addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
+  addWords: (payload: { category: string; words: string }) => void;
   newMatch: () => void;
 }
 
@@ -151,6 +157,8 @@ function ScreenRouter({
   startVoting,
   vote,
   updateSettings: updateSettingsAction,
+  addCategory: addCategoryAction,
+  addWords: addWordsAction,
   newMatch,
 }: ScreenRouterProps) {
   switch (phase) {
@@ -161,6 +169,8 @@ function ScreenRouter({
           joinRoom={joinRoom}
           startMatch={startMatch}
           updateSettings={updateSettingsAction}
+          addCategory={addCategoryAction}
+          addWords={addWordsAction}
         />
       );
 

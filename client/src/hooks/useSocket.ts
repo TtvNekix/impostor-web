@@ -6,6 +6,8 @@ import {
   type CreateRoomPayload,
   type VotePayload,
   type UpdateSettingsPayload,
+  type AddCategoryPayload,
+  type AddWordsPayload,
   type RoomSettings,
   type RoomErrorPayload,
   type CategoryInfo,
@@ -286,6 +288,16 @@ export function useSocket() {
     [sendMessage],
   );
 
+  const sendAddCategory = useCallback(
+    (payload: AddCategoryPayload) => sendMessage(ClientEvent.ADD_CATEGORY, payload),
+    [sendMessage],
+  );
+
+  const sendAddWords = useCallback(
+    (payload: AddWordsPayload) => sendMessage(ClientEvent.ADD_WORDS, payload),
+    [sendMessage],
+  );
+
   const newMatch = useCallback(
     () => sendMessage(ClientEvent.NEW_MATCH),
     [sendMessage],
@@ -313,6 +325,8 @@ export function useSocket() {
     startVoting,
     vote,
     updateSettings: sendSettings,
+    addCategory: sendAddCategory,
+    addWords: sendAddWords,
     newMatch,
     leaveRoom,
   };
