@@ -5,6 +5,11 @@
     "dev:server": "pnpm --filter @impostor/server dev",
     "build:shared": "pnpm --filter @impostor/shared build",
     "build:server": "pnpm --filter @impostor/server build",
+    "build:client": "pnpm --filter @impostor/client build",
+    "deploy": "python scripts/deploy.py",
+    "deploy:verify": "python scripts/deploy.py --verify",
+    "deploy:client": "python scripts/deploy.py --client-only",
+    "deploy:server": "python scripts/deploy.py --server-only",
     "dev": "pnpm build:shared && pnpm dev:server"
   }
 }
