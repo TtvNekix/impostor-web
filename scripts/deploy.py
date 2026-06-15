@@ -125,18 +125,27 @@ def deploy_shared(sftp, repo_root: str):
         sftp_put(sftp, local, remote)
 
 
-def cleanup_old_assets(sftp):
-    """Remove old client asset hashes that are no longer referenced."""
-    print('=== CLEANUP OLD ASSETS ===')
-    # Get current index.html from server to find referenced hash
-    try:
-        with sftp.open(f'{REMOTE_BASE}/client/dist/index.html') as f:
-            html = f.read().decode()
-    except FileNotFoundError:
-        print('  No remote index.html yet, skipping cleanup')
-        return
+def cleanup_old_assets(sftp, repo_root: str):
+    """Remove old client asset hashes that are no longer referenced.
+
+    Uses the LOCAL index.html (which we just wrote and know the contents of)
+    rather than re-reading the remote one — sftp.put can return before the
+    file is visible on disk, so reading the remote right after would see
+    the old content and wrongly remove the new files.
+    """
     import re
-    current_hashes = set(re.findall(r'index-([A-Za-z0-9]+)\.(js|css)', html))
+    print('=== CLEANUP OLD ASSETS ===')
+
+    local_index = os.path.join(repo_root, 'client', 'dist', 'index.html')
+    if not os.path.exists(local_index):
+        print('  No local index.html — skipping cleanup')
+        return
+    with open(local_index, 'r', encoding='utf-8') as f:
+        html = f.read()
+    # Only capture the hash group (group 1), not the extension. If we capture
+    # both, set() gives tuples and the "in" check never matches.
+    current_hashes = set(re.findall(r'index-([A-Za-z0-9]+)\.(?:js|css)', html))
+    print(f'  Current hashes: {current_hashes}')
 
     # List all files in remote assets dir
     files = sftp.listdir(f'{REMOTE_BASE}/client/dist/assets')
@@ -217,7 +226,7 @@ def main():
             deploy_shared(sftp, str(repo_root))
 
         if not args.no_cleanup:
-            cleanup_old_assets(sftp)
+            cleanup_old_assets(sftp, str(repo_root))
 
         if not args.no_restart:
             restart_service(client)
