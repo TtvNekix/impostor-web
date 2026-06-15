@@ -1450,41 +1450,40 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
   max-width: 920px;
   margin: 0 auto;
-  padding: 1rem 1.25rem 3rem;
+  padding: 4rem 1.25rem 3rem;
   gap: 1.25rem;
+  min-height: 100vh;
 }
 
 .entry-page__lang {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.75rem;
+  right: 0.75rem;
 }
 
 .entry-page__hero {
   text-align: center;
-  margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .entry-page__title {
+  /* Solid color + soft glow. The previous `background-clip: text` + huge
+     text-shadow combo rendered as a blurry ghost in some browsers — the
+     text was transparent, the shadow was the only visible thing. */
   font-size: clamp(2.4rem, 6vw, 3.4rem);
   font-weight: 800;
   letter-spacing: 0.04em;
-  background: linear-gradient(
-    90deg,
-    var(--accent-primary) 0%,
-    var(--accent-secondary) 50%,
-    var(--accent-primary) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 18px var(--accent-primary-glow);
+  color: var(--accent-primary);
+  text-shadow:
+    0 0 12px var(--accent-primary-glow),
+    0 0 28px var(--accent-primary-glow);
   margin: 0;
 }
 
