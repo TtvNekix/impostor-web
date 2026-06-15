@@ -230,6 +230,11 @@ def main():
 
         if not args.no_restart:
             restart_service(client)
+            # Give the port a moment to actually open after restart — the
+            # service can be "active" but the listen() call hasn't run yet,
+            # which makes verify's curls return 000 (connection refused).
+            import time
+            time.sleep(2)
 
         print('\n=== DONE ===')
         verify(client)
