@@ -70,6 +70,10 @@ export const useGameStore = create<GameState>((set) => ({
       // voting round after a new round starts).
       voterCount: 0,
       totalVoters: 0,
+      // Reset the votes array too — otherwise a new match's VOTING phase
+      // would see stale votes from the previous round and lock the table
+      // with "✓ Voto registrado" because hasVoted computes true.
+      votes: [],
     });
   },
 
