@@ -81,8 +81,13 @@ export class GameEngine {
       status: p.status,
     }));
 
-    // Select a word
-    const wordPick = this.wordBank.randomWord();
+    // Select a word — from the configured category if set, else random
+    const wordPick = room.settings.category
+      ? (() => {
+          const w = this.wordBank.randomWordFromCategory(room.settings.category!);
+          return w ? { word: w, category: room.settings.category! } : null;
+        })()
+      : this.wordBank.randomWord();
     if (!wordPick) {
       this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
         code: ErrorCode.GENERIC, message: 'Failed to select word',
@@ -138,6 +143,51 @@ export class GameEngine {
       phaseEndsAt: sm.phaseEndsAt,
     });
 
+    return true;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Manually start the voting phase (host-driven, from DISCUSSION)     */
+  /* ------------------------------------------------------------------ */
+
+  startVoting(roomCode: string, callerSocketId: string): boolean {
+    const room = this.roomStore.getRoom(roomCode);
+    if (!room) {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.ROOM_NOT_FOUND, message: 'Room not found',
+      });
+      return false;
+    }
+
+    const host = this.findPlayerBySocket(room, callerSocketId);
+    if (!host || !host.isHost) {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.NOT_HOST, message: 'Only the host can start voting',
+      });
+      return false;
+    }
+
+    if (!room.gameState || room.gameState.phase !== 'DISCUSSION') {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC, message: 'Voting can only start during discussion',
+      });
+      return false;
+    }
+
+    const sm = this.machines.get(roomCode);
+    if (!sm) return false;
+
+    // Cancel the discussion timer and transition to VOTING
+    sm.cancelTimer();
+    const votingMs = VOTING_TIMER * 1000;
+    sm.transition('VOTING', votingMs);
+
+    if (room.gameState) room.gameState.phaseEndsAt = sm.phaseEndsAt;
+
+    this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
+      phase: 'VOTING',
+      phaseEndsAt: sm.phaseEndsAt,
+    });
     return true;
   }
 

@@ -2,6 +2,7 @@
   "categories": [
     {
       "name": "videojuegos",
+      "displayName": "Videojuegos",
       "words": [
         "speedrun", "headshot", "respawn", "grindear", "nerfeo",
         "buffear", "lootear", "craftear", "boss final", "mazmorra",
@@ -13,6 +14,7 @@
     },
     {
       "name": "internet",
+      "displayName": "Internet",
       "words": [
         "meme", "trolear", "stremear", "moderador", "baneado",
         "raid", "follow", "sub", "donacion", "emote spam",
@@ -23,6 +25,7 @@
     },
     {
       "name": "juegos-de-mesa",
+      "displayName": "Juegos de mesa",
       "words": [
         "ficha", "dado", "tablero", "mazorreo", "campana",
         "partida", "turno", "rol", "dungeon master", "critical hit",
@@ -33,6 +36,7 @@
     },
     {
       "name": "esports",
+      "displayName": "Esports",
       "words": [
         "torneo", "clasificatoria", "final", "semifinal", "llave",
         "bracket", "bo3", "bo5", "pick", "ban",
@@ -43,6 +47,7 @@
     },
     {
       "name": "gaming-cultura",
+      "displayName": "Cultura Gamer",
       "words": [
         "noob", "pro", "tryhard", "casual", "veterano",
         "campero", "rushero", "gankear", "fleartear", "pwned",

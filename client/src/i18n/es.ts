@@ -35,6 +35,8 @@ const es = {
     you: 'Tú',
     settings: 'Configuración',
     maxPlayers: 'Máx. jugadores',
+    category: 'Categoría',
+    randomCategory: 'Aleatoria',
     impostors: 'Impostores',
     discussionTime: 'Tiempo de discusión',
     seconds: 'segundos',
@@ -54,6 +56,7 @@ const es = {
     timeRemaining: 'Tiempo restante',
     lobbyLink: 'Volver a sala',
     waitingForVoting: 'Esperando a que termine la discusión...',
+    startVoting: 'Iniciar votación',
   },
 
   voting: {

@@ -23,6 +23,7 @@ function createTestServer() {
     categories: [
       {
         name: 'test',
+        displayName: 'Test',
         words: ['integration-word'],
       },
     ],

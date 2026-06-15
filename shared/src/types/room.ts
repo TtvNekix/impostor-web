@@ -14,6 +14,8 @@ export interface RoomSettings {
   maxPlayers: number;
   impostorCount: number;
   discussionTime: number;
+  /** Selected category name (kebab-case identifier). null/undefined = random. */
+  category: string | null;
 }
 
 export interface Room {

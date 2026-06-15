@@ -46,6 +46,7 @@ export default function App() {
     createRoom,
     joinRoom,
     startMatch,
+    startVoting,
     vote,
     updateSettings,
     newMatch,
@@ -104,6 +105,7 @@ export default function App() {
         createRoom={createRoom}
         joinRoom={joinRoom}
         startMatch={startMatch}
+        startVoting={startVoting}
         vote={vote}
         updateSettings={updateSettings}
         newMatch={newMatch}
@@ -121,8 +123,13 @@ interface ScreenRouterProps {
   createRoom: (payload: { code: string; username: string }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
+  startVoting: () => void;
   vote: (payload: { targetId: string | null }) => void;
-  updateSettings: (payload: { impostorCount?: number; discussionTime?: number }) => void;
+  updateSettings: (payload: {
+    impostorCount?: number;
+    discussionTime?: number;
+    category?: string | null;
+  }) => void;
   newMatch: () => void;
 }
 
@@ -131,6 +138,7 @@ function ScreenRouter({
   createRoom,
   joinRoom,
   startMatch,
+  startVoting,
   vote,
   updateSettings: updateSettingsAction,
   newMatch,
@@ -148,7 +156,7 @@ function ScreenRouter({
 
     case 'WORD_REVEAL':
     case 'DISCUSSION':
-      return <DiscussionScreen totalTime={90} />;
+      return <DiscussionScreen totalTime={90} startVoting={startVoting} />;
 
     case 'VOTING':
       return <VotingScreen vote={vote} />;

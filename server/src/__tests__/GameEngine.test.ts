@@ -18,6 +18,7 @@ function createSampleBank(): WordBank {
     categories: [
       {
         name: 'test',
+        displayName: 'Test',
         words: ['word1', 'word2', 'word3'],
       },
     ],
@@ -166,6 +167,50 @@ describe('GameEngine', () => {
         (p) => p.isImpostor,
       );
       expect(impostors.length).toBe(1);
+    });
+
+    it('picks a word from the configured category', () => {
+      const cat = bank.getCategories()[0];
+      roomManager.createRoom('ABC12', 'Host', { category: cat.name });
+      store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('ABC12', 'Alice', 'socket-alice');
+      roomManager.joinRoom('ABC12', 'Bob', 'socket-bob');
+
+      engine.startMatch('ABC12', 'socket-host');
+
+      expect(store.getRoom('ABC12')!.gameState!.category).toBe(cat.name);
+    });
+  });
+
+  describe('startVoting', () => {
+    it('moves from DISCUSSION to VOTING when called by host', () => {
+      roomManager.createRoom('ABC12', 'Host');
+      store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('ABC12', 'Alice', 'socket-alice');
+      roomManager.joinRoom('ABC12', 'Bob', 'socket-bob');
+      engine.startMatch('ABC12', 'socket-host');
+
+      const result = engine.startVoting('ABC12', 'socket-host');
+      expect(result).toBe(true);
+      expect(store.getRoom('ABC12')!.gameState!.phase).toBe('VOTING');
+    });
+
+    it('rejects startVoting from non-host', () => {
+      roomManager.createRoom('ABC12', 'Host');
+      store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('ABC12', 'Alice', 'socket-alice');
+      roomManager.joinRoom('ABC12', 'Bob', 'socket-bob');
+      engine.startMatch('ABC12', 'socket-host');
+
+      const result = engine.startVoting('ABC12', 'socket-alice');
+      expect(result).toBe(false);
+      expect(store.getRoom('ABC12')!.gameState!.phase).toBe('DISCUSSION');
+    });
+
+    it('rejects startVoting when not in DISCUSSION', () => {
+      roomManager.createRoom('ABC12', 'Host');
+      const result = engine.startVoting('ABC12', 'socket-host');
+      expect(result).toBe(false);
     });
   });
 

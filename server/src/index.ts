@@ -79,7 +79,7 @@ if (fs.existsSync(clientDist)) {
 /*  WebSocket handlers                                                 */
 /* ------------------------------------------------------------------ */
 
-registerHandlers(wss, roomManager, gameEngine, connectionManager);
+registerHandlers(wss, roomManager, gameEngine, connectionManager, wordBank);
 
 /* ------------------------------------------------------------------ */
 /*  Start                                                              */

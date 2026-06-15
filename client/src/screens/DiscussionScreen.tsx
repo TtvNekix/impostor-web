@@ -3,35 +3,46 @@ import { useGameStore } from '../stores/gameStore';
 import { TimerBar } from '../components/TimerBar';
 import { PlayerList } from '../components/PlayerList';
 import { RoleReveal } from '../components/RoleReveal';
+import { usePhaseTimer } from '../hooks/usePhaseTimer';
+import { useCategoryStore } from '../stores/categoryStore';
 import es from '../i18n/es';
 
 interface DiscussionScreenProps {
   /** Total discussion duration in seconds */
   totalTime: number;
+  /** Host-driven transition to VOTING */
+  startVoting: () => void;
 }
 
 /**
  * Discussion screen shows:
  * - The secret word (or "Eres el impostor") via RoleReveal
- * - Category
+ * - Category (humanized)
  * - Timer bar counting down
  * - Player list with status indicators
+ * - "Iniciar votación" button (host only) to skip ahead to voting
  * - Spectator info if applicable
  */
-export function DiscussionScreen({ totalTime }: DiscussionScreenProps) {
+export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenProps) {
   const players = useRoomStore((s) => s.players);
   const roomCode = useRoomStore((s) => s.roomCode);
+  const isHost = useRoomStore((s) => s.isHost);
 
   const phase = useGameStore((s) => s.phase);
   const word = useGameStore((s) => s.word);
   const category = useGameStore((s) => s.category);
   const myRole = useGameStore((s) => s.myRole);
-  const timer = useGameStore((s) => s.timer);
+
+  const getDisplayName = useCategoryStore((s) => s.getDisplayName);
+
+  // Local timer tick — uses phaseEndsAt to recompute remaining seconds
+  const remaining = usePhaseTimer();
 
   // Determine if current player is a spectator
   const isSpectator = myRole === null;
 
   const isWordReveal = phase === 'WORD_REVEAL';
+  const isDiscussion = phase === 'DISCUSSION';
 
   return (
     <div className="page">
@@ -56,13 +67,26 @@ export function DiscussionScreen({ totalTime }: DiscussionScreenProps) {
           <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>
             {es.discussion.category}:
           </span>{' '}
-          <span style={{ color: 'var(--text-secondary)' }}>{category}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {getDisplayName(category)}
+          </span>
         </div>
       )}
 
       {/* Timer bar */}
       {!isWordReveal && totalTime > 0 && (
-        <TimerBar total={totalTime} remaining={timer} />
+        <TimerBar total={totalTime} remaining={remaining} />
+      )}
+
+      {/* Host: skip to voting */}
+      {isDiscussion && isHost && !isSpectator && (
+        <button
+          onClick={startVoting}
+          className="btn btn--primary btn--block"
+          aria-label="Iniciar votación para expulsar a un jugador"
+        >
+          {es.discussion.startVoting}
+        </button>
       )}
 
       {/* Spectator info */}

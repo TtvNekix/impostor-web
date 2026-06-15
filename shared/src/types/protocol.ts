@@ -10,6 +10,7 @@ export const ClientEvent = {
   JOIN_ROOM: 'join_room',
   CREATE_ROOM: 'create_room',
   START_MATCH: 'start_match',
+  START_VOTING: 'start_voting',
   VOTE: 'vote',
   UPDATE_SETTINGS: 'update_settings',
   NEW_MATCH: 'new_match',
@@ -18,6 +19,7 @@ export const ClientEvent = {
 
 export const ServerEvent = {
   CONNECTED: 'connected',
+  CATEGORIES: 'categories',
   ROOM_JOINED: 'room_joined',
   ROOM_ERROR: 'room_error',
   PLAYER_JOINED: 'player_joined',
@@ -32,6 +34,7 @@ export const ServerEvent = {
   SETTINGS_UPDATED: 'settings_updated',
   PLAYER_DISCONNECTED: 'player_disconnected',
   PLAYER_RECONNECTED: 'player_reconnected',
+  HOST_LEFT: 'host_left',
   KICKED: 'kicked',
 } as const;
 
@@ -59,6 +62,7 @@ export interface VotePayload {
 export interface UpdateSettingsPayload {
   impostorCount?: number;
   discussionTime?: number;
+  category?: string | null;
   maxPlayers?: number;
 }
 
@@ -118,6 +122,12 @@ export interface PhaseChangedPayload {
   phaseEndsAt: number;
 }
 
+/** Category info for the lobby selector. */
+export interface CategoryInfo {
+  name: string;
+  displayName: string;
+}
+
 export interface VoteUpdatePayload {
   voterCount: number;
   totalPlayers: number;
@@ -138,6 +148,11 @@ export interface PlayerReconnectedPayload {
 
 export interface KickedPayload {
   reason: string;
+}
+
+export interface HostLeftPayload {
+  reason: 'host_disconnected';
+  message: string;
 }
 
 /* ------------------------------------------------------------------ */

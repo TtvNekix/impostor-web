@@ -32,6 +32,7 @@ export class RoomManager {
       maxPlayers: DEFAULT_MAX_PLAYERS,
       impostorCount: 1,
       discussionTime: DEFAULT_TIMER,
+      category: null,
       ...settings,
     };
     // Sanitize maxPlayers before persisting

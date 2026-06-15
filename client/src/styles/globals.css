@@ -695,19 +695,19 @@ body {
   height: 2.5rem;
   background: rgba(0, 0, 0, 0.3);
   border-radius: var(--radius-md);
-  overflow: hidden;
   position: relative;
   border: 1px solid var(--border-subtle);
+  overflow: hidden;
 }
 
 .timer-bar__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
-  transition: width 1s linear, background var(--transition-normal);
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  transition: width 1s linear, background var(--transition-normal);
+  z-index: 1;
 }
 
 .timer-bar__fill--safe {
@@ -738,7 +738,9 @@ body {
   color: #fff;
   font-family: var(--font-mono);
   letter-spacing: 0.1em;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* ----------------------------------------------------------- */

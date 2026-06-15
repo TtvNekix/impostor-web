@@ -74,6 +74,26 @@ export class ConnectionManager {
     if (room) {
       const player = room.players.get(username);
       if (player) {
+        // Host disconnected — the room can't function without an admin.
+        // Destroy the room immediately and notify every remaining member.
+        if (player.isHost) {
+          this.broadcastToRoom(roomCode, ServerEvent.HOST_LEFT, {
+            reason: 'host_disconnected',
+            message: 'El anfitrión se desconectó. La sala fue eliminada.',
+          });
+          this.roomManager.destroyRoom(roomCode);
+          // Drop every connection entry that pointed at this room so future
+          // messages from those sockets become no-ops (they'll also see the
+          // HOST_LEFT event and reset their own state).
+          for (const [otherId, other] of this.connections) {
+            if (other.roomCode === roomCode) {
+              if (other.disconnectTimer) clearTimeout(other.disconnectTimer);
+              this.connections.delete(otherId);
+            }
+          }
+          return;
+        }
+
         player.status = 'DISCONNECTED';
         this.broadcastToRoom(roomCode, ServerEvent.PLAYER_DISCONNECTED, {
           playerId: socketId,

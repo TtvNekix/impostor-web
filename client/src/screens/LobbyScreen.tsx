@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useGameStore } from '../stores/gameStore';
+import { useCategoryStore } from '../stores/categoryStore';
 import { PlayerList } from '../components/PlayerList';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import {
@@ -15,7 +16,11 @@ interface LobbyScreenProps {
   createRoom: (payload: { code: string; username: string; settings?: { maxPlayers: number } }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
-  updateSettings: (payload: { impostorCount?: number; discussionTime?: number }) => void;
+  updateSettings: (payload: {
+    impostorCount?: number;
+    discussionTime?: number;
+    category?: string | null;
+  }) => void;
 }
 
 const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map((n) => ({
@@ -43,6 +48,8 @@ export function LobbyScreen({
   const clearError = useConnectionStore((s) => s.clearError);
 
   const gamePhase = useGameStore((s) => s.phase);
+  const categories = useCategoryStore((s) => s.categories);
+  const getDisplayName = useCategoryStore((s) => s.getDisplayName);
 
   const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
@@ -194,6 +201,13 @@ export function LobbyScreen({
     );
   }
 
+  // Build category options for the in-lobby selector. The first option is
+  // the special "Aleatoria" entry (null) that means random category.
+  const categoryOptions: CustomSelectOption<string>[] = [
+    { value: '', label: es.lobby.randomCategory },
+    ...categories.map((c) => ({ value: c.name, label: c.displayName })),
+  ];
+
   // Room exists → show lobby with player list, settings, and start button
   return (
     <div className="page">
@@ -237,6 +251,17 @@ export function LobbyScreen({
             <span className="settings-panel__value">{settings.maxPlayers}</span>
           </div>
 
+          {/* Category (host picks) */}
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{es.lobby.category}</label>
+            <CustomSelect
+              value={settings.category ?? ''}
+              options={categoryOptions}
+              onChange={(v) => updateSettings({ category: v === '' ? null : v })}
+              ariaLabel={es.lobby.category}
+            />
+          </div>
+
           {/* Impostor count */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{es.lobby.impostors}</label>
@@ -261,6 +286,18 @@ export function LobbyScreen({
               ariaLabel={es.lobby.discussionTime}
             />
           </div>
+        </div>
+      )}
+
+      {/* Selected category preview (non-host viewers) */}
+      {!isHost && settings?.category && (
+        <div className="card" style={{ textAlign: 'center', padding: '0.6rem 0.9rem' }}>
+          <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
+            {es.lobby.category}:
+          </span>{' '}
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {getDisplayName(settings.category)}
+          </span>
         </div>
       )}
 

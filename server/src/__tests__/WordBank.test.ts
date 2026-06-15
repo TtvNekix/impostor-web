@@ -6,10 +6,12 @@ function createSampleBank(): WordBank {
     categories: [
       {
         name: 'videojuegos',
+        displayName: 'Videojuegos',
         words: ['speedrun', 'headshot', 'respawn', 'grindear', 'nerfeo'],
       },
       {
         name: 'internet',
+        displayName: 'Internet',
         words: ['meme', 'trolear', 'stremear', 'moderador', 'baneado'],
       },
     ],
@@ -37,8 +39,8 @@ describe('WordBank', () => {
     it('returns null when all categories have empty word arrays', () => {
       const bank = new WordBank({
         categories: [
-          { name: 'empty1', words: [] },
-          { name: 'empty2', words: [] },
+          { name: 'empty1', displayName: 'E1', words: [] },
+          { name: 'empty2', displayName: 'E2', words: [] },
         ],
       });
       expect(bank.randomWord()).toBeNull();
@@ -46,7 +48,7 @@ describe('WordBank', () => {
 
     it('returns words from the correct categories', () => {
       const bank = createSampleBank();
-      const categories = bank.getCategories();
+      const categories = bank.getCategories().map((c) => c.name);
       const results = new Set<string>();
 
       // Get 50 random words — all should come from known categories
@@ -85,16 +87,25 @@ describe('WordBank', () => {
 
     it('returns null for an empty category', () => {
       const bank = new WordBank({
-        categories: [{ name: 'vacia', words: [] }],
+        categories: [{ name: 'vacia', displayName: 'Vacía', words: [] }],
       });
       expect(bank.randomWordFromCategory('vacia')).toBeNull();
     });
   });
 
   describe('getCategories', () => {
-    it('returns all category names', () => {
+    it('returns all category names with display names', () => {
       const bank = createSampleBank();
-      expect(bank.getCategories()).toEqual(['videojuegos', 'internet']);
+      expect(bank.getCategories()).toEqual([
+        { name: 'videojuegos', displayName: 'Videojuegos' },
+        { name: 'internet', displayName: 'Internet' },
+      ]);
+    });
+
+    it('returns the human-readable display name', () => {
+      const bank = createSampleBank();
+      expect(bank.getDisplayName('videojuegos')).toBe('Videojuegos');
+      expect(bank.getDisplayName('unknown')).toBe('unknown');
     });
   });
 
@@ -111,7 +122,7 @@ describe('WordBank', () => {
 
     it('returns true when all categories are empty', () => {
       const bank = new WordBank({
-        categories: [{ name: 'vacia', words: [] }],
+        categories: [{ name: 'vacia', displayName: 'Vacía', words: [] }],
       });
       expect(bank.isEmpty()).toBe(true);
     });

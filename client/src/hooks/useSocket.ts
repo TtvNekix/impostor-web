@@ -8,11 +8,13 @@ import {
   type UpdateSettingsPayload,
   type RoomSettings,
   type RoomErrorPayload,
+  type CategoryInfo,
   ErrorCode,
 } from '@impostor/shared';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
+import { useCategoryStore } from '../stores/categoryStore';
 import es from '../i18n/es';
 
 /**
@@ -52,6 +54,9 @@ export function useSocket() {
   const addPlayer = useRoomStore((s) => s.addPlayer);
   const removePlayer = useRoomStore((s) => s.removePlayer);
   const updateRoomSettings = useRoomStore((s) => s.updateSettings);
+  const clearRoom = useRoomStore((s) => s.clearRoom);
+
+  const setCategories = useCategoryStore((s) => s.setCategories);
 
   const setPhase = useGameStore((s) => s.setPhase);
   const setWord = useGameStore((s) => s.setWord);
@@ -98,6 +103,12 @@ export function useSocket() {
         /*  Server → Client events                                      */
         /* ------------------------------------------------------------ */
 
+        case ServerEvent.CATEGORIES: {
+          const { categories } = data as { categories: CategoryInfo[] };
+          setCategories(categories);
+          break;
+        }
+
         case ServerEvent.ROOM_JOINED: {
           const { room } = data as { room: any };
           const myId = myIdRef.current;
@@ -106,7 +117,7 @@ export function useSocket() {
           const me = room.players.find((p: any) => p.id === myId);
           setRoom(room.code, room.players, me?.isHost ?? false, room.settings);
           if (room.gameState) {
-            setPhase(room.gameState.phase);
+            setPhase(room.gameState.phase, room.gameState.phaseEndsAt);
             setCategory(room.gameState.category);
             setRoundNumber(room.gameState.roundNumber);
             if (room.gameState.phase !== 'LOBBY') {
@@ -136,7 +147,7 @@ export function useSocket() {
         }
 
         case ServerEvent.GAME_STARTED: {
-          setPhase('WORD_REVEAL');
+          setPhase('WORD_REVEAL', 0);
           const gs = data as { category: string; roundNumber: number };
           setCategory(gs.category);
           setRoundNumber(gs.roundNumber);
@@ -149,7 +160,8 @@ export function useSocket() {
         }
 
         case ServerEvent.PHASE_CHANGED: {
-          setPhase((data as { phase: any }).phase);
+          const { phase, phaseEndsAt } = data as { phase: any; phaseEndsAt: number };
+          setPhase(phase, phaseEndsAt);
           break;
         }
 
@@ -165,12 +177,23 @@ export function useSocket() {
 
         case ServerEvent.GAME_OVER: {
           setWinner((data as { winner: any }).winner);
-          setPhase('GAME_OVER');
+          setPhase('GAME_OVER', 0);
           break;
         }
 
         case ServerEvent.SETTINGS_UPDATED: {
           updateRoomSettings(data as RoomSettings);
+          break;
+        }
+
+        case ServerEvent.HOST_LEFT: {
+          // The admin dropped — the server has already destroyed the room.
+          // Reset all local state and bounce the user back to the
+          // connection screen with the message in tow.
+          const payload = data as { message: string };
+          clearRoom();
+          resetGame();
+          setDisconnected(payload.message || es.errors.generic);
           break;
         }
 
@@ -248,6 +271,11 @@ export function useSocket() {
     [sendMessage],
   );
 
+  const startVoting = useCallback(
+    () => sendMessage(ClientEvent.START_VOTING),
+    [sendMessage],
+  );
+
   const vote = useCallback(
     (payload: VotePayload) => sendMessage(ClientEvent.VOTE, payload),
     [sendMessage],
@@ -272,6 +300,7 @@ export function useSocket() {
     joinRoom,
     createRoom,
     startMatch,
+    startVoting,
     vote,
     updateSettings: sendSettings,
     newMatch,

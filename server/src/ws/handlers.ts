@@ -12,6 +12,7 @@ import {
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
 import { ConnectionManager } from '../connection/ConnectionManager';
+import { WordBank } from '../words/WordBank';
 
 /** Helper to send a localized error code to a single socket. */
 function sendError(
@@ -52,14 +53,19 @@ export function registerHandlers(
   roomManager: RoomManager,
   gameEngine: GameEngine,
   connectionManager: ConnectionManager,
+  wordBank: WordBank,
 ): void {
   wss.on('connection', (ws: WebSocket) => {
     const socketId = randomUUID();
 
     /* ---------------------------------------------------------------- */
-    /*  Send assigned connection ID                                     */
+    /*  Send assigned connection ID + available categories              */
     /* ---------------------------------------------------------------- */
     ws.send(JSON.stringify({ event: ServerEvent.CONNECTED, data: { id: socketId } }));
+    ws.send(JSON.stringify({
+      event: ServerEvent.CATEGORIES,
+      data: { categories: wordBank.getCategories() },
+    }));
 
     /* ---------------------------------------------------------------- */
     /*  Heartbeat — ping every 25 s, expect pong within 20 s           */
@@ -205,6 +211,19 @@ export function registerHandlers(
         }
 
         /* ------------------------------------------------------------ */
+        /*  START_VOTING (host-driven, from DISCUSSION)                  */
+        /* ------------------------------------------------------------ */
+        case ClientEvent.START_VOTING: {
+          const roomCode = connectionManager.getRoomCode(socketId);
+          if (!roomCode) {
+            sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
+            return;
+          }
+          gameEngine.startVoting(roomCode, socketId);
+          break;
+        }
+
+        /* ------------------------------------------------------------ */
         /*  VOTE                                                         */
         /* ------------------------------------------------------------ */
         case ClientEvent.VOTE: {
@@ -233,9 +252,10 @@ export function registerHandlers(
               return;
             }
 
-            const { impostorCount, discussionTime } = data as {
+            const { impostorCount, discussionTime, category } = data as {
               impostorCount?: number;
               discussionTime?: number;
+              category?: string | null;
             };
 
             // impostorCount: accepted freely in the lobby (host plans ahead).
@@ -254,6 +274,19 @@ export function registerHandlers(
 
             if (discussionTime !== undefined) {
               room.settings.discussionTime = clampTimer(discussionTime);
+            }
+
+            // Category: host can pick a specific category or null for random.
+            // Validate that the category exists in the word bank.
+            if (category !== undefined) {
+              if (category === null || category === '') {
+                room.settings.category = null;
+              } else if (wordBank.getCategories().some((c) => c.name === category)) {
+                room.settings.category = category;
+              } else {
+                sendError(ws, ErrorCode.GENERIC, `Unknown category: ${category}`);
+                return;
+              }
             }
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
