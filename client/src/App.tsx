@@ -116,7 +116,7 @@ export default function App() {
               // the WebSocket and reloads the UI, which is the most
               // reliable way to land the user back on the form.
               try { leaveRoom(); } catch { /* ignore */ }
-              window.location.href = '/play';
+              window.location.href = '/';
             }}
             aria-label="Salir de la partida"
             title="Salir de la partida"
