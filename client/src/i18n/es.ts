@@ -9,6 +9,7 @@ const es = {
     back: 'Volver',
     close: 'Cerrar',
     leaveRoom: 'Salir de la partida',
+    poweredBy: 'Hecho por',
   },
 
   connection: {

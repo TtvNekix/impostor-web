@@ -1664,6 +1664,38 @@ body {
 }
 
 /* ----------------------------------------------------------- */
+/*  Entry Page Footer (powered by coffeeprojects)                 */
+/* ----------------------------------------------------------- */
+
+.entry-page__footer {
+  margin-top: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.entry-page__footer-text {
+  opacity: 0.7;
+}
+
+.entry-page__footer-link {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.entry-page__footer-link:hover,
+.entry-page__footer-link:focus-visible {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+  text-shadow: 0 0 8px var(--accent-primary-glow);
+  outline: none;
+}
+
+/* ----------------------------------------------------------- */
 /*  Auto-transition info                                         */
 /* ----------------------------------------------------------- */
 

@@ -9,6 +9,7 @@ const en = {
     back: 'Back',
     close: 'Close',
     leaveRoom: 'Leave room',
+    poweredBy: 'Powered by',
   },
 
   connection: {
