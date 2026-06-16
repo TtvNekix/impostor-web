@@ -52,6 +52,15 @@ const pt = {
       filterHasSpace: 'Só com espaço',
       joinButton: 'Entrar',
     },
+    lobbiesLink: 'Ver salas públicas',
+  },
+
+  lobbies: {
+    title: 'Salas públicas',
+    subtitle: 'Entra numa partida aberta',
+    back: 'Voltar',
+    usernameLabel: 'O teu nome',
+    joinError: 'Introduz o teu nome para entrar',
   },
 
   lobby: {

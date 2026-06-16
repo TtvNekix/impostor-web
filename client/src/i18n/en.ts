@@ -52,6 +52,15 @@ const en = {
       filterHasSpace: 'With space only',
       joinButton: 'Join',
     },
+    lobbiesLink: 'View public rooms',
+  },
+
+  lobbies: {
+    title: 'Public rooms',
+    subtitle: 'Join an open match',
+    back: 'Back',
+    usernameLabel: 'Your name',
+    joinError: 'Enter your name to join',
   },
 
   lobby: {
