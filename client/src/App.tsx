@@ -9,9 +9,11 @@ import { VotingScreen } from './screens/VotingScreen';
 import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 import { EntryPage } from './screens/EntryPage';
+import { LobbiesPage } from './screens/LobbiesPage';
 import { PoweredByFooter } from './components/PoweredByFooter';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { useT } from './i18n/I18nContext';
+import { useLocation } from './lib/router';
 
 type GamePhase = import('@impostor/shared').GamePhase;
 
@@ -237,6 +239,14 @@ function ScreenRouter({
   myId,
 }: ScreenRouterProps) {
   const t = useT();
+  const location = useLocation();
+
+  // Dedicated public-rooms page — always wins over the room-based
+  // routing. This means navigating to /salas from anywhere (even with
+  // a room code already set) renders the lobbies browser.
+  if (location === 'lobbies') {
+    return <LobbiesPage joinRoom={joinRoom} />;
+  }
 
   // No room yet → show the entry page (game mode selector + create/join).
   if (!roomCode) {
