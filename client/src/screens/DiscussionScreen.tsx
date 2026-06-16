@@ -94,7 +94,7 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
           className="btn btn--primary btn--block btn--lg"
           aria-label={t.discussion.startVoting}
         >
-          ▶ {t.discussion.startVoting} (30s)
+          ▶ {t.discussion.startVoting} ({settings?.votingTimer ?? 30}s)
         </button>
       )}
 
