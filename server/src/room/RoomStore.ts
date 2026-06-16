@@ -1,4 +1,5 @@
-import type { Room, RoomSettings } from '@impostor/shared';
+import type { Room, RoomSettings, PublicRoomDTO, PublicRoomsResponse } from '@impostor/shared';
+import { MAX_PUBLIC_ROOMS_RETURNED } from '@impostor/shared';
 
 export class RoomStore {
   private rooms: Map<string, Room> = new Map();
@@ -41,4 +42,48 @@ export class RoomStore {
   get size(): number {
     return this.rooms.size;
   }
+
+  /**
+   * Build a sanitized DTO list of every public room with at least one
+   * ACTIVE player. Privacy bar:
+   *   - only the host's first whitespace-delimited name token is exposed
+   *   - only the agreed field set is leaked (no settings, no full host name)
+   * Results are capped at MAX_PUBLIC_ROOMS_RETURNED; `hasMore` reports
+   * whether more rooms existed before the cap, and `totalCount` is the
+   * pre-cap total so the client can show an overflow hint.
+   */
+  getAllPublicRooms(now: number = Date.now()): PublicRoomsResponse {
+    const all: PublicRoomDTO[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.settings.visibility !== 'public') continue;
+
+      const activeCount = Array.from(room.players.values()).filter(
+        (p) => p.status === 'ACTIVE',
+      ).length;
+      // Defense in depth: hide empty public rooms (host just disconnected
+      // and RoomStore.deleteRoom hasn't run yet). See spec: "empty room
+      // filtering".
+      if (activeCount === 0) continue;
+
+      const host = Array.from(room.players.values()).find((p) => p.isHost);
+      const hostFirstName = (host?.username ?? '').trim().split(/\s+/)[0] ?? '';
+
+      all.push({
+        roomCode: room.code,
+        hostFirstName,
+        category: room.settings.category,
+        hostLocale: room.settings.hostLocale,
+        playerCount: activeCount,
+        maxPlayers: room.settings.maxPlayers,
+        ageSeconds: Math.max(0, Math.floor((now - room.createdAt) / 1000)),
+      });
+    }
+
+    const totalCount = all.length;
+    const hasMore = totalCount > MAX_PUBLIC_ROOMS_RETURNED;
+    const rooms = hasMore ? all.slice(0, MAX_PUBLIC_ROOMS_RETURNED) : all;
+
+    return { rooms, hasMore, totalCount };
+  }
 }
+
