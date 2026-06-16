@@ -49,6 +49,19 @@ const gameEngine = new GameEngine(connectionManager, roomStore, roomManager, wor
 /*  Health check (required for Railway)                                */
 /* ------------------------------------------------------------------ */
 
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send('User-agent: *\nAllow: /\n');
+});
+
+app.get('/sitemap.xml', (_req, res) => {
+  const base = process.env.PUBLIC_URL ?? 'https://impostor.nekix.lol';
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${base}/</loc></url>
+  <url><loc>${base}/play</loc></url>
+</urlset>`);
+});
+
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
