@@ -47,6 +47,8 @@ SERVER_FILES = [
 ]
 
 # Shared package source (server uses tsx to load directly from src/, not dist)
+# NOTE: must include any new file under shared/src/ — the script does not
+# auto-discover. Add here when creating new shared modules.
 SHARED_FILES = [
     'shared/src/index.ts',
     'shared/src/constants.ts',
@@ -54,6 +56,7 @@ SHARED_FILES = [
     'shared/src/types/protocol.ts',
     'shared/src/types/room.ts',
     'shared/src/types/game.ts',
+    'shared/src/types/api.ts',
 ]
 
 
