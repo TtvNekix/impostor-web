@@ -1,62 +1,66 @@
 import { useState } from 'react';
 import { useRoomStore } from '../stores/roomStore';
-import { useConnectionStore } from '../stores/connectionStore';
 import { useGameStore } from '../stores/gameStore';
+import { useCategoryStore } from '../stores/categoryStore';
+import { useToastStore } from '../stores/toastStore';
+import { ALLOWED_VOTING_TIMERS } from '@impostor/shared';
 import { PlayerList } from '../components/PlayerList';
-import { generateRoomCode } from '@impostor/shared';
-import es from '../i18n/es';
+import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
+import { CategoryManager } from '../components/CategoryManager';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { HardcoreHelpModal } from '../components/HardcoreHelpModal';
+import { useT } from '../i18n/I18nContext';
 
 interface LobbyScreenProps {
-  createRoom: (payload: { code: string; username: string }) => void;
+  createRoom: (payload: { code: string; username: string; settings?: { maxPlayers: number } }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
-  updateSettings: (payload: { impostorCount?: number; discussionTime?: number }) => void;
+  updateSettings: (payload: {
+    category?: string | null;
+    votingTimer?: 15 | 30 | 45 | 60;
+    hardcore?: boolean;
+    impostorCount?: number;
+  }) => void;
+  addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
+  addWords: (payload: { category: string; words: string }) => void;
+  kickPlayer: (username: string) => void;
+  /** This client's socket id, used to exclude self from the kick list. */
+  myId: string | null;
 }
 
 export function LobbyScreen({
-  createRoom,
-  joinRoom,
   startMatch,
   updateSettings,
+  addCategory,
+  addWords,
+  kickPlayer,
+  myId,
 }: LobbyScreenProps) {
+  const t = useT();
   const roomCode = useRoomStore((s) => s.roomCode);
   const players = useRoomStore((s) => s.players);
   const isHost = useRoomStore((s) => s.isHost);
   const settings = useRoomStore((s) => s.settings);
-  const error = useConnectionStore((s) => s.error);
-  const clearError = useConnectionStore((s) => s.clearError);
 
   const gamePhase = useGameStore((s) => s.phase);
+  const categories = useCategoryStore((s) => s.categories);
+  const getDisplayName = useCategoryStore((s) => s.getDisplayName);
+  const pushToast = useToastStore((s) => s.push);
 
-  const [username, setUsername] = useState('');
-  const [code, setCode] = useState('');
-  const [mode, setMode] = useState<'create' | 'join'>('create');
-  const [copied, setCopied] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [pendingKick, setPendingKick] = useState<string | null>(null);
+  const [hardcoreHelpOpen, setHardcoreHelpOpen] = useState(false);
 
   // Only show lobby UI when phase is LOBBY
   if (gamePhase !== 'LOBBY') return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
-
-    if (mode === 'create') {
-      const roomCode = code.trim().toUpperCase() || generateRoomCode();
-      createRoom({ code: roomCode, username: username.trim() });
-    } else {
-      joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
-    }
-  };
-
   const handleCopyCode = async () => {
-    if (roomCode) {
-      try {
-        await navigator.clipboard.writeText(roomCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Fallback: select text
-      }
+    if (!roomCode) return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      pushToast({ message: t.lobby.codeCopied, variant: 'success' });
+    } catch {
+      pushToast({ message: 'Copy failed', variant: 'error' });
     }
   };
 
@@ -68,84 +72,30 @@ export function LobbyScreen({
 
   const canStart = isHost && players.length >= 3;
 
-  // No room → show create/join form (connection screen)
-  if (!roomCode) {
-    return (
-      <div className="connection-screen">
-        <h1 className="connection-screen__title">
-          {es.common.appName}
-        </h1>
+  // Build category options for the in-lobby selector. The first option is
+  // the special "Random" entry (null) that means random category.
+  const categoryOptions: CustomSelectOption<string>[] = [
+    { value: '', label: t.lobby.randomCategory },
+    ...categories.map((c) => ({ value: c.name, label: c.displayName })),
+  ];
 
-        {/* Mode toggle */}
-        <div className="toggle-group">
-          <button
-            onClick={() => { setMode('create'); clearError(); }}
-            className={`toggle-group__btn${mode === 'create' ? ' toggle-group__btn--active' : ''}`}
-          >
-            {es.lobby.createRoom}
-          </button>
-          <button
-            onClick={() => { setMode('join'); clearError(); }}
-            className={`toggle-group__btn${mode === 'join' ? ' toggle-group__btn--active' : ''}`}
-          >
-            {es.lobby.joinRoom}
-          </button>
-        </div>
-
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            width: '100%',
-            maxWidth: '320px',
-          }}
-        >
-          <input
-            type="text"
-            placeholder={es.lobby.enterUsername}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            maxLength={20}
-            className="input"
-          />
-
-          {mode === 'join' && (
-            <input
-              type="text"
-              placeholder={es.lobby.enterRoomCode}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              maxLength={6}
-              className="input"
-              style={{ textTransform: 'uppercase' }}
-            />
-          )}
-
-          <button
-            type="submit"
-            disabled={!username.trim() || (mode === 'join' && !code.trim())}
-            className="btn btn--primary btn--block"
-          >
-            {mode === 'create' ? es.lobby.create : es.lobby.join}
-          </button>
-
-          {error && (
-            <p className="connection-screen__error">{error}</p>
-          )}
-        </form>
-      </div>
-    );
-  }
+  const votingTimerOptions: CustomSelectOption<number>[] = ALLOWED_VOTING_TIMERS.map((s) => ({
+    value: s,
+    label: `${s}s`,
+  }));
 
   // Room exists → show lobby with player list, settings, and start button
   return (
     <div className="page">
-      {/* Header */}
-      <div className="page-header">
-        <div className="page-header__title">{es.lobby.title}</div>
+      {/* Header — small logo + room title */}
+      <div className="page-header page-header--with-logo">
+        <img
+          src="/logo-256x256.png"
+          alt=""
+          aria-hidden="true"
+          className="page-header__logo"
+        />
+        <div className="page-header__title">{t.lobby.title}</div>
       </div>
 
       {/* Room code + copy */}
@@ -156,57 +106,119 @@ export function LobbyScreen({
             onClick={handleCopyCode}
             className="btn btn--ghost btn--sm"
           >
-            {copied ? es.lobby.codeCopied : es.lobby.copyCode}
+            {t.common.copyCode}
           </button>
         </div>
         <span className="player-count">
-          {es.lobby.playerCount
+          {t.lobby.playerCount
             .replace('{count}', String(players.length))
             .replace('{max}', String(settings?.maxPlayers ?? 10))}
         </span>
       </div>
 
-      {/* Player list */}
+      {/* Player list — host can kick non-host players */}
       <PlayerList
         players={players}
-        currentPlayerId={undefined}
+        currentPlayerId={myId ?? undefined}
+        canKick={isHost}
+        onKick={(username) => setPendingKick(username)}
       />
 
-      {/* Settings (host only) */}
+      {/* Settings (host only) — maxPlayers is set at create time and locked. */}
       {isHost && settings && (
         <div className="settings-panel">
-          <h3 className="settings-panel__title">{es.lobby.settings}</h3>
+          <h3 className="settings-panel__title">{t.lobby.settings}</h3>
 
-          {/* Impostor count */}
+          {/* Max players (read-only, set at room creation) */}
           <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.impostors}</label>
-            <select
-              value={settings.impostorCount}
-              onChange={(e) =>
-                updateSettings({ impostorCount: Number(e.target.value) })
-              }
-              className="settings-panel__select"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-            </select>
+            <label className="settings-panel__label">{t.lobby.maxPlayers}</label>
+            <span className="settings-panel__value">{settings.maxPlayers}</span>
           </div>
 
-          {/* Discussion time */}
+          {/* Category (host picks) */}
           <div className="settings-panel__row">
-            <label className="settings-panel__label">{es.lobby.discussionTime}</label>
-            <select
-              value={settings.discussionTime}
-              onChange={(e) =>
-                updateSettings({ discussionTime: Number(e.target.value) })
-              }
-              className="settings-panel__select"
-            >
-              <option value={60}>60 {es.lobby.seconds}</option>
-              <option value={90}>90 {es.lobby.seconds}</option>
-              <option value={120}>120 {es.lobby.seconds}</option>
-            </select>
+            <label className="settings-panel__label">{t.lobby.category}</label>
+            <div className="settings-panel__category-controls">
+              <CustomSelect
+                value={settings.category ?? ''}
+                options={categoryOptions}
+                onChange={(v) => updateSettings({ category: v === '' ? null : v })}
+                ariaLabel={t.lobby.category}
+              />
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm settings-panel__manage-btn"
+                onClick={() => setCategoryModalOpen(true)}
+                aria-label={t.lobby.manageCategories}
+                title={t.lobby.manageCategories}
+              >
+                {t.lobby.manageCategories}
+              </button>
+            </div>
           </div>
+
+          {/* Impostor count — host picks 1 or 2.
+              1 always available; 2 only available with 5+ players.
+              Hardcore mode always uses 1 (overridden server-side). */}
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{t.lobby.impostors}</label>
+            <CustomSelect
+              value={players.length >= 5 ? (settings?.impostorCount ?? 2) : 1}
+              options={[
+                { value: 1, label: '1' },
+                ...(players.length >= 5 ? [{ value: 2, label: '2' }] : []),
+              ]}
+              onChange={(v) => updateSettings({ impostorCount: v as 1 | 2 })}
+              ariaLabel={t.lobby.impostors}
+            />
+          </div>
+
+          {/* Voting timer (host picks) */}
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{t.lobby.votingTimer}</label>
+            <CustomSelect
+              value={settings?.votingTimer ?? 30}
+              options={votingTimerOptions}
+              onChange={(v) => updateSettings({ votingTimer: v as 15 | 30 | 45 | 60 })}
+              ariaLabel={t.lobby.votingTimer}
+            />
+          </div>
+
+          {/* Hardcore mode toggle + help */}
+          <div className="settings-panel__row settings-panel__row--hardcore">
+            <label className="settings-panel__label">
+              {t.lobby.hardcore}
+              <button
+                type="button"
+                className="help-icon"
+                onClick={() => setHardcoreHelpOpen(true)}
+                aria-label={t.lobby.helpHardcore}
+                title={t.lobby.helpHardcore}
+              >
+                ?
+              </button>
+            </label>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings?.hardcore ?? false}
+                onChange={(e) => updateSettings({ hardcore: e.target.checked })}
+              />
+              <span className="toggle-switch__slider" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Selected category preview (non-host viewers) */}
+      {!isHost && settings?.category && (
+        <div className="card" style={{ textAlign: 'center', padding: '0.6rem 0.9rem' }}>
+          <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
+            {t.lobby.category}:
+          </span>{' '}
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {getDisplayName(settings.category)}
+          </span>
         </div>
       )}
 
@@ -216,13 +228,42 @@ export function LobbyScreen({
           onClick={handleStartMatch}
           disabled={!canStart}
           className={`btn btn--lg btn--block ${canStart ? 'btn--success' : ''}`}
-          style={!canStart ? { opacity: 0.4, cursor: 'not-allowed', background: '#333' } : undefined}
         >
           {players.length < 3
-            ? es.lobby.minPlayersRequired.replace('{min}', '3')
-            : es.lobby.startMatch}
+            ? t.lobby.minPlayersRequired.replace('{min}', '3')
+            : t.lobby.startMatch}
         </button>
       )}
+
+      {/* Category management modal */}
+      {categoryModalOpen && (
+        <CategoryManager
+          onClose={() => setCategoryModalOpen(false)}
+          addCategory={addCategory}
+          addWords={addWords}
+        />
+      )}
+
+      {/* Kick confirmation modal. The user must confirm before the host
+          removes another player from the room. */}
+      <ConfirmationModal
+        open={!!pendingKick}
+        title={t.confirm.kickPlayerTitle.replace('{player}', pendingKick ?? '')}
+        message={t.confirm.kickPlayerMessage}
+        confirmLabel={t.confirm.kick}
+        cancelLabel={t.common.cancel}
+        variant="danger"
+        onConfirm={() => {
+          if (pendingKick) kickPlayer(pendingKick);
+          setPendingKick(null);
+        }}
+        onCancel={() => setPendingKick(null)}
+      />
+
+      <HardcoreHelpModal
+        open={hardcoreHelpOpen}
+        onClose={() => setHardcoreHelpOpen(false)}
+      />
     </div>
   );
 }

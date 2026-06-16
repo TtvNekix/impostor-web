@@ -2,52 +2,305 @@
   "categories": [
     {
       "name": "videojuegos",
+      "displayName": "Videojuegos",
       "words": [
-        "speedrun", "headshot", "respawn", "grindear", "nerfeo",
-        "buffear", "lootear", "craftear", "boss final", "mazmorra",
-        "puzzle", "checkpoint", "save point", "game over", "new game plus",
-        "open world", "roguelike", "bullet hell", "pay to win", "free to play",
-        "early access", "dlc", "season pass", "skin", "emote",
-        "hitbox", "lag", "ping", "fps", "rage quit"
+        "speedrun", "headshot", "respawn", "boss final", "mazmorra",
+        "puzzle", "checkpoint", "game over", "new game plus",
+        "open world", "roguelike", "bullet hell", "pay to win",
+        "early access", "season pass", "hitbox", "lag", "rage quit"
       ]
     },
     {
       "name": "internet",
+      "displayName": "Internet",
       "words": [
-        "meme", "trolear", "stremear", "moderador", "baneado",
-        "raid", "follow", "sub", "donacion", "emote spam",
-        "shitpost", "doxxear", "phishing", "spam", "bot",
-        "algoritmo", "viral", "trending", "hashtag", "like",
-        "comunidad", "hilo", "subreddit", "discord", "thread"
+        "meme", "trolear", "moderador", "baneado",
+        "influencer", "seguidor", "donacion", "repost",
+        "shitpost", "doxxear", "phishing", "spam",
+        "algoritmo", "viral", "trending", "hashtag",
+        "comunidad", "subreddit", "discord", "thread"
       ]
     },
     {
       "name": "juegos-de-mesa",
+      "displayName": "Juegos de mesa",
       "words": [
-        "ficha", "dado", "tablero", "mazorreo", "campana",
-        "partida", "turno", "rol", "dungeon master", "critical hit",
-        "d20", "personaje", "clase", "nivel", "experiencia",
-        "tesoro", "trampa", "enemigo", "aliado", "mision",
-        "cooperativo", "competitivo", "estrategia", "azar", "puntaje"
+        "ficha", "dado", "tablero", "campana",
+        "partida", "turno", "rol", "dungeon master",
+        "d20", "personaje", "clase", "nivel",
+        "tesoro", "trampa", "enemigo", "mision",
+        "cooperativo", "estrategia", "azar", "puntaje"
       ]
     },
     {
       "name": "esports",
+      "displayName": "Esports",
       "words": [
-        "torneo", "clasificatoria", "final", "semifinal", "llave",
-        "bracket", "bo3", "bo5", "pick", "ban",
-        "meta", "counter pick", "roster", "bench", "scrim",
-        "coach", "analista", "caster", "shoutcaster", "replay",
-        "highlight", "montaje", "mvp", "smurf", "throw"
+        "torneo", "clasificatoria", "final", "semifinal",
+        "bracket", "bo3", "bo5", "pick",
+        "ban", "meta", "roster", "scrim",
+        "coach", "caster", "shoutcaster", "replay",
+        "highlight", "mvp", "smurf", "throw"
       ]
     },
     {
       "name": "gaming-cultura",
+      "displayName": "Cultura Gamer",
       "words": [
         "noob", "pro", "tryhard", "casual", "veterano",
-        "campero", "rushero", "gankear", "fleartear", "pwned",
-        "ez", "gg", "wp", "gl hf", "remake",
-        "afk", "dc", "kick", "mute", "report"
+        "campero", "gankear", "fleartear", "pwned",
+        "ez", "gg", "wp", "remake",
+        "afk", "dc", "mute", "report", "toxic"
+      ]
+    },
+    {
+      "name": "anime",
+      "displayName": "Anime",
+      "words": [
+        "naruto", "goku", "luffy", "pikachu", "sailor moon",
+        "shonen", "mecha", "kawaii", "sensei", "seinen",
+        "totoro", "evangelion", "cosplay", "manga", "otaku",
+        "chunibyo", "tsundere", "waifu"
+      ]
+    },
+    {
+      "name": "programacion",
+      "displayName": "Programacion",
+      "words": [
+        "bug", "debug", "commit", "merge", "deploy",
+        "refactor", "backend", "frontend", "api", "docker",
+        "git", "linux", "json", "stack", "variable",
+        "bucle", "funcion", "objeto"
+      ]
+    },
+    {
+      "name": "hardware",
+      "displayName": "Hardware",
+      "words": [
+        "cpu", "gpu", "ram", "ssd", "motherboard",
+        "teclado", "mouse", "monitor", "webcam", "microfono",
+        "router", "cable", "fuente", "pantalla", "ventilador",
+        "auriculares", "parlantes", "cooler"
+      ]
+    },
+    {
+      "name": "streaming",
+      "displayName": "Streaming",
+      "words": [
+        "twitch", "youtube", "kick", "sub", "bits",
+        "emote", "overlay", "green screen", "camera",
+        "donation", "alert", "chat", "mod", "vip",
+        "follow", "raid", "hype train", "clip"
+      ]
+    },
+    {
+      "name": "consolas",
+      "displayName": "Consolas",
+      "words": [
+        "playstation", "xbox", "nintendo", "switch", "gameboy",
+        "sega", "atari", "psp", "ps5", "wii",
+        "gamecube", "xbox series", "nes", "snes", "n64",
+        "dreamcast", "steam deck", "gamepad"
+      ]
+    },
+    {
+      "name": "comida",
+      "displayName": "Comida",
+      "words": [
+        "pizza", "sushi", "tacos", "hamburguesa", "pasta",
+        "ensalada", "sopa", "sandwich", "hot dog", "nachos",
+        "ceviche", "curry", "ramen", "burrito", "kebab",
+        "arepa", "empanada", "tapas"
+      ]
+    },
+    {
+      "name": "animales",
+      "displayName": "Animales",
+      "words": [
+        "perro", "gato", "leon", "aguila", "delfin",
+        "tiburon", "mariposa", "camaleon", "pinguino", "koala",
+        "buho", "lobo", "foca", "ardilla", "canguro",
+        "flamenco", "hipopotamo", "ornitorrinco"
+      ]
+    },
+    {
+      "name": "profesiones",
+      "displayName": "Profesiones",
+      "words": [
+        "medico", "bombero", "piloto", "chef", "ingeniero",
+        "arquitecto", "periodista", "abogado", "cientifico", "astronauta",
+        "veterinario", "electricista", "musico", "escritor", "director",
+        "fotografo", "dentista", "programador"
+      ]
+    },
+    {
+      "name": "deportes",
+      "displayName": "Deportes",
+      "words": [
+        "futbol", "basquet", "tenis", "natacion", "ciclismo",
+        "rugby", "boxeo", "esgrima", "atletismo", "golf",
+        "surf", "escalada", "judo", "remo", "skate",
+        "esqui", "voley", "handball"
+      ]
+    },
+    {
+      "name": "musica",
+      "displayName": "Musica",
+      "words": [
+        "guitarra", "bateria", "piano", "bajo", "violin",
+        "saxofon", "flauta", "dj", "concierto", "festival",
+        "banda", "solista", "album", "single", "playlist",
+        "beat", "melodia", "acorde"
+      ]
+    },
+    {
+      "name": "peliculas",
+      "displayName": "Peliculas",
+      "words": [
+        "matrix", "star wars", "titanic", "avatar", "inception",
+        "jurasic park", "terminator", "gladiator", "forrest gump", "pulp fiction",
+        "interstellar", "parasite", "joker", "harry potter", "indiana jones",
+        "back to the future", "et", "godfather", "goodfellas"
+      ]
+    },
+    {
+      "name": "series",
+      "displayName": "Series",
+      "words": [
+        "stranger things", "game of thrones", "breaking bad", "the office", "friends",
+        "squid game", "black mirror", "rick and morty", "simpsons", "south park",
+        "peaky blinders", "dark", "casa de papel", "mandalorian", "witcher",
+        "twin peaks", "true detective", "westworld"
+      ]
+    },
+    {
+      "name": "marcas",
+      "displayName": "Marcas",
+      "words": [
+        "nike", "adidas", "apple", "google", "coca cola",
+        "mcdonalds", "starbucks", "tesla", "disney", "netflix",
+        "spotify", "amazon", "pepsi", "mercedes", "ferrari",
+        "sony", "samsung", "ikea"
+      ]
+    },
+    {
+      "name": "lugares",
+      "displayName": "Lugares",
+      "words": [
+        "playa", "montana", "bosque", "desierto", "selva",
+        "volcan", "cascada", "isla", "lago", "cueva",
+        "granja", "castillo", "museo", "estadio", "circo",
+        "parque", "puente", "faro", "glaciar"
+      ]
+    },
+    {
+      "name": "paises",
+      "displayName": "Paises",
+      "words": [
+        "mexico", "japon", "italia", "australia", "egipto",
+        "brasil", "india", "canada", "suecia", "noruega",
+        "alemania", "corea", "argentina", "francia", "inglaterra",
+        "china", "rusia", "turquia"
+      ]
+    },
+    {
+      "name": "ciudades",
+      "displayName": "Ciudades",
+      "words": [
+        "tokio", "paris", "new york", "londres", "roma",
+        "sidney", "barcelona", "dubai", "berlin", "singapur",
+        "moscu", "seul", "bangkok", "los angeles", "buenos aires",
+        "lisboa", "amsterdam", "madrid"
+      ]
+    },
+    {
+      "name": "objetos",
+      "displayName": "Objetos",
+      "words": [
+        "lapiz", "reloj", "mochila", "paraguas", "linterna",
+        "espejo", "candado", "llave", "brujula", "cuchara",
+        "martillo", "cuerda", "vela", "cojin", "maleta",
+        "sombrero", "gafas", "cartera"
+      ]
+    },
+    {
+      "name": "instrumentos",
+      "displayName": "Instrumentos musicales",
+      "words": [
+        "trompeta", "arpa", "acordeon", "ukelele",
+        "timbales", "maracas", "clarinete", "oboe", "cello",
+        "xilofono", "armonica", "triangulo", "organo",
+        "contrabajo", "mandolina", "laud", "corchea", "pentagrama"
+      ]
+    },
+    {
+      "name": "frutas",
+      "displayName": "Frutas",
+      "words": [
+        "manzana", "banana", "naranja", "uva", "sandia",
+        "frutilla", "mango", "kiwi", "pera", "cereza",
+        "anana", "papaya", "ciruela", "higo", "limon",
+        "pomelo", "frambuesa", "arandano"
+      ]
+    },
+    {
+      "name": "comidas-tipicas",
+      "displayName": "Comidas tipicas",
+      "words": [
+        "paella", "feijoada", "churrasco", "tamal", "goulash",
+        "pierogi", "borscht", "couscous", "poutine", "falafel",
+        "pho", "dim sum", "bibimbap", "mole", "stroganoff",
+        "bratwurst", "kimchi", "hummus"
+      ]
+    },
+    {
+      "name": "videojuegos-clasicos",
+      "displayName": "Videojuegos clasicos",
+      "words": [
+        "pacman", "tetris", "mario bros", "sonic", "donkey kong",
+        "street fighter", "mortal kombat", "final fantasy", "zelda", "metroid",
+        "castlevania", "megaman", "contra", "galaga", "space invaders",
+        "pong", "duck hunt", "frogger"
+      ]
+    },
+    {
+      "name": "peliculas-disney",
+      "displayName": "Peliculas Disney",
+      "words": [
+        "simba", "ariel", "bella", "aladdin", "pinocho",
+        "dumbo", "bambi", "cinderella", "blancanieves", "sirenita",
+        "mulan", "pocahontas", "tarzan", "hercules", "rapunzel",
+        "moana", "frozen", "encanto"
+      ]
+    },
+    {
+      "name": "superheroes",
+      "displayName": "Superheroes",
+      "words": [
+        "spiderman", "batman", "superman", "iron man", "wonder woman",
+        "capitan america", "thor", "hulk", "flash", "aquaman",
+        "black panther", "deadpool", "wolverine", "doctor strange", "ant man",
+        "daredevil", "robin", "catwoman"
+      ]
+    },
+    {
+      "name": "vehiculos",
+      "displayName": "Vehiculos",
+      "words": [
+        "auto", "moto", "bicicleta", "avion", "barco",
+        "tren", "helicoptero", "cohete", "submarino", "tractor",
+        "camion", "patineta", "monopatin", "globo", "lancha",
+        "triciclo", "jeep", "scooter"
+      ]
+    },
+    {
+      "name": "elementos",
+      "displayName": "Elementos",
+      "words": [
+        "fuego", "agua", "tierra", "aire", "rayo",
+        "hielo", "metal", "madera", "piedra", "veneno",
+        "luz", "oscuridad", "viento", "magia", "electricidad",
+        "arena", "humo", "lava"
       ]
     }
   ]

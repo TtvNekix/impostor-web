@@ -95,3 +95,7 @@ Chain strategy: stacked-to-main
 - [x] 5.10 Update `client/vite.config.ts` — remove Socket.IO proxy
 - [x] 5.11 Update integration test — use raw WebSocket instead of Socket.IO test client
 - [x] 5.12 Verify server and client compilation — both pass tsc
+
+## Phase 6: SDD Archive
+
+- [x] 6.1 Archive: sync 7 spec domains to `openspec/specs/`, create `state.yaml`, persist archive-report to Engram, move change to `openspec/changes/archive/2026-06-16-impostor-web-game/`

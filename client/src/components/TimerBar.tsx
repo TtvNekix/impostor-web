@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 
 interface TimerBarProps {
   /** Total duration in seconds */
@@ -10,26 +10,22 @@ interface TimerBarProps {
 }
 
 /**
- * Visual countdown bar that shrinks from 100% to 0% width.
- * Shows "MM:SS" remaining text centered on the bar.
- * Changes color from green → yellow → red as time runs out.
- * Cyberpunk theme with pulsing glow when low.
+ * Visual countdown bar. The fill is a background that shrinks from 100% to
+ * 0% width while the "MM:SS" text is layered ABOVE the fill on top of the
+ * full-width bar. This keeps the label readable and centered even when the
+ * fill is very narrow (otherwise the text would overflow the fill's box and
+ * get clipped by the parent overflow:hidden).
  */
 export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
   const [displayTime, setDisplayTime] = useState(remaining);
-  const hasExpired = useRef(false);
 
   useEffect(() => {
     setDisplayTime(remaining);
   }, [remaining]);
 
   useEffect(() => {
-    if (remaining <= 0 && !hasExpired.current) {
-      hasExpired.current = true;
+    if (remaining <= 0) {
       onExpire?.();
-    }
-    if (remaining > 0) {
-      hasExpired.current = false;
     }
   }, [remaining, onExpire]);
 
@@ -53,9 +49,8 @@ export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
       <div
         className={`timer-bar__fill ${fillClass}`}
         style={{ width: `${pct}%` }}
-      >
-        <span className="timer-bar__text">{formatTime(displayTime)}</span>
-      </div>
+      />
+      <span className="timer-bar__text">{formatTime(displayTime)}</span>
     </div>
   );
 }

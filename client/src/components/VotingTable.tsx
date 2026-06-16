@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Player } from '@impostor/shared';
+import { useT } from '../i18n/I18nContext';
 
 interface VotingTableProps {
   players: Player[];
@@ -7,6 +8,13 @@ interface VotingTableProps {
   isSpectator: boolean;
   onVote: (targetId: string | null) => void;
   disabled?: boolean;
+  /** True after this client has already cast a vote in the current round. */
+  hasVoted?: boolean;
+  /** When true (default), the host can force-tally even if some players haven't voted. */
+  showForceEnd?: boolean;
+  onForceEnd?: () => void;
+  /** When true, hide the "Skip vote" option (hardcore mode). */
+  hardcore?: boolean;
 }
 
 /**
@@ -15,6 +23,9 @@ interface VotingTableProps {
  * - Disabled for spectators
  * - Shows a "Skip" button
  * - Hover glow effect on candidate cards
+ * - Locks the selection after voting (the server rejects double votes)
+ * - Host gets a "Force end" button once they've voted (so they can break
+ *   ties when an AFK player is blocking the tally).
  */
 export function VotingTable({
   players,
@@ -22,34 +33,64 @@ export function VotingTable({
   isSpectator,
   onVote,
   disabled = false,
+  hasVoted = false,
+  showForceEnd = false,
+  onForceEnd,
+  hardcore = false,
 }: VotingTableProps) {
+  const t = useT();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [voted, setVoted] = useState(hasVoted);
 
-  const activePlayers = players.filter(
-    (p) => p.status === 'ACTIVE' && p.id !== currentPlayerId,
-  );
+  useEffect(() => {
+    setVoted(hasVoted);
+  }, [hasVoted]);
+
+  const activePlayers = players.filter((p) => p.status === 'ACTIVE');
+
+  const locked = disabled || voted;
 
   const handleSelect = (id: string) => {
-    if (isSpectator || disabled) return;
+    if (isSpectator || locked) return;
     setSelectedId(id === selectedId ? null : id);
   };
 
   const handleConfirm = () => {
-    if (selectedId && !isSpectator && !disabled) {
+    if (selectedId && !isSpectator && !locked) {
       onVote(selectedId);
+      setVoted(true);
     }
   };
 
   const handleSkip = () => {
-    if (!isSpectator && !disabled) {
+    if (!isSpectator && !locked) {
       onVote(null);
+      setVoted(true);
     }
   };
 
   if (isSpectator) {
     return (
       <div className="voting-table__spectator-msg">
-        Los espectadores no pueden votar
+        {t.voting.disabledSpectator}
+      </div>
+    );
+  }
+
+  if (voted) {
+    return (
+      <div className="voting-table__voted-msg">
+        ✓ {t.voting.voteRegistered}
+        {showForceEnd && onForceEnd && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm voting-table__force-end"
+            onClick={onForceEnd}
+            style={{ marginTop: '0.75rem' }}
+          >
+            {t.voting.forceEnd}
+          </button>
+        )}
       </div>
     );
   }
@@ -57,24 +98,31 @@ export function VotingTable({
   return (
     <div className="voting-table">
       <p className="voting-table__label">
-        Selecciona a quién expulsar
+        {t.voting.selectTarget}
       </p>
 
       {/* Player grid */}
       <div className="voting-table__grid">
         {activePlayers.map((player) => {
           const isSelected = selectedId === player.id;
+          const isMe = player.id === currentPlayerId;
           return (
             <button
               key={player.id}
               onClick={() => handleSelect(player.id)}
-              disabled={disabled}
-              className={`voting-table__player-btn${isSelected ? ' voting-table__player-btn--selected' : ''}`}
+              disabled={locked}
+              className={
+                `voting-table__player-btn${isSelected ? ' voting-table__player-btn--selected' : ''}` +
+                `${isMe ? ' voting-table__player-btn--me' : ''}`
+              }
             >
               {player.username}
+              {isMe && !isSelected && (
+                <div className="voting-table__me-label">({t.lobby.you})</div>
+              )}
               {isSelected && (
                 <div className="voting-table__selected-label">
-                  ✓ SELECCIONADO
+                  ✓ {t.voting.selected}
                 </div>
               )}
             </button>
@@ -84,20 +132,22 @@ export function VotingTable({
 
       {/* Action buttons */}
       <div className="voting-table__actions">
-        <button
-          onClick={handleSkip}
-          disabled={disabled}
-          className="btn btn--ghost"
-        >
-          Saltar voto
-        </button>
+        {!hardcore && (
+          <button
+            onClick={handleSkip}
+            disabled={locked}
+            className="btn btn--ghost"
+          >
+            {t.voting.skip}
+          </button>
+        )}
 
         <button
           onClick={handleConfirm}
-          disabled={!selectedId || disabled}
+          disabled={!selectedId || locked}
           className="btn btn--danger"
         >
-          Votar
+          {t.voting.castVote}
         </button>
       </div>
     </div>
