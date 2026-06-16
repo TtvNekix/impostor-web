@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { WebSocketServer } from 'ws';
+import { ALLOWED_LOCALES } from '@impostor/shared';
 import { RoomStore } from './room/RoomStore';
 import { RoomManager } from './room/RoomManager';
 import { WordBank } from './words/WordBank';
@@ -70,6 +71,60 @@ app.get('/sitemap.xml', (_req, res) => {
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Public rooms discovery                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /api/rooms?visibility=public&lang=es&hasSpace=true
+ *
+ * Returns the list of currently-open public rooms. No auth: the
+ * response is built from a sanitized DTO (see RoomStore.getAllPublicRooms)
+ * that only leaks the agreed field set. Browser cache is held to 3s
+ * to keep the list fresh without hammering the single-server deployment.
+ *
+ * Query params (all optional):
+ *   - visibility: only 'public' is honored. Other values yield an empty list.
+ *   - lang: one of the 6 supported locale codes. Rooms whose hostLocale
+ *     doesn't match are excluded.
+ *   - hasSpace: 'true' to keep only rooms with activeCount < maxPlayers.
+ */
+app.get('/api/rooms', (req, res) => {
+  res.set('Cache-Control', 'max-age=3');
+
+  const visibility = String(req.query.visibility ?? 'public');
+  if (visibility !== 'public') {
+    res.status(200).json({ rooms: [], hasMore: false, totalCount: 0 });
+    return;
+  }
+
+  const lang = req.query.lang;
+  const hasSpaceParam = req.query.hasSpace;
+  const langFilter = typeof lang === 'string' && (ALLOWED_LOCALES as readonly string[]).includes(lang)
+    ? lang
+    : null;
+  const hasSpaceFilter = hasSpaceParam === 'true' || hasSpaceParam === '1';
+
+  const result = roomStore.getAllPublicRooms();
+  let rooms = result.rooms;
+
+  if (langFilter !== null) {
+    rooms = rooms.filter((r) => r.hostLocale === langFilter);
+  }
+  if (hasSpaceFilter) {
+    rooms = rooms.filter((r) => r.playerCount < r.maxPlayers);
+  }
+
+  // Recompute totalCount after post-filtering so the client sees the
+  // post-filter total (not the pre-filter one). hasMore is reset to
+  // false since we never receive more than the cap from the store.
+  res.status(200).json({
+    rooms,
+    hasMore: false,
+    totalCount: rooms.length,
+  });
 });
 
 /* ------------------------------------------------------------------ */
