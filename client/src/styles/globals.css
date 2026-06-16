@@ -697,8 +697,8 @@ body {
   right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1481,8 +1481,8 @@ body {
 
 .entry-page__lang {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: calc(0.75rem + var(--safe-top));
+  right: calc(0.75rem + var(--safe-right));
 }
 
 .entry-page__hero {
@@ -1751,41 +1751,196 @@ body {
 /*  Responsive Design                                            */
 /* ----------------------------------------------------------- */
 
+/* Safe-area inset helpers — used for iPhone notch / Android punch-hole
+   phones. Apply via `padding-top: env(safe-area-inset-top);` on fixed
+   headers. We keep the base CSS using these where it matters. */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* --- Tablet & small laptop: 720px and below --- */
+@media (max-width: 720px) {
+  .entry-page__modes {
+    grid-template-columns: 1fr;
+  }
+
+  /* Settings panel: stack label above value so narrow rows don't
+     squash the CustomSelect on the right. */
+  .settings-panel__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .settings-panel__category-controls {
+    flex-wrap: wrap;
+  }
+
+  .settings-panel__category-controls > * {
+    flex: 1 1 200px;
+  }
+}
+
+/* --- Mobile: 480px and below (iPhone SE, Pixel 6, etc.) --- */
 @media (max-width: 480px) {
   .page {
     padding: var(--space-lg) var(--space-sm);
     gap: var(--space-md);
   }
 
+  /* Game header: shrink the logo + room code so they don't crowd.
+     Leave enough room for the X button (44x44 tap target). */
+  .game-header {
+    padding: 0.55rem calc(3rem + var(--safe-right)) 0.55rem calc(2.5rem + var(--safe-left));
+    gap: 0.25rem;
+  }
+
+  .game-header__logo {
+    width: 30px;
+    height: 30px;
+    left: calc(0.55rem + var(--safe-left));
+  }
+
+  .game-header__label {
+    font-size: 0.75rem;
+  }
+
+  .game-header__code {
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+  }
+
+  .game-header__leave {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    right: calc(0.55rem + var(--safe-right));
+  }
+
+  /* Voting table: 44px min tap target, slightly smaller font. */
+  .voting-table__player-btn {
+    min-height: 56px;
+    padding: 0.85rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .voting-table__actions .btn {
+    min-height: 48px;
+  }
+
+  /* Role reveal: tighter padding, slightly smaller headline. */
+  .role-reveal {
+    padding: 1.5rem 1.25rem;
+  }
+
   .role-reveal__main {
     font-size: 1.3rem;
   }
 
+  /* Winner banner: shrink the title so "Los NO impostores ganan!" wraps
+     cleanly on narrow screens. */
   .winner-banner__title {
     font-size: 1.5rem;
   }
 
-  .voting-table__grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  .winner-banner__winner {
+    font-size: 1.05rem;
+  }
+
+  /* Connection screen: smaller logo so it doesn't dominate. */
+  .connection-screen__logo {
+    width: 76px;
+    height: 76px;
   }
 
   .connection-screen__title {
     font-size: 1.8rem;
   }
 
-  .game-header {
-    padding: 0.6rem 0.75rem;
+  /* Entry page: smaller logo + tighter hero. */
+  .entry-page__logo {
+    width: clamp(90px, 18vw, 140px);
+  }
+
+  .entry-page__title {
+    font-size: clamp(1.9rem, 8vw, 2.4rem);
+  }
+
+  .entry-page__subtitle {
+    font-size: 0.9rem;
+  }
+
+  /* Mode cards: smaller padding so they don't feel claustrophobic. */
+  .mode-card {
+    padding: 1rem 0.9rem 1.1rem;
+  }
+
+  .mode-card__title {
+    font-size: 1.2rem;
+  }
+
+  .mode-card__desc {
+    font-size: 0.85rem;
+  }
+
+  /* Toggle group buttons: smaller padding, but keep tap target. */
+  .toggle-group__btn {
+    min-height: 44px;
+  }
+
+  /* Footer: smaller. */
+  .entry-page__footer {
+    font-size: 0.72rem;
+  }
+
+  /* Player count header label fits. */
+  .player-count {
+    font-size: 0.8rem;
   }
 }
 
+/* --- Tiny phones: 360px and below (iPhone SE 1st gen, etc.) --- */
 @media (max-width: 360px) {
   .voting-table__grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .toggle-group__btn {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
+  }
+
+  .game-header__code {
+    font-size: 0.85rem;
+  }
+
+  .entry-page {
+    padding: 3.5rem 0.75rem 2rem;
+  }
+}
+
+/* --- Landscape phones: short viewport --- */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* In landscape, 100vh is the small dimension. The entry page's
+     centered content doesn't fit, so we cap the top padding and let
+     the page scroll instead of pinning to the viewport height. */
+  .entry-page {
+    min-height: 100dvh;
+    justify-content: flex-start;
+    padding-top: calc(2.5rem + var(--safe-top));
+    padding-bottom: 2rem;
+  }
+
+  .entry-page__hero {
+    margin-bottom: 0.25rem;
+  }
+
+  .entry-page__logo {
+    width: 80px;
   }
 }
 
@@ -1859,8 +2014,8 @@ body {
 }
 
 .modal__close {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1873,6 +2028,8 @@ body {
   transition: all var(--transition-fast);
   line-height: 1;
   padding: 0;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .modal__close:hover {
