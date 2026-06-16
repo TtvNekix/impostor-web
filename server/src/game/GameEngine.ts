@@ -11,6 +11,7 @@ import { WordBank } from '../words/WordBank';
 import { ConnectionManager } from '../connection/ConnectionManager';
 import { StateMachine } from './StateMachine';
 import { RoundManager } from './RoundManager';
+import { logEvent } from '../audit/logger';
 
 export class GameEngine {
   /** Per-room state machine instances. */
@@ -148,6 +149,21 @@ export class GameEngine {
       impostorIds: gameState.impostorIds,
     });
 
+    logEvent('match_started', {
+      code: roomCode,
+      roundNumber: gameState.roundNumber,
+      hardcore: room.settings.hardcore,
+      votingTimer: room.settings.votingTimer,
+      wordCategory: gameState.category,
+      wordAssignments: gamePlayers.reduce(
+        (acc, gp) => {
+          acc[gp.id] = gp.isImpostor ? '<impostor>' : gameState.word!;
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
+    });
+
     // 3. Send word_assigned individually
     for (const gp of gamePlayers) {
       const word = gp.isImpostor ? null : gameState.word;
@@ -237,6 +253,13 @@ export class GameEngine {
     }
 
     gs.votes.push({ voterId, targetId });
+
+    logEvent('vote_cast', {
+      code: roomCode,
+      roundNumber: gs.roundNumber,
+      voter: voterId,
+      target: targetId,  // null if skip
+    });
 
     // Broadcast vote progress
     const activeCount = gs.players.filter((p) => p.status === 'ACTIVE').length;
@@ -329,6 +352,15 @@ export class GameEngine {
     // Broadcast result
     this.connManager.broadcastToRoom(roomCode, ServerEvent.ROUND_RESULT, roundResult);
 
+    logEvent('round_result', {
+      code: roomCode,
+      roundNumber: gs.roundNumber,
+      expelled: roundResult.expelledUsername || null,
+      wasImpostor: roundResult.wasImpostor,
+      aliveImpostors: roundResult.aliveImpostors,
+      aliveNonImpostors: roundResult.aliveNonImpostors,
+    });
+
     if (expelled) {
       // Update player status
       const roomPlayer = room.players.get(expelled.username);
@@ -345,6 +377,11 @@ export class GameEngine {
     if (roundResult.winner) {
       // Game over
       gs.phase = 'GAME_OVER';
+      logEvent('match_ended', {
+        code: roomCode,
+        winner: roundResult.winner,
+        totalRounds: gs.roundNumber,
+      });
       this.connManager.broadcastToRoom(roomCode, ServerEvent.GAME_OVER, { winner: roundResult.winner });
       this.connManager.broadcastToRoom(roomCode, ServerEvent.PHASE_CHANGED, {
         phase: 'GAME_OVER',
