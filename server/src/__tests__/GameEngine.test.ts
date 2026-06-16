@@ -328,6 +328,36 @@ describe('GameEngine', () => {
     });
   });
 
+  describe('startMatch with hardcore mode', () => {
+    it('forces 1 impostor regardless of player count when hardcore=true', () => {
+      roomManager.createRoom('HC01', 'Host', { hardcore: true });
+      const room = store.getRoom('HC01')!;
+      room.players.get('Host')!.isHost = true;
+      room.players.get('Host')!.id = 'host-sid';
+      // Add 5 more players (6 total)
+      for (let i = 0; i < 5; i++) {
+        roomManager.joinRoom('HC01', `p${i}`, `p${i}-sid`);
+      }
+      engine.startMatch('HC01', 'host-sid');
+      const impostors = room.gameState!.players.filter((p) => p.isImpostor);
+      expect(impostors.length).toBe(1);
+    });
+
+    it('picks a valid word (ignores settings.category) when hardcore=true', () => {
+      roomManager.createRoom('HC02', 'Host', { hardcore: true, category: 'test' });
+      const room = store.getRoom('HC02')!;
+      room.players.get('Host')!.isHost = true;
+      room.players.get('Host')!.id = 'host-sid';
+      roomManager.joinRoom('HC02', 'Alice', 'alice-sid');
+      roomManager.joinRoom('HC02', 'Bob', 'bob-sid');
+      engine.startMatch('HC02', 'host-sid');
+
+      const gs = room.gameState!;
+      expect(gs.word).toBeTruthy();
+      expect(typeof gs.word).toBe('string');
+    });
+  });
+
   describe('startNewMatch', () => {
     it('resets game state for a new match', () => {
       roomManager.createRoom('ABC12', 'Host');

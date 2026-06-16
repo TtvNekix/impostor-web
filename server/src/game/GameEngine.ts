@@ -71,13 +71,11 @@ export class GameEngine {
       return false;
     }
 
-    // Force the impostor count based on the current player count:
-    //   - 4 or fewer players → 1 impostor
-    //   - 5 or more players  → 2 impostors
-    // The host can't pick — the count is purely a function of lobby size.
-    // If the room's stored setting disagrees, overwrite + broadcast so
-    // every client sees the new value.
-    const forcedImpostorCount = this.getMaxImpostors(activePlayers.length);
+    // Hardcore mode: always 1 impostor, regardless of player count.
+    // Otherwise force based on player count (function of lobby size).
+    const forcedImpostorCount = room.settings.hardcore
+      ? 1
+      : this.getMaxImpostors(activePlayers.length);
     if (room.settings.impostorCount !== forcedImpostorCount) {
       room.settings.impostorCount = forcedImpostorCount;
       this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
@@ -100,8 +98,10 @@ export class GameEngine {
       status: p.status,
     }));
 
-    // Select a word — from the configured category if set, else random
-    const wordPick = room.settings.category
+    // Select a word — hardcore ignores the category setting
+    const wordPick = room.settings.hardcore
+      ? this.wordBank.randomWord()
+      : room.settings.category
       ? (() => {
           const w = this.wordBank.randomWordFromCategory(room.settings.category!);
           return w ? { word: w, category: room.settings.category! } : null;
