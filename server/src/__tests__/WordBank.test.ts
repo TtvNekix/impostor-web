@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { WordBank } from '../words/WordBank';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function createSampleBank(): WordBank {
   return new WordBank({
@@ -191,6 +196,56 @@ describe('WordBank', () => {
     it('throws when no new words are provided', () => {
       const bank = createSampleBank();
       expect(() => bank.addWords('videojuegos', [])).toThrow(/palabras/i);
+    });
+  });
+
+  describe('WordBank size and quality (from actual word-bank.json)', () => {
+    // Load the real word bank to verify data quality
+    const bank = new WordBank(
+      JSON.parse(
+        readFileSync(resolve(__dirname, '../../src/data/word-bank.json'), 'utf-8'),
+      ),
+    );
+
+    it('has at least 25 categories', () => {
+      expect(bank.getCategories().length).toBeGreaterThanOrEqual(25);
+    });
+
+    it('every category has between 10 and 25 words', () => {
+      for (const cat of bank.getCategories()) {
+        const words = bank.getWords(cat.name);
+        expect(
+          words.length,
+          `category "${cat.name}" has ${words.length} words (expected 10-25)`,
+        ).toBeGreaterThanOrEqual(10);
+        expect(
+          words.length,
+          `category "${cat.name}" has ${words.length} words (expected 10-25)`,
+        ).toBeLessThanOrEqual(25);
+      }
+    });
+
+    it('every word is ASCII printable (no accents, no ñ)', () => {
+      for (const cat of bank.getCategories()) {
+        for (const w of bank.getWords(cat.name)) {
+          // eslint-disable-next-line no-control-regex
+          expect(w, `category "${cat.name}" word "${w}"`).toMatch(/^[\x20-\x7E]+$/);
+        }
+      }
+    });
+
+    it('has no duplicate words within or across categories', () => {
+      const seen = new Map<string, string>();
+      for (const cat of bank.getCategories()) {
+        for (const w of bank.getWords(cat.name)) {
+          const lower = w.toLowerCase();
+          expect(
+            seen.get(lower),
+            `duplicate word "${w}" in category "${cat.name}" (first seen in "${seen.get(lower)}")`,
+          ).toBeUndefined();
+          seen.set(lower, cat.name);
+        }
+      }
     });
   });
 
