@@ -99,7 +99,7 @@ const it = {
       one: '1 impostore sempre (indipendentemente dal numero di giocatori)',
       two: 'Nessun indizio sulla categoria (la parola può essere qualsiasi)',
       three: 'Nessuna opzione per saltare il voto (tutti devono votare)',
-      four: 'Parola casuale da tutte le categorie (built-in + custom)',
+      four: 'Parola casuale da tutte le categorie (predefinite + personalizzate)',
     },
   },
 

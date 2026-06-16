@@ -99,7 +99,7 @@ const fr = {
       one: '1 imposteur toujours (quel que soit le nombre de joueurs)',
       two: 'Pas d\'indice de catégorie (le mot peut venir de n\'importe où)',
       three: 'Impossible de passer le vote (tout le monde doit voter)',
-      four: 'Mot aléatoire parmi toutes les catégories (built-in + custom)',
+      four: 'Mot aléatoire parmi toutes les catégories (intégrées + personnalisées)',
     },
   },
 

@@ -19,6 +19,7 @@ interface LobbyScreenProps {
     category?: string | null;
     votingTimer?: 15 | 30 | 45 | 60;
     hardcore?: boolean;
+    impostorCount?: number;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
@@ -156,14 +157,20 @@ export function LobbyScreen({
             </div>
           </div>
 
-          {/* Impostor count — derived from player count, not a setting.
-              < 5 players → 1 impostor.  5+ players → 2 impostors.
-              Server enforces the same rule in startMatch. */}
+          {/* Impostor count — host picks 1 or 2.
+              1 always available; 2 only available with 5+ players.
+              Hardcore mode always uses 1 (overridden server-side). */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{t.lobby.impostors}</label>
-            <span className="settings-panel__value">
-              {players.length >= 5 ? 2 : 1}
-            </span>
+            <CustomSelect
+              value={players.length >= 5 ? (settings?.impostorCount ?? 2) : 1}
+              options={[
+                { value: 1, label: '1' },
+                ...(players.length >= 5 ? [{ value: 2, label: '2' }] : []),
+              ]}
+              onChange={(v) => updateSettings({ impostorCount: v as 1 | 2 })}
+              ariaLabel={t.lobby.impostors}
+            />
           </div>
 
           {/* Voting timer (host picks) */}

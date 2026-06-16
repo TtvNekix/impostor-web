@@ -72,13 +72,15 @@ export class GameEngine {
       return false;
     }
 
-    // Hardcore mode: always 1 impostor, regardless of player count.
-    // Otherwise force based on player count (function of lobby size).
-    const forcedImpostorCount = room.settings.hardcore
+    // Hardcore mode: always 1 impostor, overrides host setting.
+    // Non-hardcore: clamp the host's chosen impostorCount to valid bounds
+    // (1 with <5 players, 1-2 with 5+ players).
+    const maxAllowed = this.getMaxImpostors(activePlayers.length);
+    const clampedCount = room.settings.hardcore
       ? 1
-      : this.getMaxImpostors(activePlayers.length);
-    if (room.settings.impostorCount !== forcedImpostorCount) {
-      room.settings.impostorCount = forcedImpostorCount;
+      : Math.max(1, Math.min(room.settings.impostorCount, maxAllowed));
+    if (room.settings.impostorCount !== clampedCount) {
+      room.settings.impostorCount = clampedCount;
       this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
     }
 

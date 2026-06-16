@@ -99,7 +99,7 @@ const en = {
       one: '1 impostor always (regardless of player count)',
       two: 'No category hint (the word can be from anywhere)',
       three: 'No skip-vote option (everyone must vote)',
-      four: 'Random word from all built-in + custom categories',
+      four: 'Random word from all categories (preloaded + custom)',
     },
   },
 

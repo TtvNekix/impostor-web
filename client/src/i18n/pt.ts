@@ -99,7 +99,7 @@ const pt = {
       one: '1 impostor sempre (independentemente do número de jogadores)',
       two: 'Sem pista de categoria (a palavra pode ser qualquer uma)',
       three: 'Não é possível saltar o voto (todos têm de votar)',
-      four: 'Palavra aleatória de todas as categorias (built-in + custom)',
+      four: 'Palavra aleatória de todas as categorias (próprias e criadas por ti)',
     },
   },
 

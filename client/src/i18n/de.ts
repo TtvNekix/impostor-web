@@ -99,7 +99,7 @@ const de = {
       one: '1 Hochstapler immer (unabhängig von der Spieleranzahl)',
       two: 'Kein Kategorie-Hinweis (das Wort kann von überall kommen)',
       three: 'Keine Möglichkeit, die Stimme zu überspringen (alle müssen abstimmen)',
-      four: 'Zufälliges Wort aus allen Kategorien (Built-in + Custom)',
+      four: 'Zufälliges Wort aus allen Kategorien (vorhandene + eigene)',
     },
   },
 

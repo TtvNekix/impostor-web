@@ -169,8 +169,8 @@ describe('GameEngine', () => {
       expect(impostors.length).toBe(1);
     });
 
-    it('forces 2 impostors when there are 5+ players, even if room was created with impostorCount=1', () => {
-      // 5 players, server must override the stored setting to 2
+    it('respects host impostorCount=1 with 5+ players (does not force 2)', () => {
+      // 5 players, host wants 1 impostor — should be kept as is
       roomManager.createRoom('ABC12', 'Host', { impostorCount: 1 });
       store.getRoom('ABC12')!.players.get('Host')!.id = 'socket-host';
       for (const [i, name] of ['Alice', 'Bob', 'Carol', 'Dave'].entries()) {
@@ -179,19 +179,13 @@ describe('GameEngine', () => {
 
       const result = engine.startMatch('ABC12', 'socket-host');
       expect(result).toBe(true);
-      // Settings were forced to 2
-      expect(store.getRoom('ABC12')!.settings.impostorCount).toBe(2);
-      // Settings update was broadcast
-      expect(connManager.broadcastToRoom).toHaveBeenCalledWith(
-        'ABC12',
-        ServerEvent.SETTINGS_UPDATED,
-        expect.objectContaining({ impostorCount: 2 }),
-      );
-      // Game started with 2 impostors
+      // Settings kept at 1 (no forced override)
+      expect(store.getRoom('ABC12')!.settings.impostorCount).toBe(1);
+      // Game started with 1 impostor
       const impostors = store.getRoom('ABC12')!.gameState!.players.filter(
         (p) => p.isImpostor,
       );
-      expect(impostors.length).toBe(2);
+      expect(impostors.length).toBe(1);
     });
 
     it('sends impostorIds in the GAME_STARTED broadcast so the client can name them on game over', () => {
