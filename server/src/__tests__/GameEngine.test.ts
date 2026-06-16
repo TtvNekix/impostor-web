@@ -4,7 +4,7 @@ import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
 import { WordBank } from '../words/WordBank';
 import { ConnectionManager } from '../connection/ConnectionManager';
-import { ServerEvent, MIN_PLAYERS } from '@impostor/shared';
+import { ServerEvent, MIN_PLAYERS, DEFAULT_VOTING_TIMER } from '@impostor/shared';
 
 function createMockConnManager(): ConnectionManager {
   return {
@@ -262,6 +262,36 @@ describe('GameEngine', () => {
       roomManager.createRoom('ABC12', 'Host');
       const result = engine.startVoting('ABC12', 'socket-host');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('startVoting with configurable votingTimer', () => {
+    it('uses room.settings.votingTimer when starting voting', () => {
+      roomManager.createRoom('VT01', 'Host', { votingTimer: 15 });
+      store.getRoom('VT01')!.players.get('Host')!.id = 'host-sid';
+      roomManager.joinRoom('VT01', 'Alice', 'alice-sid');
+      roomManager.joinRoom('VT01', 'Bob', 'bob-sid');
+      engine.startMatch('VT01', 'host-sid');
+
+      const start = Date.now();
+      engine.startVoting('VT01', 'host-sid');
+
+      const gs = store.getRoom('VT01')!.gameState!;
+      expect(gs.phaseEndsAt - start).toBe(15_000);
+    });
+
+    it('falls back to DEFAULT_VOTING_TIMER when votingTimer is not set', () => {
+      roomManager.createRoom('VT02', 'Host');
+      store.getRoom('VT02')!.players.get('Host')!.id = 'host-sid';
+      roomManager.joinRoom('VT02', 'Alice', 'alice-sid');
+      roomManager.joinRoom('VT02', 'Bob', 'bob-sid');
+      engine.startMatch('VT02', 'host-sid');
+
+      const start = Date.now();
+      engine.startVoting('VT02', 'host-sid');
+
+      const gs = store.getRoom('VT02')!.gameState!;
+      expect(gs.phaseEndsAt - start).toBe(DEFAULT_VOTING_TIMER * 1000);
     });
   });
 

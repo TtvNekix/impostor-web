@@ -1,7 +1,7 @@
 import type { Room, GameState, GamePlayer, Player, GamePhase } from '@impostor/shared';
 import {
   ServerEvent,
-  VOTING_TIMER,
+  DEFAULT_VOTING_TIMER,
   MIN_PLAYERS,
   ErrorCode,
 } from '@impostor/shared';
@@ -191,7 +191,8 @@ export class GameEngine {
 
     // Cancel the discussion timer and transition to VOTING
     sm.cancelTimer();
-    const votingMs = VOTING_TIMER * 1000;
+    const votingSec = room.settings.votingTimer ?? DEFAULT_VOTING_TIMER;
+    const votingMs = votingSec * 1000;
     sm.transition('VOTING', votingMs);
 
     if (room.gameState) room.gameState.phaseEndsAt = sm.phaseEndsAt;
@@ -368,7 +369,8 @@ export class GameEngine {
 
     if (phase === 'DISCUSSION') {
       // Discussion time's up → VOTING
-      const votingMs = VOTING_TIMER * 1000;
+      const votingSec = room.settings.votingTimer ?? DEFAULT_VOTING_TIMER;
+      const votingMs = votingSec * 1000;
       gs.phaseEndsAt = Date.now() + votingMs;
       sm.transition('VOTING', votingMs);
 
