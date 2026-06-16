@@ -18,6 +18,10 @@ export interface RoomSettings {
   category: string | null;
   votingTimer: 15 | 30 | 45 | 60;
   hardcore: boolean;
+  /** Whether the room is discoverable via the public rooms list. Defaults to 'private'. */
+  visibility: 'public' | 'private';
+  /** Host's preferred locale code (one of the 6 supported: en, es, pt, fr, it, de). */
+  hostLocale: string;
 }
 
 export interface Room {

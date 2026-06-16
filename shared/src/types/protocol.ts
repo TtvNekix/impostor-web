@@ -70,6 +70,8 @@ export interface UpdateSettingsPayload {
   maxPlayers?: number;
   votingTimer?: 15 | 30 | 45 | 60;
   hardcore?: boolean;
+  visibility?: 'public' | 'private';
+  hostLocale?: string;
 }
 
 export interface AddCategoryPayload {
