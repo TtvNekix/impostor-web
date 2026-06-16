@@ -12,6 +12,7 @@ const en = {
     poweredBy: 'Powered by',
     copyCode: 'Copy code',
     codeCopied: 'Code copied to clipboard',
+    copyFailed: 'Copy failed',
     beta: 'BETA',
     version: 'v1.0.0',
     openSource: 'Open source on GitHub',
@@ -101,12 +102,15 @@ const en = {
     wordsPlaceholder: 'hello;goodbye;fresh',
     extraWordsPlaceholder: 'new words;separated;by;semicolon',
     impostors: 'Impostors',
+    impostorsNeedsFive: 'need 5+ players',
     discussionHint: 'No discussion timer: the host starts voting manually. You\'ll have 30s to vote.',
     startMatch: 'Start Match',
     minPlayersRequired: 'At least {min} players required',
     startError: 'Failed to start match',
     copyCode: 'Copy code',
     codeCopied: 'Code copied!',
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied to clipboard',
     votingTimer: 'Voting time',
     votingTimerHint: 'How long players have to vote',
     hardcore: 'Hardcore mode',
@@ -124,6 +128,13 @@ const en = {
     public: 'Public',
     private: 'Private',
     visibilityHint: 'Public rooms show up in the public list',
+  },
+
+  join: {
+    title: 'Join room {code}',
+    subtitle: 'Enter your name to join',
+    back: 'Back',
+    submit: 'Join',
   },
 
   discussion: {
