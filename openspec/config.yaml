@@ -1,24 +1,48 @@
 schema: spec-driven
 
 context: |
-  Tech stack: None (new project)
-  Architecture: None yet
-  Testing: None yet
-  Style: None yet
+  Tech stack: Node.js 20 + Express + raw `ws` (WebSocket) on server; React 18 + Vite + Zustand on client; TypeScript monorepo (pnpm workspaces: shared/, server/, client/).
+  Architecture: Server-authoritative game engine. All game state in-memory (Map<string, Room>). shared/ package consumed directly from src/ (no build step). Single-server deployment serving the built SPA from Express.
+  Testing: Vitest 1.6.0 in server/ (131 tests passing). No client tests yet. TypeScript strict mode for type checking. No ESLint, no Prettier.
+  Style: Castellano Spanish (no voseo), vosotros imperatives. 6-language i18n (en/es/pt/fr/it/de) with DeepStringify shape enforcement. Gold accent theme.
+  Deployment: Proxmox container (192.168.1.11) fronted by Nginx Proxy Manager + Cloudflare DNS. Deploys via paramiko (Windows OpenSSH kex-incompatible).
+  WebSocket transport: raw `ws` (NOT Socket.IO — replaced because Engine.IO didn't pass through NPM proxy).
+  Impostor count: 1 for ≤4 players, 2 for ≥5 (server-enforced in GameEngine.getMaxImpostors(), not host-configurable).
+  Game modes: "By word" ACTIVE, "By image" COMING SOON (Próximamente badge).
 
 strict_tdd: false
 
 testing:
-  runner: none
+  runner: vitest
+  runner_version: "1.6.0"
+  test_command: "pnpm --filter @impostor/server test"
+  test_workspace: "server/"
   layers:
-    unit: false
-    integration: false
+    unit: true
+    integration: true
     e2e: false
-  coverage: false
+  coverage:
+    available: false
+    command: ""
   quality:
     linter: false
-    type_checker: false
+    linter_command: ""
+    type_checker: true
+    type_checker_command: "pnpm --filter @impostor/server build  # uses tsc; client uses `pnpm --filter @impostor/client tsc`"
     formatter: false
+    formatter_command: ""
+  test_files:
+    - server/src/__tests__/WordBank.test.ts
+    - server/src/__tests__/StateMachine.test.ts
+    - server/src/__tests__/RoundManager.test.ts
+    - server/src/__tests__/RoomManager.test.ts
+    - server/src/__tests__/kick.test.ts
+    - server/src/__tests__/integration.test.ts
+    - server/src/__tests__/GameEngine.test.ts
+  i18n:
+    languages: [en, es, pt, fr, it, de]
+    shape_enforcement: DeepStringify
+    spanish_variant: "castellano (no voseo)"
 
 rules:
   proposal:
@@ -26,19 +50,23 @@ rules:
   specs:
     - Use Given/When/Then for scenarios
     - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Domain folders mirror openspec/specs/{domain}/spec.md layout
   design:
-    - Include sequence diagrams for complex flows
+    - Include sequence diagrams for complex flows (WebSocket message flows especially)
     - Document architecture decisions with rationale
   tasks:
     - Group by phase, use hierarchical numbering
     - Keep tasks completable in one session
   apply:
     - Follow existing code patterns
-    tdd: false
-    test_command: ""
+    - Maintain castellano Spanish in es.ts (no voseo, vosotros imperatives)
+    - shared/ changes are source-only — no build step, but MUST be deployed
+    - tdd: false
+    - test_command: "pnpm --filter @impostor/server test"
   verify:
-    test_command: ""
-    build_command: ""
-    coverage_threshold: 0
+    - test_command: "pnpm --filter @impostor/server test"
+    - build_command: "pnpm --filter @impostor/shared build && pnpm --filter @impostor/server build && pnpm --filter @impostor/client build"
+    - coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas
+    - Confirm index.html + all hashed assets included in client deploys (per AGENTS.md pitfall #1)
