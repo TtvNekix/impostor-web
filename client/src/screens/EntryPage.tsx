@@ -53,6 +53,12 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
 
       {/* Title block */}
       <div className="entry-page__hero">
+        <img
+          src="/logo-256x256.png"
+          alt=""
+          aria-hidden="true"
+          className="entry-page__logo"
+        />
         <h1 className="entry-page__title">{t.entry.title}</h1>
         <p className="entry-page__subtitle">{t.entry.subtitle}</p>
       </div>

@@ -65,6 +65,11 @@ export default function App() {
   if (socketStatus === 'connecting') {
     return (
       <div className="connection-screen">
+        <img
+          src="/logo-256x256.png"
+          alt={t.common.appName}
+          className="connection-screen__logo"
+        />
         <div className="spinner" />
         <p className="connection-screen__text">{t.connection.connecting}</p>
       </div>
@@ -74,6 +79,11 @@ export default function App() {
   if (socketStatus === 'disconnected' && !roomCode) {
     return (
       <div className="connection-screen">
+        <img
+          src="/logo-256x256.png"
+          alt={t.common.appName}
+          className="connection-screen__logo"
+        />
         <h1 className="connection-screen__title">
           {t.common.appName}
         </h1>
@@ -104,9 +114,14 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* In-game header with room code + leave button */}
+      {/* In-game header with logo + room code + leave button */}
       {showHeader && (
         <header className="game-header">
+          <img
+            src="/logo-256x256.png"
+            alt={t.common.appName}
+            className="game-header__logo"
+          />
           <span className="game-header__label">{t.lobby.roomCode}:</span>
           <span className="game-header__code">{roomCode}</span>
           <button

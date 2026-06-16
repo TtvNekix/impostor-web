@@ -660,6 +660,17 @@ body {
   -webkit-backdrop-filter: var(--blur-bg);
 }
 
+.game-header__logo {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  user-select: none;
+}
+
 .game-header__label {
   color: var(--text-muted);
   font-size: 0.8rem;
@@ -729,6 +740,15 @@ body {
   background:
     radial-gradient(ellipse at center, rgba(0, 212, 255, 0.06) 0%, transparent 60%),
     var(--bg-primary);
+}
+
+.connection-screen__logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+  margin-bottom: var(--space-md);
+  filter: drop-shadow(0 0 18px var(--accent-primary-glow));
+  user-select: none;
 }
 
 .connection-screen__title {
@@ -1485,6 +1505,15 @@ body {
     0 0 12px var(--accent-primary-glow),
     0 0 28px var(--accent-primary-glow);
   margin: 0;
+}
+
+.entry-page__logo {
+  width: clamp(120px, 22vw, 180px);
+  height: auto;
+  margin: 0 auto 0.5rem;
+  display: block;
+  filter: drop-shadow(0 0 18px var(--accent-primary-glow));
+  user-select: none;
 }
 
 .entry-page__subtitle {
