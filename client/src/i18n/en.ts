@@ -42,6 +42,16 @@ const en = {
       description: 'Everyone gets the same secret image. The impostor doesn\'t. Read each other\'s reactions.',
       comingSoon: 'Coming soon',
     },
+    publicRooms: {
+      title: 'Public rooms',
+      subtitle: 'Join an open game',
+      refresh: 'Refresh',
+      empty: 'No open public rooms right now',
+      capReached: 'Showing {shown} of {total} rooms',
+      filterLanguage: 'Language',
+      filterHasSpace: 'With space only',
+      joinButton: 'Join',
+    },
   },
 
   lobby: {
@@ -101,6 +111,10 @@ const en = {
       three: 'No skip-vote option (everyone must vote)',
       four: 'Random word from all categories (preloaded + custom)',
     },
+    visibility: 'Visibility',
+    public: 'Public',
+    private: 'Private',
+    visibilityHint: 'Public rooms show up in the public list',
   },
 
   discussion: {

@@ -42,6 +42,16 @@ const pt = {
       description: 'Todos recebem a mesma imagem secreta. O impostor não. Leiam as reações dos outros.',
       comingSoon: 'Em breve',
     },
+    publicRooms: {
+      title: 'Salas públicas',
+      subtitle: 'Entra numa partida aberta',
+      refresh: 'Atualizar',
+      empty: 'Não há salas públicas abertas agora',
+      capReached: 'A mostrar {shown} de {total} salas',
+      filterLanguage: 'Idioma',
+      filterHasSpace: 'Só com espaço',
+      joinButton: 'Entrar',
+    },
   },
 
   lobby: {
@@ -101,6 +111,10 @@ const pt = {
       three: 'Não é possível saltar o voto (todos têm de votar)',
       four: 'Palavra aleatória de todas as categorias (próprias e criadas por ti)',
     },
+    visibility: 'Visibilidade',
+    public: 'Pública',
+    private: 'Privada',
+    visibilityHint: 'As salas públicas aparecem na lista',
   },
 
   discussion: {

@@ -42,6 +42,16 @@ const it = {
       description: "Tutti ricevono la stessa immagine segreta. L'impostore no. Leggete le reazioni degli altri.",
       comingSoon: 'In arrivo',
     },
+    publicRooms: {
+      title: 'Stanze pubbliche',
+      subtitle: 'Unisciti a una partita aperta',
+      refresh: 'Aggiorna',
+      empty: 'Nessuna stanza pubblica aperta al momento',
+      capReached: 'Mostrando {shown} di {total} stanze',
+      filterLanguage: 'Lingua',
+      filterHasSpace: 'Solo con spazio',
+      joinButton: 'Unisciti',
+    },
   },
 
   lobby: {
@@ -101,6 +111,10 @@ const it = {
       three: 'Nessuna opzione per saltare il voto (tutti devono votare)',
       four: 'Parola casuale da tutte le categorie (predefinite + personalizzate)',
     },
+    visibility: 'Visibilità',
+    public: 'Pubblica',
+    private: 'Privata',
+    visibilityHint: 'Le stanze pubbliche compaiono nella lista',
   },
 
   discussion: {

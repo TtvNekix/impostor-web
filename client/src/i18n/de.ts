@@ -42,6 +42,16 @@ const de = {
       description: 'Alle bekommen das gleiche geheime Bild. Der Hochstapler nicht. Lest die Reaktionen der anderen.',
       comingSoon: 'Demnächst',
     },
+    publicRooms: {
+      title: 'Öffentliche Räume',
+      subtitle: 'Tritt einer offenen Partie bei',
+      refresh: 'Aktualisieren',
+      empty: 'Gerade sind keine öffentlichen Räume offen',
+      capReached: 'Zeige {shown} von {total} Räumen',
+      filterLanguage: 'Sprache',
+      filterHasSpace: 'Nur mit freien Plätzen',
+      joinButton: 'Beitreten',
+    },
   },
 
   lobby: {
@@ -101,6 +111,10 @@ const de = {
       three: 'Keine Möglichkeit, die Stimme zu überspringen (alle müssen abstimmen)',
       four: 'Zufälliges Wort aus allen Kategorien (vorhandene + eigene)',
     },
+    visibility: 'Sichtbarkeit',
+    public: 'Öffentlich',
+    private: 'Privat',
+    visibilityHint: 'Öffentliche Räume erscheinen in der Liste',
   },
 
   discussion: {

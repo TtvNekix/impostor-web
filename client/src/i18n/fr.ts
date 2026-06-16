@@ -42,6 +42,16 @@ const fr = {
       description: "Tout le monde reçoit la même image secrète. L'imposteur non. Lisez les réactions des autres.",
       comingSoon: 'Bientôt disponible',
     },
+    publicRooms: {
+      title: 'Salles publiques',
+      subtitle: 'Rejoins une partie ouverte',
+      refresh: 'Actualiser',
+      empty: 'Aucune salle publique ouverte pour le moment',
+      capReached: 'Affichage de {shown} sur {total} salles',
+      filterLanguage: 'Langue',
+      filterHasSpace: 'Avec de la place seulement',
+      joinButton: 'Rejoindre',
+    },
   },
 
   lobby: {
@@ -101,6 +111,10 @@ const fr = {
       three: 'Impossible de passer le vote (tout le monde doit voter)',
       four: 'Mot aléatoire parmi toutes les catégories (intégrées + personnalisées)',
     },
+    visibility: 'Visibilité',
+    public: 'Publique',
+    private: 'Privée',
+    visibilityHint: 'Les salles publiques apparaissent dans la liste',
   },
 
   discussion: {
