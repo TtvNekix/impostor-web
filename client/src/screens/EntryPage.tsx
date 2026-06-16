@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useConnectionStore } from '../stores/connectionStore';
-import { useT, useLocale, useSetLocale, LOCALE_LABELS, type Locale } from '../i18n/I18nContext';
+import { useT, useLocale, useSetLocale } from '../i18n/I18nContext';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import { VersionBadge } from '../components/VersionBadge';
 import { ContributeModal } from '../components/ContributeModal';
-import { PublicRoomList } from '../components/PublicRoomList';
-import { PublicRoomFiltersComponent } from '../components/PublicRoomFilters';
-import { usePublicRooms } from '../hooks/usePublicRooms';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { navigate } from '../lib/router';
 import { generateRoomCode, ALLOWED_MAX_PLAYERS, DEFAULT_MAX_PLAYERS } from '@impostor/shared';
 
 interface EntryPageProps {
@@ -31,6 +30,9 @@ const MAX_PLAYER_OPTIONS: CustomSelectOption<number>[] = ALLOWED_MAX_PLAYERS.map
  * Landing page shown when the user has no room yet. Lets them pick:
  *   - "By word" mode (the current game) — with a create/join form inside
  *   - "By image" mode — disabled, marked as "Coming soon"
+ *
+ * The public-rooms browser lives at `/salas` now — see `LobbiesPage`.
+ * This page just exposes a link to it.
  *
  * Also hosts the language selector in the top corner.
  */
@@ -89,6 +91,15 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
             <p className="entry-page__subtitle">{t.entry.subtitle}</p>
           </div>
         </div>
+
+        {/* Link to the dedicated public-rooms browser at /salas */}
+        <button
+          type="button"
+          className="entry-page__lobbies-link"
+          onClick={() => navigate('/salas')}
+        >
+          {t.entry.lobbiesLink} →
+        </button>
       </div>
 
       {/* Game mode cards */}
@@ -198,15 +209,6 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
         </div>
       </div>
 
-      {/* Public rooms section — secondary discovery surface. Mounts the
-          list + filters; the hook inside kicks off the 5s polling. */}
-      <PublicRoomsSection
-        username={username}
-        onJoin={joinRoom}
-        error={error}
-        clearError={clearError}
-      />
-
       {/* "Help improve" button — opens the contribution modal. */}
       <div className="help-improve">
         <button
@@ -223,164 +225,6 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
         open={contributeOpen}
         onClose={() => setContributeOpen(false)}
       />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Public rooms section                                                */
-/* ------------------------------------------------------------------ */
-
-interface PublicRoomsSectionProps {
-  username: string;
-  onJoin: (payload: { code: string; username: string }) => void;
-  error: string | null;
-  clearError: () => void;
-}
-
-/**
- * Wraps the public-rooms list and filters. Owns the polling hook so
- * the 5s interval lifecycle is tied to the section's mount, and
- * threads the username (taken from the entry form) into the Join handler.
- */
-function PublicRoomsSection({ username, onJoin, error, clearError }: PublicRoomsSectionProps) {
-  const t = useT();
-  const {
-    rooms,
-    loading,
-    error: fetchError,
-    hasMore,
-    totalCount,
-    refresh,
-    filters,
-    setFilters,
-  } = usePublicRooms();
-
-  const handleJoin = (code: string) => {
-    const name = username.trim();
-    if (!name) {
-      // Without a username we can't join — keep the user on the entry page
-      // and surface the standard error string.
-      clearError();
-      // Re-use the connection error channel for the inline error below
-      // the create/join form by setting the error directly.
-      useConnectionStore.setState({ error: t.lobby.enterUsername });
-      return;
-    }
-    clearError();
-    onJoin({ code, username: name });
-  };
-
-  return (
-    <section className="public-rooms-section" aria-labelledby="public-rooms-title">
-      <header className="public-rooms-section__head">
-        <h2 id="public-rooms-title" className="public-rooms-section__title">
-          {t.entry.publicRooms.title}
-        </h2>
-        <p className="public-rooms-section__subtitle">
-          {t.entry.publicRooms.subtitle}
-        </p>
-      </header>
-
-      <PublicRoomFiltersComponent
-        filters={filters}
-        onChange={setFilters}
-        onRefresh={refresh}
-        loading={loading}
-      />
-
-      {/*
-        `error` is the join-time error (room_not_found, room_full, etc.).
-        `fetchError` is the HTTP-level failure from the polling. We pass
-        the join error down so the list can show it; the fetch error
-        already gets surfaced via the list's empty-state branch.
-      */}
-      <PublicRoomList
-        rooms={rooms}
-        loading={loading}
-        totalCount={totalCount}
-        hasMore={hasMore}
-        error={fetchError}
-        onJoin={handleJoin}
-      />
-
-      {/* Echo of the global connection error so the user sees feedback
-          when their Join click was rejected (room not found, room full,
-          etc.). */}
-      {error && (
-        <p className="public-rooms-section__join-error" role="alert">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Language selector (dropdown with 6 locales)                       */
-/* ------------------------------------------------------------------ */
-
-interface LanguageSelectorProps {
-  current: Locale;
-  onChange: (l: Locale) => void;
-}
-
-function LanguageSelector({ current, onChange }: LanguageSelectorProps) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const currentLabel = LOCALE_LABELS[current]?.short ?? current.toUpperCase();
-
-  // Close on outside click or Escape
-  useEffect(() => {
-    if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div className="lang-selector" ref={containerRef}>
-      <button
-        type="button"
-        className="lang-selector__trigger"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label="Language"
-      >
-        {currentLabel}
-        <span className="lang-selector__arrow" aria-hidden="true">▾</span>
-      </button>
-      {open && (
-        <ul className="lang-selector__menu" role="listbox">
-          {(Object.keys(LOCALE_LABELS) as Locale[]).map((loc) => (
-            <li key={loc} role="option" aria-selected={loc === current}>
-              <button
-                type="button"
-                className={`lang-selector__option${loc === current ? ' lang-selector__option--active' : ''}`}
-                onClick={() => {
-                  onChange(loc);
-                  setOpen(false);
-                }}
-              >
-                <span className="lang-selector__short">{LOCALE_LABELS[loc].short}</span>
-                <span className="lang-selector__full">{LOCALE_LABELS[loc].code}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
