@@ -10,6 +10,7 @@ import { WordBank } from './words/WordBank';
 import { GameEngine } from './game/GameEngine';
 import { ConnectionManager } from './connection/ConnectionManager';
 import { registerHandlers } from './ws/handlers';
+import { logEvent } from './audit/logger';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -85,6 +86,28 @@ registerHandlers(wss, roomManager, gameEngine, connectionManager, wordBank);
 /* ------------------------------------------------------------------ */
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
+
+process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[server] uncaughtException', err);
+  logEvent('server_error', {
+    context: 'uncaughtException',
+    message: err.message,
+    stack: err.stack,
+  });
+});
+
+process.on('unhandledRejection', (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  // eslint-disable-next-line no-console
+  console.error('[server] unhandledRejection', err);
+  logEvent('server_error', {
+    context: 'unhandledRejection',
+    message: err.message,
+    stack: err.stack,
+  });
+});
+
 server.listen(PORT, () => {
   console.log(`[server] El Impostor server listening on http://localhost:${PORT}`);
 });

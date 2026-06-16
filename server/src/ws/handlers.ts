@@ -13,6 +13,7 @@ import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
 import { ConnectionManager } from '../connection/ConnectionManager';
 import { WordBank } from '../words/WordBank';
+import { logEvent } from '../audit/logger';
 
 /** Helper to send a localized error code to a single socket. */
 function sendError(
@@ -144,6 +145,14 @@ export function registerHandlers(
               event: ServerEvent.ROOM_JOINED,
               data: { room: roomToDTO(room) },
             }));
+            logEvent('room_created', {
+              code: code.toUpperCase(),
+              hostUsername: username.trim(),
+              maxPlayers: settings?.maxPlayers ?? 'default',
+              category: settings?.category ?? 'random',
+              votingTimer: settings?.votingTimer ?? 'default',
+              hardcore: settings?.hardcore ?? false,
+            });
           } catch (err: any) {
             sendError(ws, roomErrorCode(err), err.message);
           }
@@ -177,6 +186,11 @@ export function registerHandlers(
                   event: ServerEvent.ROOM_JOINED,
                   data: { room: roomToDTO(room) },
                 }));
+                logEvent('room_joined', {
+                  code: roomCode,
+                  username: trimmedName,
+                  isHost: existing.isHost,
+                });
                 return;
               }
             } catch {
@@ -194,6 +208,11 @@ export function registerHandlers(
               event: ServerEvent.ROOM_JOINED,
               data: { room: roomToDTO(room) },
             }));
+            logEvent('room_joined', {
+              code: roomCode,
+              username: trimmedName,
+              isHost: player.isHost,
+            });
             // Broadcast to room (excluding the new joiner — they already got room_joined)
             connectionManager.broadcastToRoom(room.code, ServerEvent.PLAYER_JOINED, { player });
           } catch (err: any) {
@@ -458,10 +477,19 @@ function handleLeave(
   if (!roomCode || !username) return;
 
   try {
+    // Capture host status before leaving (player is removed by leaveRoom)
+    const preRoom = roomManager.getRoom(roomCode);
+    const wasHost = preRoom.players.get(username)?.isHost ?? false;
+
     const { wasLastPlayer, newHost } = roomManager.leaveRoom(roomCode, username);
     connectionManager.removeConnection(socketId);
 
     if (!wasLastPlayer) {
+      logEvent('room_left', {
+        code: roomCode,
+        username,
+        wasHost,
+      });
       connectionManager.broadcastToRoom(roomCode, ServerEvent.PLAYER_LEFT, {
         playerId: socketId,
         newHost,
@@ -522,6 +550,11 @@ export function handleKick(
   connectionManager.sendToSocket(targetSocketId, ServerEvent.KICKED, {
     code: 'kicked_by_host',
     message: 'You have been kicked by the host',
+  });
+  logEvent('player_kicked', {
+    code: roomCode,
+    hostUsername: callerName,
+    targetUsername: data.username,
   });
   // Remove the player from the room and broadcast to the rest.
   try {
