@@ -188,11 +188,15 @@ def cleanup_old_assets(sftp, repo_root: str):
 def pre_restart_smoke(client, repo_root: str):
     """Run a 'can the server start?' check on the remote BEFORE restarting.
 
-    We exec `node -e "import('tsx')..."` in the server's dir to load every
-    shared/server source file. If any file is missing on disk (because
-    the deploy script forgot to upload it), this throws and we abort
-    before systemctl restart, leaving the old version still serving
-    traffic.
+    We exec a tsx dynamic import of @impostor/shared in the server's dir.
+    If any file is missing on disk (because the deploy script forgot to
+    upload it), the import throws ERR_MODULE_NOT_FOUND which propagates
+    as a non-zero exit code — we abort before systemctl restart and
+    the old version keeps serving traffic.
+
+    We check runtime values (constants), not TypeScript types
+    (interfaces), because interfaces exist only at compile time and
+    are erased from the emitted JS.
 
     Cheap insurance: catches the class of bug that took the service
     down on 2026-06-16 (new shared/src/types/api.ts not in
@@ -200,15 +204,14 @@ def pre_restart_smoke(client, repo_root: str):
     auto-restart-looped into a 502 surface).
     """
     print('=== PRE-RESTART SMOKE ===')
-    # Use a dynamic import through tsx (matches how the real server
-    # loads shared/src/*.ts in production). Any unresolved import
-    # becomes an ERR_MODULE_NOT_FOUND that propagates as a non-zero
-    # exit code.
     cmd = (
         'cd /opt/impostor-web/server && '
-        'node --import tsx -e "import(\'@impostor/shared\').then(m => '
-        '{ if (!m.PublicRoomDTO) throw new Error(\'PublicRoomDTO missing\'); '
-        'console.log(\'SMOKE OK: shared module loads + new exports present\'); })"'
+        'node --import tsx -e "import(\'@impostor/shared\').then(m => { '
+        '  if (!Array.isArray(m.ALLOWED_LOCALES)) throw new Error(\'ALLOWED_LOCALES missing\'); '
+        '  if (typeof m.MAX_PUBLIC_ROOMS_RETURNED !== \'number\') throw new Error(\'MAX_PUBLIC_ROOMS_RETURNED missing\'); '
+        '  if (typeof m.DEFAULT_VISIBILITY !== \'string\') throw new Error(\'DEFAULT_VISIBILITY missing\'); '
+        '  console.log(\'SMOKE OK: shared module loads, constants present\'); '
+        '}).catch(e => { console.error(e.message || e); process.exit(1); })"'
     )
     out, err, code = run(client, cmd, 'shared smoke import')
     if code != 0:
@@ -217,7 +220,7 @@ def pre_restart_smoke(client, repo_root: str):
         print(f'  stdout: {out}')
         print(f'  stderr: {err}')
         sys.exit(1)
-    print('  [OK] shared module loads + new exports present')
+    print('  [OK] shared module loads, constants present')
 
 
 def restart_service(client):
