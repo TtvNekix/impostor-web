@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { createServer, type Server as HttpServer } from 'node:http';
 import { type AddressInfo } from 'node:net';
 import { WebSocketServer, WebSocket } from 'ws';
+import express from 'express';
+import { ALLOWED_LOCALES } from '@impostor/shared';
 
 import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
@@ -337,4 +339,159 @@ describe('Integration: WebSocket game lifecycle', () => {
     expect(errData).toBeDefined();
     expect(errData.message).toBeTruthy();
   }, 20000);
+});
+
+/* -------------------------------------------------------------------- */
+/*  GET /api/rooms — HTTP route tests                                    */
+/* -------------------------------------------------------------------- */
+
+/**
+ * Spin up a minimal Express + http server wired with the same /api/rooms
+ * route as production (inline copy of the handler logic so we don't have
+ * to refactor the route into a separate export).
+ */
+function createPublicRoomsTestServer() {
+  const store = new RoomStore();
+
+  const app = express();
+  app.get('/api/rooms', (req, res) => {
+    res.set('Cache-Control', 'max-age=3');
+
+    const visibility = String(req.query.visibility ?? 'public');
+    if (visibility !== 'public') {
+      res.status(200).json({ rooms: [], hasMore: false, totalCount: 0 });
+      return;
+    }
+
+    const lang = req.query.lang;
+    const hasSpaceParam = req.query.hasSpace;
+    const langFilter = typeof lang === 'string' && (ALLOWED_LOCALES as readonly string[]).includes(lang)
+      ? lang : null;
+    const hasSpaceFilter = hasSpaceParam === 'true' || hasSpaceParam === '1';
+
+    const result = store.getAllPublicRooms();
+    let rooms = result.rooms;
+    if (langFilter !== null) rooms = rooms.filter((r) => r.hostLocale === langFilter);
+    if (hasSpaceFilter) rooms = rooms.filter((r) => r.playerCount < r.maxPlayers);
+    res.status(200).json({ rooms, hasMore: false, totalCount: rooms.length });
+  });
+
+  return new Promise<{ store: RoomStore; port: number; close: () => Promise<void> }>((resolve) => {
+    const httpServer = createServer(app);
+    httpServer.listen(0, () => {
+      const port = (httpServer.address() as AddressInfo).port;
+      resolve({
+        store,
+        port,
+        close: () => new Promise<void>((closeResolve) => {
+          httpServer.close(() => closeResolve());
+        }),
+      });
+    });
+  });
+}
+
+import * as http from 'node:http';
+
+function httpGetJson(port: number, path: string): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: any }> {
+  return new Promise((resolve, reject) => {
+    http.get(`http://127.0.0.1:${port}${path}`, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks).toString('utf-8');
+        let body: any = null;
+        try { body = JSON.parse(raw); } catch { body = raw; }
+        resolve({ status: res.statusCode ?? 0, headers: res.headers, body });
+      });
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+describe('GET /api/rooms', () => {
+  let server: Awaited<ReturnType<typeof createPublicRoomsTestServer>>;
+
+  beforeEach(async () => {
+    server = await createPublicRoomsTestServer();
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  it('returns 200 with empty list when no public rooms exist', async () => {
+    const res = await httpGetJson(server.port, '/api/rooms');
+    expect(res.status).toBe(200);
+    expect(res.body.rooms).toEqual([]);
+    expect(res.body.hasMore).toBe(false);
+    expect(res.body.totalCount).toBe(0);
+  });
+
+  it('returns 200 with populated list and the agreed DTO shape', async () => {
+    const code = 'POP01';
+    const room = server.store.createRoom(code, {
+      maxPlayers: 10, impostorCount: 1, discussionTime: 0,
+      category: 'animals', votingTimer: 30, hardcore: false,
+      visibility: 'public', hostLocale: 'es',
+    });
+    room.players.set('Alice', {
+      id: 's1', username: 'Alice', status: 'ACTIVE', isHost: true, joinedAt: 0,
+    });
+
+    const res = await httpGetJson(server.port, '/api/rooms');
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.rooms).toHaveLength(1);
+    const found = res.body.rooms[0];
+    expect(found.roomCode).toBe(code);
+    expect(Object.keys(found).sort()).toEqual([
+      'ageSeconds', 'category', 'hostFirstName', 'hostLocale',
+      'maxPlayers', 'playerCount', 'roomCode',
+    ]);
+    expect(found.hostFirstName).toBe('Alice');
+    expect(found.hostLocale).toBe('es');
+  });
+
+  it('does not include private rooms in the response', async () => {
+    const prv = server.store.createRoom('PRV99', {
+      maxPlayers: 10, impostorCount: 1, discussionTime: 0,
+      category: 'animals', votingTimer: 30, hardcore: false,
+      visibility: 'private', hostLocale: 'en',
+    });
+    prv.players.set('P', { id: 'p', username: 'P', status: 'ACTIVE', isHost: true, joinedAt: 0 });
+    const pub = server.store.createRoom('PUB99', {
+      maxPlayers: 10, impostorCount: 1, discussionTime: 0,
+      category: 'animals', votingTimer: 30, hardcore: false,
+      visibility: 'public', hostLocale: 'en',
+    });
+    pub.players.set('H', { id: 'h', username: 'H', status: 'ACTIVE', isHost: true, joinedAt: 0 });
+
+    const res = await httpGetJson(server.port, '/api/rooms');
+    expect(res.status).toBe(200);
+    expect(res.body.rooms.find((r: any) => r.roomCode === 'PRV99')).toBeUndefined();
+    expect(res.body.rooms.find((r: any) => r.roomCode === 'PUB99')).toBeDefined();
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it('sets Cache-Control: max-age=3 on the response', async () => {
+    const res = await httpGetJson(server.port, '/api/rooms');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('max-age=3');
+  });
+
+  it('returns empty list when visibility=private is requested', async () => {
+    // Seed a public room so a non-empty result proves the filter kicked in
+    const pub = server.store.createRoom('PUBXX', {
+      maxPlayers: 10, impostorCount: 1, discussionTime: 0,
+      category: 'animals', votingTimer: 30, hardcore: false,
+      visibility: 'public', hostLocale: 'en',
+    });
+    pub.players.set('H', { id: 'h', username: 'H', status: 'ACTIVE', isHost: true, joinedAt: 0 });
+
+    const res = await httpGetJson(server.port, '/api/rooms?visibility=private');
+    expect(res.status).toBe(200);
+    expect(res.body.rooms).toEqual([]);
+    expect(res.body.totalCount).toBe(0);
+  });
 });

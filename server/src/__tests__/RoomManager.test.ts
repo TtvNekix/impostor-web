@@ -37,6 +37,50 @@ describe('RoomManager', () => {
       expect(room.settings.impostorCount).toBe(2);
       expect(room.settings.discussionTime).toBe(60);
     });
+
+    it('defaults visibility to "private" when not provided', () => {
+      const { room } = manager.createRoom('DEF01', 'Host');
+      expect(room.settings.visibility).toBe('private');
+    });
+
+    it('defaults hostLocale to "en" when not provided', () => {
+      const { room } = manager.createRoom('DEF02', 'Host');
+      expect(room.settings.hostLocale).toBe('en');
+    });
+
+    it('accepts visibility "public" and "private"', () => {
+      const pub = manager.createRoom('DEF03', 'Host', { visibility: 'public' });
+      const prv = manager.createRoom('DEF04', 'Host', { visibility: 'private' });
+      expect(pub.room.settings.visibility).toBe('public');
+      expect(prv.room.settings.visibility).toBe('private');
+    });
+
+    it('accepts any of the 6 allowed hostLocales', () => {
+      for (const locale of ['en', 'es', 'pt', 'fr', 'it', 'de']) {
+        const { room } = manager.createRoom(`LOC${locale}`, 'Host', { hostLocale: locale });
+        expect(room.settings.hostLocale).toBe(locale);
+      }
+    });
+
+    it('rejects invalid visibility with a clear error', () => {
+      expect(() =>
+        manager.createRoom('BAD01', 'Host', { visibility: 'whisper' as never }),
+      ).toThrow(/Invalid visibility/);
+    });
+
+    it('rejects invalid hostLocale with a clear error', () => {
+      expect(() =>
+        manager.createRoom('BAD02', 'Host', { hostLocale: 'jp' }),
+      ).toThrow(/Invalid hostLocale/);
+    });
+
+    it('throws on visibility but does NOT create the room', () => {
+      expect(() =>
+        manager.createRoom('BAD03', 'Host', { visibility: 'open' as never }),
+      ).toThrow();
+      // Room was rejected before persistence
+      expect(store.getRoom('BAD03')).toBeUndefined();
+    });
   });
 
   describe('joinRoom', () => {
