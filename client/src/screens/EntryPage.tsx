@@ -51,7 +51,7 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
         <LanguageToggle current={locale} onChange={setLocale} />
       </div>
 
-      {/* Title block */}
+      {/* Title block: logo on the left, title + subtitle stacked on the right */}
       <div className="entry-page__hero">
         <img
           src="/logo-256x256.png"
@@ -59,8 +59,10 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
           aria-hidden="true"
           className="entry-page__logo"
         />
-        <h1 className="entry-page__title">{t.entry.title}</h1>
-        <p className="entry-page__subtitle">{t.entry.subtitle}</p>
+        <div className="entry-page__hero-text">
+          <h1 className="entry-page__title">{t.entry.title}</h1>
+          <p className="entry-page__subtitle">{t.entry.subtitle}</p>
+        </div>
       </div>
 
       {/* Game mode cards */}

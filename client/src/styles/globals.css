@@ -1488,8 +1488,10 @@ body {
 .entry-page__hero {
   text-align: center;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
   margin-bottom: 0.5rem;
 }
 
@@ -1507,11 +1509,17 @@ body {
   margin: 0;
 }
 
+.entry-page__hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
 .entry-page__logo {
-  width: clamp(120px, 22vw, 180px);
+  width: clamp(90px, 14vw, 130px);
   height: auto;
-  margin: 0 auto 0.5rem;
-  display: block;
+  flex: 0 0 auto;
   filter: drop-shadow(0 0 18px var(--accent-primary-glow));
   user-select: none;
 }
@@ -1863,7 +1871,7 @@ body {
 
   /* Entry page: smaller logo + tighter hero. */
   .entry-page__logo {
-    width: clamp(90px, 18vw, 140px);
+    width: clamp(80px, 16vw, 120px);
   }
 
   .entry-page__title {
@@ -1895,6 +1903,17 @@ body {
   /* Footer: smaller. */
   .entry-page__footer {
     font-size: 0.72rem;
+  }
+
+  /* On the smallest phones, stack the hero back to vertical so the
+     logo + text don't crowd each other. */
+  .entry-page__hero {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .entry-page__hero-text {
+    text-align: center;
   }
 
   /* Player count header label fits. */
