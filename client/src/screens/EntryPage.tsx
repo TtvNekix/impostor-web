@@ -165,20 +165,6 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
           <div className="mode-card__badge">{t.entry.imageMode.comingSoon}</div>
         </div>
       </div>
-
-      {/* Powered-by footer — links to coffeeprojects.es in a new tab */}
-      <footer className="entry-page__footer">
-        <span className="entry-page__footer-text">{t.common.poweredBy}</span>
-        {' '}
-        <a
-          href="https://coffeeprojects.es"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="entry-page__footer-link"
-        >
-          coffeeprojects
-        </a>
-      </footer>
     </div>
   );
 }

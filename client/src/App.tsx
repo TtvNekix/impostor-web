@@ -8,6 +8,7 @@ import { VotingScreen } from './screens/VotingScreen';
 import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 import { EntryPage } from './screens/EntryPage';
+import { PoweredByFooter } from './components/PoweredByFooter';
 import { useT } from './i18n/I18nContext';
 
 type GamePhase = import('@impostor/shared').GamePhase;
@@ -158,6 +159,10 @@ export default function App() {
         myId={myId}
         newMatch={newMatch}
       />
+
+      {/* Global "powered by coffeeprojects" footer — fixed at the bottom,
+          shows on every page. */}
+      <PoweredByFooter />
     </div>
   );
 }

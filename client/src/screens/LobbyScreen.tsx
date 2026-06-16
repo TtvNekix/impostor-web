@@ -70,8 +70,14 @@ export function LobbyScreen({
   // Room exists → show lobby with player list, settings, and start button
   return (
     <div className="page">
-      {/* Header */}
-      <div className="page-header">
+      {/* Header — small logo + room title */}
+      <div className="page-header page-header--with-logo">
+        <img
+          src="/logo-256x256.png"
+          alt=""
+          aria-hidden="true"
+          className="page-header__logo"
+        />
         <div className="page-header__title">{t.lobby.title}</div>
       </div>
 
