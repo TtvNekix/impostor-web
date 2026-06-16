@@ -5,6 +5,9 @@ import {
   DEFAULT_TIMER,
   DEFAULT_MAX_PLAYERS,
   DEFAULT_VOTING_TIMER,
+  DEFAULT_VISIBILITY,
+  DEFAULT_HOST_LOCALE,
+  ALLOWED_LOCALES,
   clampMaxPlayers,
   clampTimer,
 } from '@impostor/shared';
@@ -19,6 +22,51 @@ export interface LeaveResult {
   room: Room;
   newHost?: string;
   wasLastPlayer: boolean;
+}
+
+/**
+ * Validate and sanitize a partial settings object (used by both
+ * createRoom and the in-lobby UPDATE_SETTINGS path so neither transport
+ * can bypass the same rules).
+ *
+ * - `visibility` defaults to 'private' if not provided; anything outside
+ *   {'public','private'} throws.
+ * - `hostLocale` defaults to 'en' if not provided; anything outside the
+ *   6-code ALLOWED_LOCALES list throws.
+ * - `maxPlayers` is clamped to the allowed range.
+ * - `discussionTime` is normalized through clampTimer.
+ */
+export function sanitizeRoomSettings(settings?: Partial<RoomSettings>): RoomSettings {
+  if (settings?.visibility !== undefined &&
+      settings.visibility !== 'public' &&
+      settings.visibility !== 'private') {
+    throw new Error('Invalid visibility: must be "public" or "private"');
+  }
+  if (settings?.hostLocale !== undefined &&
+      !ALLOWED_LOCALES.includes(settings.hostLocale as typeof ALLOWED_LOCALES[number])) {
+    throw new Error(`Invalid hostLocale: must be one of ${ALLOWED_LOCALES.join(', ')}`);
+  }
+
+  const sanitized: RoomSettings = {
+    maxPlayers: settings?.maxPlayers ?? DEFAULT_MAX_PLAYERS,
+    impostorCount: settings?.impostorCount ?? 1,
+    discussionTime: settings?.discussionTime ?? DEFAULT_TIMER,
+    category: settings?.category ?? null,
+    votingTimer: settings?.votingTimer ?? DEFAULT_VOTING_TIMER,
+    hardcore: settings?.hardcore ?? false,
+    visibility: settings?.visibility ?? DEFAULT_VISIBILITY,
+    hostLocale: settings?.hostLocale ?? DEFAULT_HOST_LOCALE,
+  };
+
+  sanitized.maxPlayers = Math.max(
+    MIN_PLAYERS,
+    Math.min(MAX_PLAYERS, sanitized.maxPlayers),
+  );
+  if (sanitized.discussionTime) {
+    sanitized.discussionTime = clampTimer(sanitized.discussionTime);
+  }
+
+  return sanitized;
 }
 
 export class RoomManager {
@@ -38,27 +86,8 @@ export class RoomManager {
   /* ------------------------------------------------------------------ */
 
   createRoom(code: string, username: string, settings?: Partial<RoomSettings>): JoinResult {
-    const defaultSettings: RoomSettings = {
-      maxPlayers: DEFAULT_MAX_PLAYERS,
-      impostorCount: 1,
-      discussionTime: DEFAULT_TIMER,
-      category: null,
-      votingTimer: DEFAULT_VOTING_TIMER,
-      hardcore: false,
-      ...settings,
-    };
-    // Sanitize maxPlayers before persisting
-    if (defaultSettings.maxPlayers) {
-      defaultSettings.maxPlayers = Math.max(
-        MIN_PLAYERS,
-        Math.min(MAX_PLAYERS, defaultSettings.maxPlayers),
-      );
-    }
-    if (defaultSettings.discussionTime) {
-      defaultSettings.discussionTime = clampTimer(defaultSettings.discussionTime);
-    }
-
-    const room = this.store.createRoom(code, defaultSettings);
+    const fullSettings = sanitizeRoomSettings(settings);
+    const room = this.store.createRoom(code, fullSettings);
 
     const player: Player = {
       id: '', // assigned after socket connects
