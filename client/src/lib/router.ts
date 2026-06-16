@@ -1,24 +1,39 @@
 import { useEffect, useState } from 'react';
 
 /**
- * The three top-level paths the app understands.
+ * The four top-level paths the app understands.
  *
  *   - `entry`: the landing page (/) — game-mode selector + create/join form
  *   - `lobbies`: the dedicated public-rooms browser (/salas or /lobbies)
+ *   - `join`: a deep link to join a specific room (/join/CODE)
  *   - `in-game`: anything else (a room-specific path the SPA has claimed)
  *
  * We intentionally avoid hashing, locale-prefixes, or per-room URLs — the
  * game itself is single-screen and identity lives in the WebSocket layer,
- * not the URL. Anything other than `/` or `/salas`/`/lobbies` falls through
- * to the in-game router (the phase-based ScreenRouter).
+ * not the URL. Anything other than `/`, `/salas`/`/lobbies`, or `/join/CODE`
+ * falls through to the in-game router (the phase-based ScreenRouter).
  */
-export type Path = 'entry' | 'lobbies' | 'in-game';
+export type Path = 'entry' | 'lobbies' | 'join' | 'in-game';
+
+/** Regex for a valid room code (matches the format used by generateRoomCode). */
+const JOIN_CODE_RE = /^[A-Za-z0-9]{4,6}$/;
+
+/**
+ * If the current path is `/join/{code}` and the code matches the
+ * room-code format, returns the code normalized to uppercase.
+ * Returns null otherwise.
+ */
+export function parseJoinCode(): string | null {
+  const m = window.location.pathname.match(/^\/join\/([A-Za-z0-9]{4,6})\/?$/);
+  return m ? m[1].toUpperCase() : null;
+}
 
 /**
  * Reads the current browser path and maps it to one of the app's
- * three top-level routes.
+ * four top-level routes.
  */
 export function currentPath(): Path {
+  if (parseJoinCode() !== null) return 'join';
   const p = window.location.pathname;
   if (p === '/salas' || p === '/lobbies') return 'lobbies';
   if (p === '/' || p === '') return 'entry';
