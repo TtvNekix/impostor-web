@@ -5,7 +5,11 @@ import { CustomSelect, type CustomSelectOption } from '../components/CustomSelec
 import { generateRoomCode, ALLOWED_MAX_PLAYERS, DEFAULT_MAX_PLAYERS } from '@impostor/shared';
 
 interface EntryPageProps {
-  createRoom: (payload: { code: string; username: string }) => void;
+  createRoom: (payload: {
+    code: string;
+    username: string;
+    settings?: { maxPlayers: number };
+  }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
 }
 
@@ -38,7 +42,7 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
     if (!username.trim()) return;
     if (mode === 'create') {
       const roomCode = code.trim().toUpperCase() || generateRoomCode();
-      createRoom({ code: roomCode, username: username.trim() });
+      createRoom({ code: roomCode, username: username.trim(), settings: { maxPlayers } });
     } else {
       joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
     }
