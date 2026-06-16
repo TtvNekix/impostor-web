@@ -88,6 +88,19 @@ const fr = {
     startError: 'Échec du démarrage de la partie',
     copyCode: 'Copier le code',
     codeCopied: 'Code copié !',
+    votingTimer: 'Temps de vote',
+    votingTimerHint: 'Combien de temps les joueurs ont pour voter',
+    hardcore: 'Mode Hardcore',
+    hardcoreOn: 'Hardcore : ON',
+    hardcoreOff: 'Hardcore : OFF',
+    helpHardcore: 'Qu\'est-ce que le mode Hardcore ?',
+    hardcoreHelp: 'Une variante plus difficile. La discussion a toujours lieu, mais les règles changent :',
+    hardcoreHelpBullets: {
+      one: '1 imposteur toujours (quel que soit le nombre de joueurs)',
+      two: 'Pas d\'indice de catégorie (le mot peut venir de n\'importe où)',
+      three: 'Impossible de passer le vote (tout le monde doit voter)',
+      four: 'Mot aléatoire parmi toutes les catégories (built-in + custom)',
+    },
   },
 
   discussion: {

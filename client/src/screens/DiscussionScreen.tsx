@@ -36,6 +36,7 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
   const myRole = useGameStore((s) => s.myRole);
 
   const getDisplayName = useCategoryStore((s) => s.getDisplayName);
+  const settings = useRoomStore((s) => s.settings);
   const lastError = useConnectionStore((s) => s.error);
 
   // Local timer tick — uses phaseEndsAt to recompute remaining seconds
@@ -66,8 +67,8 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
         <RoleReveal role={myRole} word={word} animate={isWordReveal} />
       )}
 
-      {/* Category */}
-      {category && (
+      {/* Category — hidden in hardcore mode (no hint) */}
+      {category && !settings?.hardcore && (
         <div className="card" style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>
           <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>
             {t.discussion.category}:

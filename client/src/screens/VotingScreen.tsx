@@ -29,6 +29,7 @@ export function VotingScreen({
 }: VotingScreenProps) {
   const t = useT();
   const players = useRoomStore((s) => s.players);
+  const settings = useRoomStore((s) => s.settings);
   const roomCode = useRoomStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
   const myRole = useGameStore((s) => s.myRole);
@@ -84,6 +85,7 @@ export function VotingScreen({
         currentPlayerId={myId}
         isSpectator={isSpectator}
         hasVoted={hasVoted}
+        hardcore={settings?.hardcore}
         onVote={(targetId) => vote({ targetId })}
       />
     </div>

@@ -88,6 +88,19 @@ const de = {
     startError: 'Spiel konnte nicht gestartet werden',
     copyCode: 'Code kopieren',
     codeCopied: 'Code kopiert!',
+    votingTimer: 'Abstimmungszeit',
+    votingTimerHint: 'Wie viel Zeit die Spieler zum Abstimmen haben',
+    hardcore: 'Hardcore-Modus',
+    hardcoreOn: 'Hardcore: AN',
+    hardcoreOff: 'Hardcore: AUS',
+    helpHardcore: 'Was ist der Hardcore-Modus?',
+    hardcoreHelp: 'Eine schwierigere Variante. Die Diskussion findet weiterhin statt, aber die Regeln ändern sich:',
+    hardcoreHelpBullets: {
+      one: '1 Hochstapler immer (unabhängig von der Spieleranzahl)',
+      two: 'Kein Kategorie-Hinweis (das Wort kann von überall kommen)',
+      three: 'Keine Möglichkeit, die Stimme zu überspringen (alle müssen abstimmen)',
+      four: 'Zufälliges Wort aus allen Kategorien (Built-in + Custom)',
+    },
   },
 
   discussion: {

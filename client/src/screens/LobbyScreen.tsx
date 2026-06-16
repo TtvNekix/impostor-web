@@ -3,10 +3,12 @@ import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { useToastStore } from '../stores/toastStore';
+import { ALLOWED_VOTING_TIMERS } from '@impostor/shared';
 import { PlayerList } from '../components/PlayerList';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import { CategoryManager } from '../components/CategoryManager';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { HardcoreHelpModal } from '../components/HardcoreHelpModal';
 import { useT } from '../i18n/I18nContext';
 
 interface LobbyScreenProps {
@@ -15,6 +17,8 @@ interface LobbyScreenProps {
   startMatch: () => void;
   updateSettings: (payload: {
     category?: string | null;
+    votingTimer?: 15 | 30 | 45 | 60;
+    hardcore?: boolean;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
@@ -44,6 +48,7 @@ export function LobbyScreen({
 
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [pendingKick, setPendingKick] = useState<string | null>(null);
+  const [hardcoreHelpOpen, setHardcoreHelpOpen] = useState(false);
 
   // Only show lobby UI when phase is LOBBY
   if (gamePhase !== 'LOBBY') return null;
@@ -72,6 +77,11 @@ export function LobbyScreen({
     { value: '', label: t.lobby.randomCategory },
     ...categories.map((c) => ({ value: c.name, label: c.displayName })),
   ];
+
+  const votingTimerOptions: CustomSelectOption<number>[] = ALLOWED_VOTING_TIMERS.map((s) => ({
+    value: s,
+    label: `${s}s`,
+  }));
 
   // Room exists → show lobby with player list, settings, and start button
   return (
@@ -156,9 +166,40 @@ export function LobbyScreen({
             </span>
           </div>
 
-          <p className="settings-panel__hint">
-            {t.lobby.discussionHint}
-          </p>
+          {/* Voting timer (host picks) */}
+          <div className="settings-panel__row">
+            <label className="settings-panel__label">{t.lobby.votingTimer}</label>
+            <CustomSelect
+              value={settings?.votingTimer ?? 30}
+              options={votingTimerOptions}
+              onChange={(v) => updateSettings({ votingTimer: v as 15 | 30 | 45 | 60 })}
+              ariaLabel={t.lobby.votingTimer}
+            />
+          </div>
+
+          {/* Hardcore mode toggle + help */}
+          <div className="settings-panel__row settings-panel__row--hardcore">
+            <label className="settings-panel__label">
+              {t.lobby.hardcore}
+              <button
+                type="button"
+                className="help-icon"
+                onClick={() => setHardcoreHelpOpen(true)}
+                aria-label={t.lobby.helpHardcore}
+                title={t.lobby.helpHardcore}
+              >
+                ?
+              </button>
+            </label>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings?.hardcore ?? false}
+                onChange={(e) => updateSettings({ hardcore: e.target.checked })}
+              />
+              <span className="toggle-switch__slider" />
+            </label>
+          </div>
         </div>
       )}
 
@@ -210,6 +251,11 @@ export function LobbyScreen({
           setPendingKick(null);
         }}
         onCancel={() => setPendingKick(null)}
+      />
+
+      <HardcoreHelpModal
+        open={hardcoreHelpOpen}
+        onClose={() => setHardcoreHelpOpen(false)}
       />
     </div>
   );

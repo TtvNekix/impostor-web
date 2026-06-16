@@ -13,6 +13,8 @@ interface VotingTableProps {
   /** When true (default), the host can force-tally even if some players haven't voted. */
   showForceEnd?: boolean;
   onForceEnd?: () => void;
+  /** When true, hide the "Skip vote" option (hardcore mode). */
+  hardcore?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export function VotingTable({
   hasVoted = false,
   showForceEnd = false,
   onForceEnd,
+  hardcore = false,
 }: VotingTableProps) {
   const t = useT();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -129,13 +132,15 @@ export function VotingTable({
 
       {/* Action buttons */}
       <div className="voting-table__actions">
-        <button
-          onClick={handleSkip}
-          disabled={locked}
-          className="btn btn--ghost"
-        >
-          {t.voting.skip}
-        </button>
+        {!hardcore && (
+          <button
+            onClick={handleSkip}
+            disabled={locked}
+            className="btn btn--ghost"
+          >
+            {t.voting.skip}
+          </button>
+        )}
 
         <button
           onClick={handleConfirm}

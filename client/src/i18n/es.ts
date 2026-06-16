@@ -88,6 +88,19 @@ const es = {
     startError: 'Error al iniciar la partida',
     copyCode: 'Copiar código',
     codeCopied: '¡Código copiado!',
+    votingTimer: 'Tiempo de votación',
+    votingTimerHint: 'Cuánto tiempo tienen los jugadores para votar',
+    hardcore: 'Modo Hardcore',
+    hardcoreOn: 'Hardcore: ON',
+    hardcoreOff: 'Hardcore: OFF',
+    helpHardcore: '¿Qué es el modo Hardcore?',
+    hardcoreHelp: 'Una variante más difícil. La discusión sigue pasando, pero las reglas cambian:',
+    hardcoreHelpBullets: {
+      one: '1 impostor siempre (sin importar cuántos jugadores haya)',
+      two: 'Sin pista de categoría (la palabra puede ser cualquier cosa)',
+      three: 'No se puede saltar el voto (todos deben votar)',
+      four: 'Palabra aleatoria de todas las categorías (built-in + custom)',
+    },
   },
 
   discussion: {

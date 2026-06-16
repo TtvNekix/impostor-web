@@ -88,6 +88,19 @@ const en = {
     startError: 'Failed to start match',
     copyCode: 'Copy code',
     codeCopied: 'Code copied!',
+    votingTimer: 'Voting time',
+    votingTimerHint: 'How long players have to vote',
+    hardcore: 'Hardcore mode',
+    hardcoreOn: 'Hardcore: ON',
+    hardcoreOff: 'Hardcore: OFF',
+    helpHardcore: 'What is Hardcore mode?',
+    hardcoreHelp: 'A harder variant. The discussion still happens, but the rules change:',
+    hardcoreHelpBullets: {
+      one: '1 impostor always (regardless of player count)',
+      two: 'No category hint (the word can be from anywhere)',
+      three: 'No skip-vote option (everyone must vote)',
+      four: 'Random word from all built-in + custom categories',
+    },
   },
 
   discussion: {
