@@ -8,6 +8,7 @@ import {
   MIN_PLAYERS,
   MAX_PLAYERS,
   ErrorCode,
+  ALLOWED_VOTING_TIMERS,
 } from '@impostor/shared';
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
@@ -280,10 +281,12 @@ export function registerHandlers(
               return;
             }
 
-            const { impostorCount, discussionTime, category } = data as {
+            const { impostorCount, discussionTime, category, votingTimer, hardcore } = data as {
               impostorCount?: number;
               discussionTime?: number;
               category?: string | null;
+              votingTimer?: 15 | 30 | 45 | 60;
+              hardcore?: boolean;
             };
 
             // impostorCount: accepted freely in the lobby (host plans ahead).
@@ -302,6 +305,23 @@ export function registerHandlers(
 
             if (discussionTime !== undefined) {
               room.settings.discussionTime = clampTimer(discussionTime);
+            }
+
+            // votingTimer: must be one of the allowed values
+            if (votingTimer !== undefined) {
+              if (!ALLOWED_VOTING_TIMERS.includes(votingTimer)) {
+                sendError(ws, ErrorCode.GENERIC,
+                  'Invalid voting timer',
+                  { max: 60, players: 0 },
+                );
+                return;
+              }
+              room.settings.votingTimer = votingTimer;
+            }
+
+            // hardcore: simple boolean toggle
+            if (hardcore !== undefined) {
+              room.settings.hardcore = !!hardcore;
             }
 
             // Category: host can pick a specific category or null for random.
