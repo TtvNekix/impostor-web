@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
+import { useToastStore } from '../stores/toastStore';
 import { PlayerList } from '../components/PlayerList';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import { CategoryManager } from '../components/CategoryManager';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useT } from '../i18n/I18nContext';
 
 interface LobbyScreenProps {
@@ -16,6 +18,9 @@ interface LobbyScreenProps {
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
+  kickPlayer: (username: string) => void;
+  /** This client's socket id, used to exclude self from the kick list. */
+  myId: string | null;
 }
 
 export function LobbyScreen({
@@ -23,6 +28,8 @@ export function LobbyScreen({
   updateSettings,
   addCategory,
   addWords,
+  kickPlayer,
+  myId,
 }: LobbyScreenProps) {
   const t = useT();
   const roomCode = useRoomStore((s) => s.roomCode);
@@ -33,22 +40,21 @@ export function LobbyScreen({
   const gamePhase = useGameStore((s) => s.phase);
   const categories = useCategoryStore((s) => s.categories);
   const getDisplayName = useCategoryStore((s) => s.getDisplayName);
+  const pushToast = useToastStore((s) => s.push);
 
-  const [copied, setCopied] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [pendingKick, setPendingKick] = useState<string | null>(null);
 
   // Only show lobby UI when phase is LOBBY
   if (gamePhase !== 'LOBBY') return null;
 
   const handleCopyCode = async () => {
-    if (roomCode) {
-      try {
-        await navigator.clipboard.writeText(roomCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Fallback: select text
-      }
+    if (!roomCode) return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      pushToast({ message: t.lobby.codeCopied, variant: 'success' });
+    } catch {
+      pushToast({ message: 'Copy failed', variant: 'error' });
     }
   };
 
@@ -61,7 +67,7 @@ export function LobbyScreen({
   const canStart = isHost && players.length >= 3;
 
   // Build category options for the in-lobby selector. The first option is
-  // the special "Aleatoria" entry (null) that means random category.
+  // the special "Random" entry (null) that means random category.
   const categoryOptions: CustomSelectOption<string>[] = [
     { value: '', label: t.lobby.randomCategory },
     ...categories.map((c) => ({ value: c.name, label: c.displayName })),
@@ -89,7 +95,7 @@ export function LobbyScreen({
             onClick={handleCopyCode}
             className="btn btn--ghost btn--sm"
           >
-            {copied ? t.lobby.codeCopied : t.lobby.copyCode}
+            {t.common.copyCode}
           </button>
         </div>
         <span className="player-count">
@@ -99,10 +105,12 @@ export function LobbyScreen({
         </span>
       </div>
 
-      {/* Player list */}
+      {/* Player list — host can kick non-host players */}
       <PlayerList
         players={players}
-        currentPlayerId={undefined}
+        currentPlayerId={myId ?? undefined}
+        canKick={isHost}
+        onKick={(username) => setPendingKick(username)}
       />
 
       {/* Settings (host only) — maxPlayers is set at create time and locked. */}
@@ -187,6 +195,22 @@ export function LobbyScreen({
           addWords={addWords}
         />
       )}
+
+      {/* Kick confirmation modal. The user must confirm before the host
+          removes another player from the room. */}
+      <ConfirmationModal
+        open={!!pendingKick}
+        title={t.confirm.kickPlayerTitle.replace('{player}', pendingKick ?? '')}
+        message={t.confirm.kickPlayerMessage}
+        confirmLabel={t.confirm.kick}
+        cancelLabel={t.common.cancel}
+        variant="danger"
+        onConfirm={() => {
+          if (pendingKick) kickPlayer(pendingKick);
+          setPendingKick(null);
+        }}
+        onCancel={() => setPendingKick(null)}
+      />
     </div>
   );
 }

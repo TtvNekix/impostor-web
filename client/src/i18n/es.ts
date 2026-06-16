@@ -10,6 +10,8 @@ const es = {
     close: 'Cerrar',
     leaveRoom: 'Salir de la partida',
     poweredBy: 'Hecho por',
+    copyCode: 'Copiar código',
+    codeCopied: 'Código copiado al portapapeles',
   },
 
   connection: {
@@ -153,6 +155,33 @@ const es = {
     not_host: 'Solo el anfitrión puede cambiar la configuración',
     not_in_room: 'No estás en una sala',
     generic: 'Algo salió mal',
+    errorBoundaryHint: 'Algo se rompió. Puedes intentar recargar la página para recuperarte.',
+    host_disconnected: 'El anfitrión se desconectó. La sala fue eliminada.',
+    host_left: 'El anfitrión salió de la sala.',
+    kicked_by_host: 'El anfitrión te ha expulsado.',
+    kicked_room_destroyed: 'La sala fue destruida.',
+    kicked_self: 'Has salido de la sala.',
+    rate_limited: 'Vas demasiado rápido. Reduce la velocidad.',
+  },
+
+  confirm: {
+    leaveRoomTitle: '¿Salir de la sala?',
+    leaveRoomMessage: 'Volverás a la pantalla de inicio. Puedes volver a unirte si la sala sigue abierta.',
+    leaveRoomHostMessage: 'Como anfitrión, salir terminará la partida para todos. ¿Estás seguro?',
+    leave: 'Salir',
+    kickPlayerTitle: '¿Expulsar a {player}?',
+    kickPlayerMessage: 'Será removido de la sala y volverá a la pantalla de inicio. Úsalo solo si está atascado o AFK.',
+    kick: 'Expulsar',
+  },
+
+  stats: {
+    title: 'Estadísticas de la partida',
+    roundsPlayed: 'Rondas jugadas',
+    impostorsFound: 'Impostores descubiertos',
+    timesAsImpostor: 'Veces que fuiste impostor',
+    timesCaught: 'Veces que te descubrieron',
+    timesSurvived: 'Veces que sobreviviste como impostor',
+    backToLobby: 'Volver a la sala',
   },
 } as const;
 

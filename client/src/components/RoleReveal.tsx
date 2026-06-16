@@ -7,10 +7,14 @@ interface RoleRevealProps {
   animate?: boolean;
 }
 
-const ROLE_HINT = {
+const ROLE_HINT: Record<string, string> = {
   en: 'Try to figure out the word without being discovered',
   es: 'Intenta descubrir la palabra sin ser descubierto',
-} as const;
+  pt: 'Tenta descobrir a palavra sem seres descoberto',
+  fr: "Essaie de deviner le mot sans être découvert",
+  it: 'Cerca di indovinare la parola senza essere scoperto',
+  de: 'Versuche das Wort zu erraten, ohne entdeckt zu werden',
+};
 
 /**
  * Animated card that reveals the player's role with a flip animation.

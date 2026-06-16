@@ -110,6 +110,11 @@ body {
   --accent-success-glow: rgba(0, 255, 136, 0.35);
   --accent-warning: #facc15;
   --accent-warning-glow: rgba(250, 204, 21, 0.35);
+  /* Gold accent — matches the logo palette. Used sparingly for "premium"
+     accents and the "coming soon" badge. */
+  --accent-gold: #f0c674;
+  --accent-gold-glow: rgba(240, 198, 116, 0.4);
+  --accent-gold-dim: rgba(240, 198, 116, 0.15);
 
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.10);
@@ -223,7 +228,9 @@ body {
   margin: 0 auto;
   padding: var(--space-xl) var(--space-md) calc(var(--space-xl) + 2.5rem + var(--safe-bottom));
   gap: var(--space-lg);
-  animation: fadeIn var(--transition-slow) ease both;
+  /* Slightly more pronounced than a plain fade so the user feels the
+     new screen slide in. The translateY is small to keep it tasteful. */
+  animation: fadeInUp var(--transition-slow) cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 .page--centered {
@@ -955,6 +962,34 @@ body {
   font-size: 0.8rem;
 }
 
+.player-list__kick {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex: 0 0 auto;
+  transition: all var(--transition-fast);
+}
+
+.player-list__kick:hover,
+.player-list__kick:focus-visible {
+  background: rgba(255, 0, 68, 0.12);
+  border-color: var(--accent-danger);
+  color: var(--accent-danger);
+  box-shadow: 0 0 8px var(--accent-danger-glow);
+  outline: none;
+}
+
 /* ----------------------------------------------------------- */
 /*  Voting Table                                                  */
 /* ----------------------------------------------------------- */
@@ -1670,54 +1705,122 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-warning);
-  border: 1px dashed var(--accent-warning);
+  color: var(--accent-gold);
+  border: 1px dashed var(--accent-gold);
   padding: 0.55rem 1.2rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.3);
-  text-shadow: 0 0 10px rgba(255, 184, 0, 0.4);
+  background: var(--accent-gold-dim);
+  text-shadow: 0 0 10px var(--accent-gold-glow);
+  box-shadow: inset 0 0 16px rgba(240, 198, 116, 0.08);
 }
 
 /* ----------------------------------------------------------- */
-/*  Language Toggle (top right of entry page)                    */
+/*  Language Selector (dropdown with 6 locales)                   */
 /* ----------------------------------------------------------- */
 
-.lang-toggle {
+.lang-selector {
+  position: relative;
+}
+
+.lang-selector__trigger {
   display: inline-flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 0.75rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 56px;
 }
 
-.lang-toggle__btn {
+.lang-selector__trigger:hover,
+.lang-selector__trigger:focus-visible {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-primary-glow);
+  outline: none;
+}
+
+.lang-selector__arrow {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.lang-selector__menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  min-width: 160px;
+  animation: fadeIn 0.14s ease both;
+}
+
+.lang-selector__option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.85rem;
+  transition: background 0.12s ease;
+}
+
+.lang-selector__option:hover {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.lang-selector__option--active {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.lang-selector__short {
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 0.78rem;
   letter-spacing: 0.06em;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  min-width: 28px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
 }
 
-.lang-toggle__btn:hover {
-  color: var(--text-primary);
-}
-
-.lang-toggle__btn--active {
-  background: var(--accent-primary);
-  color: var(--bg-base);
-  text-shadow: 0 0 8px var(--accent-primary-glow);
+.lang-selector__full {
+  flex: 1;
 }
 
 /* ----------------------------------------------------------- */
 /*  Entry Page Footer (powered by coffeeprojects)                 */
 /* ----------------------------------------------------------- */
+
+/* Gold text utility — use for premium accents (winner banners,
+   "coming soon" badges, decorative copy) that complement the
+   logo's gold palette. */
+.text-gold {
+  color: var(--accent-gold);
+  text-shadow: 0 0 8px var(--accent-gold-glow);
+}
 
 .entry-page__footer {
   margin-top: 1.5rem;
@@ -2042,6 +2145,140 @@ body {
 }
 
 /* ----------------------------------------------------------- */
+/*  Error Boundary Fallback                                       */
+/* ----------------------------------------------------------- */
+
+.error-fallback {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: var(--bg-primary);
+}
+
+.error-fallback__card {
+  max-width: 480px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--accent-danger);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 0 24px var(--accent-danger-glow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.error-fallback__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--accent-danger);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.error-fallback__text {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ----------------------------------------------------------- */
+/*  Toast Stack (global notifications)                          */
+/* ----------------------------------------------------------- */
+
+.toast-stack {
+  position: fixed;
+  bottom: calc(2.5rem + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+  max-width: min(440px, calc(100vw - 2rem));
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem 0.7rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  animation: toastIn 0.22s ease both;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-width: 100%;
+}
+
+.toast--info {
+  border-color: var(--accent-primary);
+  box-shadow:
+    0 0 0 1px var(--accent-primary-glow),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.toast--success {
+  border-color: var(--accent-success);
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.toast--error {
+  border-color: var(--accent-danger);
+  box-shadow:
+    0 0 0 1px var(--accent-danger-glow),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.toast__message {
+  flex: 1 1 auto;
+  line-height: 1.4;
+}
+
+.toast__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.toast__close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----------------------------------------------------------- */
 /*  Modal                                                       */
 /* ----------------------------------------------------------- */
 
@@ -2112,6 +2349,23 @@ body {
   background: rgba(255, 0, 68, 0.1);
   border-color: var(--accent-danger);
   color: var(--accent-danger);
+}
+
+.modal--small {
+  max-width: 420px;
+}
+
+.confirm-modal__message {
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .modal__body {

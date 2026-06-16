@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useConnectionStore } from './stores/connectionStore';
 import { useRoomStore } from './stores/roomStore';
 import { useGameStore } from './stores/gameStore';
@@ -9,6 +10,7 @@ import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 import { EntryPage } from './screens/EntryPage';
 import { PoweredByFooter } from './components/PoweredByFooter';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import { useT } from './i18n/I18nContext';
 
 type GamePhase = import('@impostor/shared').GamePhase;
@@ -44,6 +46,7 @@ export default function App() {
 
   const roomCode = useRoomStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
+  const isHost = useRoomStore((s) => s.isHost);
 
   const {
     createRoom,
@@ -56,8 +59,16 @@ export default function App() {
     addWords,
     newMatch,
     leaveRoom,
+    kickPlayer,
     myId,
   } = useSocket();
+
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
+  const handleLeaveConfirmed = () => {
+    setConfirmLeaveOpen(false);
+    try { leaveRoom(); } catch { /* ignore */ }
+    window.location.href = '/';
+  };
 
   /* ---------------------------------------------------------------- */
   /*  ConnectionGuard                                                   */
@@ -128,14 +139,7 @@ export default function App() {
           <button
             type="button"
             className="game-header__leave"
-            onClick={() => {
-              // Best-effort: tell the server to remove us, then hard
-              // navigate to the main page. The hard navigation closes
-              // the WebSocket and reloads the UI, which is the most
-              // reliable way to land the user back on the form.
-              try { leaveRoom(); } catch { /* ignore */ }
-              window.location.href = '/';
-            }}
+            onClick={() => setConfirmLeaveOpen(true)}
             aria-label={t.common.leaveRoom}
             title={t.common.leaveRoom}
           >
@@ -143,6 +147,19 @@ export default function App() {
           </button>
         </header>
       )}
+
+      {/* Leave-room confirmation modal. Opens when the user clicks the
+          header X — confirming navigates them to the entry page. */}
+      <ConfirmationModal
+        open={confirmLeaveOpen}
+        title={t.confirm.leaveRoomTitle}
+        message={isHost ? t.confirm.leaveRoomHostMessage : t.confirm.leaveRoomMessage}
+        confirmLabel={t.confirm.leave}
+        cancelLabel={t.common.cancel}
+        variant="danger"
+        onConfirm={handleLeaveConfirmed}
+        onCancel={() => setConfirmLeaveOpen(false)}
+      />
 
       {/* Phase-based screen router */}
       <ScreenRouter
@@ -158,6 +175,7 @@ export default function App() {
         addWords={addWords}
         myId={myId}
         newMatch={newMatch}
+        kickPlayer={kickPlayer}
       />
 
       {/* Global "powered by coffeeprojects" footer — fixed at the bottom,
@@ -187,6 +205,7 @@ interface ScreenRouterProps {
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
   newMatch: () => void;
+  kickPlayer: (username: string) => void;
   myId: string | null;
 }
 
@@ -202,6 +221,7 @@ function ScreenRouter({
   addCategory: addCategoryAction,
   addWords: addWordsAction,
   newMatch,
+  kickPlayer,
   myId,
 }: ScreenRouterProps) {
   const t = useT();
@@ -221,6 +241,8 @@ function ScreenRouter({
           updateSettings={updateSettingsAction}
           addCategory={addCategoryAction}
           addWords={addWordsAction}
+          kickPlayer={kickPlayer}
+          myId={myId}
         />
       );
 

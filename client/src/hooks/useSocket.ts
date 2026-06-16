@@ -17,6 +17,7 @@ import { useConnectionStore } from '../stores/connectionStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useGameStore } from '../stores/gameStore';
 import { useCategoryStore } from '../stores/categoryStore';
+import { useToastStore } from '../stores/toastStore';
 import { useT } from '../i18n/I18nContext';
 
 /**
@@ -54,6 +55,7 @@ export function useSocket() {
 
   const t = useT();
   const localizeError = useLocalizeError();
+  const pushToast = useToastStore((s) => s.push);
 
   const setConnected = useConnectionStore((s) => s.setConnected);
   const setDisconnected = useConnectionStore((s) => s.setDisconnected);
@@ -79,6 +81,13 @@ export function useSocket() {
   const setRoundNumber = useGameStore((s) => s.setRoundNumber);
   const setImpostorIds = useGameStore((s) => s.setImpostorIds);
   const resetGame = useGameStore((s) => s.resetGame);
+  const resetMyStats = useGameStore((s) => s.resetMyStats);
+  const recordRoundPlayed = useGameStore((s) => s.recordRoundPlayed);
+  const recordAsImpostor = useGameStore((s) => s.recordAsImpostor);
+  const recordCaught = useGameStore((s) => s.recordCaught);
+  const recordSurvived = useGameStore((s) => s.recordSurvived);
+  const recordImpostorFound = useGameStore((s) => s.recordImpostorFound);
+  const myRole = useGameStore((s) => s.myRole);
 
   useEffect(() => {
     setConnecting();
@@ -183,6 +192,15 @@ export function useSocket() {
             setCategory(gs.category);
             setRoundNumber(gs.roundNumber);
             setImpostorIds(gs.impostorIds ?? []);
+            // New match (round 1) → reset stats. Subsequent rounds in the
+            // same match just bump the roundsPlayed counter.
+            if (gs.roundNumber === 1) {
+              resetMyStats();
+            }
+            recordRoundPlayed();
+            if (myIdRef.current && (gs.impostorIds ?? []).includes(myIdRef.current)) {
+              recordAsImpostor();
+            }
             break;
           }
 
@@ -212,13 +230,26 @@ export function useSocket() {
           }
 
           case ServerEvent.ROUND_RESULT: {
-            setRoundResult(data as any);
+            const rr = data as any;
+            setRoundResult(rr);
+            // Stats: did I get caught? Did I find an impostor?
+            if (rr?.expelledId && myIdRef.current === rr.expelledId && rr.wasImpostor) {
+              recordCaught();
+            } else if (rr?.expelledId && rr.wasImpostor && myRole === 'non_impostor') {
+              // I voted (or at least participated) and the impostor was found
+              recordImpostorFound();
+            }
             break;
           }
 
           case ServerEvent.GAME_OVER: {
-            setWinner((data as { winner: any }).winner);
+            const payload = data as { winner: any };
+            setWinner(payload.winner);
             setPhase('GAME_OVER', 0);
+            // Stats: if I was impostor and impostors won, I survived
+            if (payload.winner === 'IMPOSTORS' && myRole === 'impostor') {
+              recordSurvived();
+            }
             break;
           }
 
@@ -228,16 +259,29 @@ export function useSocket() {
           }
 
           case ServerEvent.HOST_LEFT: {
-            const payload = data as { message: string };
+            const payload = data as { code: string; message: string };
             clearRoom();
             resetGame();
             setDisconnected(payload.message || t.errors.generic);
+            // Show a toast for the host-leave event in addition to the
+            // disconnected screen, so the user gets an immediate cue.
+            pushToast({
+              message: '',
+              variant: 'error',
+              code: payload.code || 'host_disconnected',
+            });
             break;
           }
 
           case ServerEvent.KICKED: {
+            const payload = data as { code: string; message: string };
             resetGame();
-            setDisconnected((data as { reason: string }).reason);
+            setDisconnected(payload.message || t.errors.generic);
+            pushToast({
+              message: '',
+              variant: 'error',
+              code: payload.code || 'kicked_by_host',
+            });
             break;
           }
 
@@ -356,6 +400,11 @@ export function useSocket() {
     setError('');
   }, [sendMessage, clearRoom, resetGame, setError]);
 
+  const kickPlayer = useCallback(
+    (username: string) => sendMessage(ClientEvent.KICK_PLAYER, { username }),
+    [sendMessage],
+  );
+
   return {
     joinRoom,
     createRoom,
@@ -367,6 +416,7 @@ export function useSocket() {
     addWords: sendAddWords,
     newMatch,
     leaveRoom,
+    kickPlayer,
     /** This client's assigned socket id (server sends it on connect). */
     get myId() { return myIdRef.current; },
   };

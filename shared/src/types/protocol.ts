@@ -17,6 +17,7 @@ export const ClientEvent = {
   ADD_WORDS: 'add_words',
   NEW_MATCH: 'new_match',
   LEAVE_ROOM: 'leave_room',
+  KICK_PLAYER: 'kick_player',
 } as const;
 
 export const ServerEvent = {
@@ -166,11 +167,21 @@ export interface PlayerReconnectedPayload {
 }
 
 export interface KickedPayload {
-  reason: string;
+  /** Machine-readable code, mapped to a localized string client-side. */
+  code: 'kicked_by_host' | 'kicked_room_destroyed' | 'kicked_self';
+  /** Human-readable fallback (English). */
+  message: string;
+}
+
+export interface KickPlayerPayload {
+  /** Username of the player to kick. */
+  username: string;
 }
 
 export interface HostLeftPayload {
-  reason: 'host_disconnected';
+  /** Machine-readable code, mapped to a localized string client-side. */
+  code: 'host_disconnected' | 'host_left';
+  /** Human-readable fallback (English). */
   message: string;
 }
 

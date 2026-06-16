@@ -413,6 +413,14 @@ export function registerHandlers(
           break;
         }
 
+        /* ------------------------------------------------------------ */
+        /*  KICK_PLAYER (host only)                                     */
+        /* ------------------------------------------------------------ */
+        case ClientEvent.KICK_PLAYER: {
+          handleKick(socketId, data as { username?: string }, roomManager, connectionManager, ws);
+          break;
+        }
+
         default:
           break;
       }
@@ -461,5 +469,74 @@ function handleLeave(
     }
   } catch {
     // Room may already be gone
+  }
+}
+
+/* -------------------------------------------------------------------- */
+/*  KICK_PLAYER — host-only action                                     */
+/* -------------------------------------------------------------------- */
+
+export function handleKick(
+  callerSocketId: string,
+  data: { username?: string },
+  roomManager: RoomManager,
+  connectionManager: ConnectionManager,
+  ws: WebSocket,
+): void {
+  const roomCode = connectionManager.getRoomCode(callerSocketId);
+  const callerName = connectionManager.getUsername(callerSocketId);
+  if (!roomCode || !callerName) {
+    sendError(ws, ErrorCode.NOT_IN_ROOM, 'You are not in a room');
+    return;
+  }
+  if (!data?.username) {
+    sendError(ws, ErrorCode.GENERIC, 'Missing target username');
+    return;
+  }
+  if (data.username === callerName) {
+    sendError(ws, ErrorCode.GENERIC, 'Cannot kick yourself');
+    return;
+  }
+  // Verify the caller is the host.
+  const room = roomManager.getRoom(roomCode);
+  if (!room) {
+    sendError(ws, ErrorCode.ROOM_NOT_FOUND, 'Room no longer exists');
+    return;
+  }
+  const host = room.players.get(callerName);
+  if (!host?.isHost) {
+    sendError(ws, ErrorCode.NOT_HOST, 'Only the host can kick');
+    return;
+  }
+  // Resolve the target's socket ID from their username.
+  const targetSocketId = connectionManager.getSocketIdByUsername(
+    roomCode,
+    data.username,
+  );
+  if (!targetSocketId) {
+    sendError(ws, ErrorCode.GENERIC, 'Player not found in room');
+    return;
+  }
+  // Tell the kicked player specifically — they get redirected to the
+  // entry page with a localized reason.
+  connectionManager.sendToSocket(targetSocketId, ServerEvent.KICKED, {
+    code: 'kicked_by_host',
+    message: 'You have been kicked by the host',
+  });
+  // Remove the player from the room and broadcast to the rest.
+  try {
+    const { newHost, wasLastPlayer } = roomManager.leaveRoom(
+      roomCode,
+      data.username,
+    );
+    connectionManager.removeConnection(targetSocketId);
+    if (!wasLastPlayer) {
+      connectionManager.broadcastToRoom(roomCode, ServerEvent.PLAYER_LEFT, {
+        playerId: targetSocketId,
+        newHost,
+      });
+    }
+  } catch {
+    // ignore
   }
 }

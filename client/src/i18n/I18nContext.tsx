@@ -1,8 +1,37 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import en from './en';
 import es from './es';
+import pt from './pt';
+import fr from './fr';
+import it from './it';
+import de from './de';
 
-export type Locale = 'en' | 'es';
+export type Locale = 'en' | 'es' | 'pt' | 'fr' | 'it' | 'de';
+
+export interface LocaleInfo {
+  /** Short 2-letter code for display in toggles. */
+  short: string;
+  /** Full name in the locale's own language. */
+  code: string;
+}
+
+export const LOCALE_LABELS: Record<Locale, LocaleInfo> = {
+  en: { short: 'EN', code: 'English' },
+  es: { short: 'ES', code: 'Español' },
+  pt: { short: 'PT', code: 'Português' },
+  fr: { short: 'FR', code: 'Français' },
+  it: { short: 'IT', code: 'Italiano' },
+  de: { short: 'DE', code: 'Deutsch' },
+};
+
+export const LOCALE_FLAGS: Record<Locale, string> = {
+  en: '🇬🇧',
+  es: '🇪🇸',
+  pt: '🇵🇹',
+  fr: '🇫🇷',
+  it: '🇮🇹',
+  de: '🇩🇪',
+};
 
 /**
  * Both dictionaries MUST have the same nested shape. We treat the
@@ -19,9 +48,13 @@ export type Translations = DeepStringify<typeof es>;
 const dictionaries: Record<Locale, Translations> = {
   en: en as unknown as Translations,
   es: es as unknown as Translations,
+  pt: pt as unknown as Translations,
+  fr: fr as unknown as Translations,
+  it: it as unknown as Translations,
+  de: de as unknown as Translations,
 };
 const STORAGE_KEY = 'impostor.locale';
-const SUPPORTED: Locale[] = ['en', 'es'];
+const SUPPORTED: Locale[] = ['en', 'es', 'pt', 'fr', 'it', 'de'];
 
 interface I18nContextValue {
   locale: Locale;
@@ -38,6 +71,10 @@ function detectInitialLocale(): Locale {
   if (saved && SUPPORTED.includes(saved)) return saved;
   const browser = (navigator.language || 'en').toLowerCase();
   if (browser.startsWith('es')) return 'es';
+  if (browser.startsWith('pt')) return 'pt';
+  if (browser.startsWith('fr')) return 'fr';
+  if (browser.startsWith('it')) return 'it';
+  if (browser.startsWith('de')) return 'de';
   return 'en';
 }
 

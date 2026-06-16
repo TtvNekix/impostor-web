@@ -10,6 +10,8 @@ const en = {
     close: 'Close',
     leaveRoom: 'Leave room',
     poweredBy: 'Powered by',
+    copyCode: 'Copy code',
+    codeCopied: 'Code copied to clipboard',
   },
 
   connection: {
@@ -153,6 +155,33 @@ const en = {
     not_host: 'Only the host can change settings',
     not_in_room: 'You are not in a room',
     generic: 'Something went wrong',
+    errorBoundaryHint: 'Something broke. You can try reloading the page to recover.',
+    host_disconnected: 'The host disconnected. The room has been deleted.',
+    host_left: 'The host left the room.',
+    kicked_by_host: 'You have been kicked by the host.',
+    kicked_room_destroyed: 'The room was destroyed.',
+    kicked_self: 'You left the room.',
+    rate_limited: 'You\'re going too fast. Slow down a bit.',
+  },
+
+  confirm: {
+    leaveRoomTitle: 'Leave the room?',
+    leaveRoomMessage: 'You\'ll return to the entry screen. You can rejoin if the room is still open.',
+    leaveRoomHostMessage: 'As the host, leaving will end the game for everyone. Are you sure?',
+    leave: 'Leave',
+    kickPlayerTitle: 'Kick {player}?',
+    kickPlayerMessage: 'They will be removed from the room and returned to the entry screen. Use this only if they\'re stuck or AFK.',
+    kick: 'Kick',
+  },
+
+  stats: {
+    title: 'Match stats',
+    roundsPlayed: 'Rounds played',
+    impostorsFound: 'Impostors found',
+    timesAsImpostor: 'Times you were the impostor',
+    timesCaught: 'Times you were caught',
+    timesSurvived: 'Times you survived as impostor',
+    backToLobby: 'Back to lobby',
   },
 } as const;
 

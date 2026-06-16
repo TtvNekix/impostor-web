@@ -78,8 +78,8 @@ export class ConnectionManager {
         // Destroy the room immediately and notify every remaining member.
         if (player.isHost) {
           this.broadcastToRoom(roomCode, ServerEvent.HOST_LEFT, {
-            reason: 'host_disconnected',
-            message: 'El anfitrión se desconectó. La sala fue eliminada.',
+            code: 'host_disconnected',
+            message: 'The host disconnected. The room has been deleted.',
           });
           this.roomManager.destroyRoom(roomCode);
           // Drop every connection entry that pointed at this room so future
@@ -207,6 +207,20 @@ export class ConnectionManager {
   /** Look up connection metadata by socket ID. */
   getConnection(socketId: string): ConnectionEntry | undefined {
     return this.connections.get(socketId);
+  }
+
+  /**
+   * Find the socket ID for a given (roomCode, username) pair. Returns
+   * null if no such connection exists. Used by the kick handler to
+   * resolve a target username to a live socket.
+   */
+  getSocketIdByUsername(roomCode: string, username: string): string | null {
+    for (const [sid, entry] of this.connections) {
+      if (entry.roomCode === roomCode && entry.username === username) {
+        return sid;
+      }
+    }
+    return null;
   }
 
   /** Find the username for a given socket ID. */

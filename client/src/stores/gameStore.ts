@@ -3,6 +3,15 @@ import type { GamePhase, Vote, RoundResult, Winner } from '@impostor/shared';
 
 export type PlayerRole = 'impostor' | 'non_impostor' | null;
 
+/** Per-match stats for the local user. Reset on each new match. */
+export interface MyMatchStats {
+  roundsPlayed: number;
+  timesAsImpostor: number;
+  timesCaught: number;
+  timesSurvivedAsImpostor: number;
+  impostorsFound: number;
+}
+
 interface GameState {
   phase: GamePhase;
   word: string | null;
@@ -25,6 +34,8 @@ interface GameState {
   roundNumber: number;
   /** Player IDs who are impostors in the current match (set on game start). */
   impostorIds: string[];
+  /** Stats for the local user across the current match. */
+  myStats: MyMatchStats;
 
   setPhase: (phase: GamePhase, phaseEndsAt?: number) => void;
   setWord: (word: string | null) => void;
@@ -37,6 +48,12 @@ interface GameState {
   setVoterCount: (voterCount: number, totalVoters?: number) => void;
   setRoundNumber: (n: number) => void;
   setImpostorIds: (ids: string[]) => void;
+  resetMyStats: () => void;
+  recordRoundPlayed: () => void;
+  recordAsImpostor: () => void;
+  recordCaught: () => void;
+  recordSurvived: () => void;
+  recordImpostorFound: () => void;
   resetGame: () => void;
 }
 
@@ -55,6 +72,13 @@ const initialState = {
   totalVoters: 0,
   roundNumber: 0,
   impostorIds: [] as string[],
+  myStats: {
+    roundsPlayed: 0,
+    timesAsImpostor: 0,
+    timesCaught: 0,
+    timesSurvivedAsImpostor: 0,
+    impostorsFound: 0,
+  } as MyMatchStats,
 };
 
 export const useGameStore = create<GameState>((set) => ({
@@ -104,6 +128,18 @@ export const useGameStore = create<GameState>((set) => ({
   setRoundNumber: (roundNumber) => set({ roundNumber }),
 
   setImpostorIds: (impostorIds) => set({ impostorIds }),
+
+  resetMyStats: () => set({ myStats: { ...initialState.myStats } }),
+  recordRoundPlayed: () =>
+    set((state) => ({ myStats: { ...state.myStats, roundsPlayed: state.myStats.roundsPlayed + 1 } })),
+  recordAsImpostor: () =>
+    set((state) => ({ myStats: { ...state.myStats, timesAsImpostor: state.myStats.timesAsImpostor + 1 } })),
+  recordCaught: () =>
+    set((state) => ({ myStats: { ...state.myStats, timesCaught: state.myStats.timesCaught + 1 } })),
+  recordSurvived: () =>
+    set((state) => ({ myStats: { ...state.myStats, timesSurvivedAsImpostor: state.myStats.timesSurvivedAsImpostor + 1 } })),
+  recordImpostorFound: () =>
+    set((state) => ({ myStats: { ...state.myStats, impostorsFound: state.myStats.impostorsFound + 1 } })),
 
   resetGame: () => set({ ...initialState }),
 }));
