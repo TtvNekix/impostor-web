@@ -16,6 +16,8 @@ export interface RoomSettings {
   discussionTime: number;
   /** Selected category name (kebab-case identifier). null/undefined = random. */
   category: string | null;
+  votingTimer: 15 | 30 | 45 | 60;
+  hardcore: boolean;
 }
 
 export interface Room {

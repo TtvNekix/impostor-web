@@ -68,6 +68,8 @@ export interface UpdateSettingsPayload {
   discussionTime?: number;
   category?: string | null;
   maxPlayers?: number;
+  votingTimer?: 15 | 30 | 45 | 60;
+  hardcore?: boolean;
 }
 
 export interface AddCategoryPayload {

@@ -4,6 +4,7 @@ import {
   MIN_PLAYERS,
   DEFAULT_TIMER,
   DEFAULT_MAX_PLAYERS,
+  DEFAULT_VOTING_TIMER,
   clampMaxPlayers,
   clampTimer,
 } from '@impostor/shared';
@@ -33,6 +34,8 @@ export class RoomManager {
       impostorCount: 1,
       discussionTime: DEFAULT_TIMER,
       category: null,
+      votingTimer: DEFAULT_VOTING_TIMER,
+      hardcore: false,
       ...settings,
     };
     // Sanitize maxPlayers before persisting
