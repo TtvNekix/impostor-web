@@ -13,7 +13,11 @@ interface EntryPageProps {
   createRoom: (payload: {
     code: string;
     username: string;
-    settings?: { maxPlayers: number };
+    settings?: {
+      maxPlayers: number;
+      visibility?: 'public' | 'private';
+      hostLocale?: string;
+    };
   }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
 }
@@ -39,6 +43,7 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [maxPlayers, setMaxPlayers] = useState<number>(DEFAULT_MAX_PLAYERS);
+  const [makePublic, setMakePublic] = useState<boolean>(false);
   const [contributeOpen, setContributeOpen] = useState(false);
   const error = useConnectionStore((s) => s.error);
   const clearError = useConnectionStore((s) => s.clearError);
@@ -48,7 +53,15 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
     if (!username.trim()) return;
     if (mode === 'create') {
       const roomCode = code.trim().toUpperCase() || generateRoomCode();
-      createRoom({ code: roomCode, username: username.trim(), settings: { maxPlayers } });
+      createRoom({
+        code: roomCode,
+        username: username.trim(),
+        settings: {
+          maxPlayers,
+          visibility: makePublic ? 'public' : 'private',
+          hostLocale: locale,
+        },
+      });
     } else {
       joinRoom({ code: code.trim().toUpperCase(), username: username.trim() });
     }
@@ -121,18 +134,28 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
               />
 
               {mode === 'create' ? (
-                <div className="mode-card__row">
-                  <label htmlFor="max-players-select" className="mode-card__row-label">
-                    {t.lobby.maxPlayers}
+                <>
+                  <div className="mode-card__row">
+                    <label htmlFor="max-players-select" className="mode-card__row-label">
+                      {t.lobby.maxPlayers}
+                    </label>
+                    <CustomSelect
+                      value={maxPlayers}
+                      options={MAX_PLAYER_OPTIONS}
+                      onChange={setMaxPlayers}
+                      ariaLabel={t.lobby.maxPlayers}
+                      className="connection-max-players"
+                    />
+                  </div>
+                  <label className="mode-card__checkbox">
+                    <input
+                      type="checkbox"
+                      checked={makePublic}
+                      onChange={(e) => setMakePublic(e.target.checked)}
+                    />
+                    <span>{t.lobby.public}</span>
                   </label>
-                  <CustomSelect
-                    value={maxPlayers}
-                    options={MAX_PLAYER_OPTIONS}
-                    onChange={setMaxPlayers}
-                    ariaLabel={t.lobby.maxPlayers}
-                    className="connection-max-players"
-                  />
-                </div>
+                </>
               ) : (
                 <input
                   type="text"

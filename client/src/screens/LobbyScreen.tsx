@@ -20,6 +20,8 @@ interface LobbyScreenProps {
     votingTimer?: 15 | 30 | 45 | 60;
     hardcore?: boolean;
     impostorCount?: number;
+    visibility?: 'public' | 'private';
+    hostLocale?: string;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
@@ -206,6 +208,44 @@ export function LobbyScreen({
               />
               <span className="toggle-switch__slider" />
             </label>
+          </div>
+
+          {/* Visibility (public/private) — public rooms show up in the
+              public-rooms list. Defaults to 'private' which matches the
+              server's DEFAULT_VISIBILITY. */}
+          <div className="settings-panel__row settings-panel__row--visibility">
+            <label className="settings-panel__label">
+              {t.lobby.visibility}
+              <span
+                className="help-icon"
+                aria-label={t.lobby.visibilityHint}
+                title={t.lobby.visibilityHint}
+              >
+                ?
+              </span>
+            </label>
+            <div className="settings-panel__visibility" role="radiogroup" aria-label={t.lobby.visibility}>
+              <label className={`settings-panel__radio${(settings?.visibility ?? 'private') === 'private' ? ' settings-panel__radio--active' : ''}`}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="private"
+                  checked={(settings?.visibility ?? 'private') === 'private'}
+                  onChange={() => updateSettings({ visibility: 'private' })}
+                />
+                <span>{t.lobby.private}</span>
+              </label>
+              <label className={`settings-panel__radio${settings?.visibility === 'public' ? ' settings-panel__radio--active' : ''}`}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="public"
+                  checked={settings?.visibility === 'public'}
+                  onChange={() => updateSettings({ visibility: 'public' })}
+                />
+                <span>{t.lobby.public}</span>
+              </label>
+            </div>
           </div>
         </div>
       )}

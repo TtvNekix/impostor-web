@@ -192,7 +192,15 @@ export default function App() {
 interface ScreenRouterProps {
   phase: GamePhase;
   roomCode: string | null;
-  createRoom: (payload: { code: string; username: string }) => void;
+  createRoom: (payload: {
+    code: string;
+    username: string;
+    settings?: {
+      maxPlayers: number;
+      visibility?: 'public' | 'private';
+      hostLocale?: string;
+    };
+  }) => void;
   joinRoom: (payload: { code: string; username: string }) => void;
   startMatch: () => void;
   startVoting: () => void;
@@ -201,6 +209,10 @@ interface ScreenRouterProps {
     impostorCount?: number;
     discussionTime?: number;
     category?: string | null;
+    votingTimer?: 15 | 30 | 45 | 60;
+    hardcore?: boolean;
+    visibility?: 'public' | 'private';
+    hostLocale?: string;
   }) => void;
   addCategory: (payload: { name: string; displayName?: string; words: string }) => void;
   addWords: (payload: { category: string; words: string }) => void;
