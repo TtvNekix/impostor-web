@@ -153,6 +153,8 @@ export function registerHandlers(
               category: settings?.category ?? 'random',
               votingTimer: settings?.votingTimer ?? 'default',
               hardcore: settings?.hardcore ?? false,
+              visibility: settings?.visibility ?? 'private',
+              hostLocale: settings?.hostLocale ?? 'en',
             });
           } catch (err: any) {
             sendError(ws, roomErrorCode(err), err.message);
