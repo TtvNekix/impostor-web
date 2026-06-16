@@ -57,7 +57,7 @@ Chain strategy: feature-branch-chain
 
 - [ ] **Step 3.1: PR 1 review + deploy** — push server branch, get review, merge, run `python scripts/deploy.py --server-only`, verify `/api/rooms` returns `[]` then populated list via `curl https://impostor.nekix.lol/api/rooms?visibility=public`.
 - [ ] **Step 3.2: PR 2 review + deploy** — push client branch (base = PR 1), get review, merge, run `python scripts/deploy.py --client-only`, verify with the same manual smoke as 2.10 against production.
-- [ ] **Step 3.3: Archive change** — run sdd-archive to move `openspec/changes/public-rooms-list/` → `openspec/changes/archive/2026-06-16-public-rooms-list/` and merge delta specs into main.
+- [x] **Step 3.3: Archive change** — run sdd-archive to move `openspec/changes/public-rooms-list/` → `openspec/changes/archive/2026-06-16-public-rooms-list/` and merge delta specs into main.
 
 ---
 
