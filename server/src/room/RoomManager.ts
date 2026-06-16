@@ -170,6 +170,53 @@ export class RoomManager {
     this.store.deleteRoom(code);
   }
 
+  /**
+   * Select impostor IDs from active players with optional exclusion.
+   * The exclusion list is a rolling history of impostor player IDs
+   * (most recent last). A player whose ID appears in either of the
+   * last 2 history slots is excluded from the candidate pool (re-rol
+   * rule — same person can't be impostor 3 times in a row by avoiding
+   * consecutive selections). If the resulting candidate set is too
+   * small, falls back to excluding only the player from the OLDEST
+   * history entry (FIFO expiry).
+   */
+  selectImpostors(
+    activePlayers: Player[],
+    count: number,
+    excludeIds: string[] = [],
+  ): Set<string> {
+    if (count > activePlayers.length) {
+      throw new Error('Not enough players to select impostors');
+    }
+    // Build the exclusion set from the last 2 history entries
+    const excludeSet = new Set<string>();
+    const lastIdx = excludeIds.length - 1;
+    if (lastIdx >= 0) excludeSet.add(excludeIds[lastIdx]);
+    if (lastIdx >= 1) excludeSet.add(excludeIds[lastIdx - 1]);
+
+    let candidates = activePlayers.filter((p) => !excludeSet.has(p.id));
+    // If too few candidates remain, drop only the oldest block (FIFO)
+    if (candidates.length < count && excludeIds.length > 0) {
+      const oldest = excludeIds[0];
+      candidates = activePlayers.filter((p) => p.id !== oldest);
+    }
+    // Last resort: all active players
+    if (candidates.length < count) {
+      candidates = activePlayers;
+    }
+    // Fisher-Yates shuffle for uniform distribution
+    const shuffled = [...candidates];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const ids = new Set<string>();
+    for (let i = 0; i < count && i < shuffled.length; i++) {
+      ids.add(shuffled[i].id);
+    }
+    return ids;
+  }
+
   /** Find which room a player (by socket ID) is in. */
   findRoomBySocketId(socketId: string): { room: Room; player: Player } | null {
     for (const code of this.store.getAllRoomCodes()) {

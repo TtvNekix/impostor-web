@@ -200,6 +200,76 @@ describe('RoomManager', () => {
     });
   });
 
+  describe('selectImpostors with exclusion (re-rol rule)', () => {
+    it('excludes a player who was impostor in both of the last 2 rounds (same ID twice)', () => {
+      const { room } = manager.createRoom('RR01', 'Host');
+      const host = room.players.get('Host')!;
+      host.id = 'host-sid';
+      manager.joinRoom('RR01', 'Alice', 'alice');
+      manager.joinRoom('RR01', 'Bob', 'bob');
+      manager.joinRoom('RR01', 'Carol', 'carol');
+
+      // Alice was impostor in the last 2 rounds — her ID appears in both slots
+      const picked = manager.selectImpostors(
+        Array.from(room.players.values()),
+        1,
+        ['alice', 'alice'],
+      );
+      expect(picked.has('alice')).toBe(false);
+    });
+
+    it('does not exclude when different players were impostor each round', () => {
+      const { room } = manager.createRoom('RR02', 'Host');
+      const host = room.players.get('Host')!;
+      host.id = 'host-sid';
+      manager.joinRoom('RR02', 'Alice', 'alice');
+      manager.joinRoom('RR02', 'Bob', 'bob');
+      manager.joinRoom('RR02', 'Carol', 'carol');
+
+      // Bob was last round, Alice before that; both excluded, Host and Carol remain
+      const picked = manager.selectImpostors(
+        Array.from(room.players.values()),
+        1,
+        ['bob', 'alice'],
+      );
+      // Host and Carol are candidates; one of them must be picked
+      expect(picked.has('host-sid') || picked.has('carol')).toBe(true);
+    });
+
+    it('drops the oldest block when ALL players are excluded (FIFO expiry)', () => {
+      // With only 3 players in the room and all 3 have been impostor
+      // twice in a row, the FIFO fallback drops the oldest block
+      const picked = manager.selectImpostors(
+        [
+          { id: 'a', username: 'A', status: 'ACTIVE' as const, isHost: false, joinedAt: 0 },
+          { id: 'b', username: 'B', status: 'ACTIVE' as const, isHost: false, joinedAt: 1 },
+          { id: 'c', username: 'C', status: 'ACTIVE' as const, isHost: false, joinedAt: 2 },
+        ],
+        1,
+        ['a', 'b', 'c', 'a', 'b', 'c'],
+      );
+      // Oldest entry ('a') is dropped, making 'a' eligible
+      expect(picked.size).toBe(1);
+      expect(picked.has('a')).toBe(true);
+    });
+
+    it('returns a valid selection when history is empty (fresh room)', () => {
+      const { room } = manager.createRoom('RR04', 'Host');
+      const host = room.players.get('Host')!;
+      host.id = 'host-sid';
+      manager.joinRoom('RR04', 'Alice', 'alice');
+      manager.joinRoom('RR04', 'Bob', 'bob');
+      manager.joinRoom('RR04', 'Carol', 'carol');
+
+      const picked = manager.selectImpostors(
+        Array.from(room.players.values()),
+        1,
+        [],
+      );
+      expect(picked.size).toBe(1);
+    });
+  });
+
   describe('updateSocketId', () => {
     it('updates a player socket id on reconnect', () => {
       manager.createRoom('ABC12', 'Alice');

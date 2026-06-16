@@ -83,8 +83,16 @@ export class GameEngine {
       this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
     }
 
-    // Create GamePlayer snapshot
-    const impostorIds = this.selectImpostors(activePlayers, room.settings.impostorCount);
+    // Create GamePlayer snapshot with re-rol exclusion
+    const history = this.impostorHistory.get(roomCode) ?? [];
+    const flatHistory = history.flat();
+    const impostorIds = this.roomManager.selectImpostors(activePlayers, room.settings.impostorCount, flatHistory);
+    // Update impostor history (last 2 rounds)
+    const newHistory = history.length >= 2
+      ? [history[history.length - 1], Array.from(impostorIds)]
+      : [...history, Array.from(impostorIds)];
+    this.impostorHistory.set(roomCode, newHistory);
+
     const gamePlayers: GamePlayer[] = activePlayers.map((p) => ({
       id: p.id,
       username: p.username,
@@ -393,24 +401,6 @@ export class GameEngine {
       if (player.id === socketId) return player;
     }
     return undefined;
-  }
-
-  private selectImpostors(
-    activePlayers: Player[],
-    count: number,
-  ): Set<string> {
-    // Fisher-Yates shuffle: uniform distribution, unlike
-    // `Array.sort(() => Math.random() - 0.5)` which has known bias.
-    const shuffled = [...activePlayers];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    const ids = new Set<string>();
-    for (let i = 0; i < count && i < shuffled.length; i++) {
-      ids.add(shuffled[i].id);
-    }
-    return ids;
   }
 
   /**

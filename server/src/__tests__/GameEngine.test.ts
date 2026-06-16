@@ -389,11 +389,8 @@ describe('GameEngine', () => {
       ];
       const counts: Record<string, number> = { a: 0, b: 0, c: 0, d: 0 };
       const N = 4000;
-      const engineProto = engine as unknown as {
-        selectImpostors: (players: typeof players, count: number) => Set<string>;
-      };
       for (let i = 0; i < N; i++) {
-        const picked = engineProto.selectImpostors(players, 1);
+        const picked = roomManager.selectImpostors(players, 1);
         for (const id of picked) counts[id] = (counts[id] ?? 0) + 1;
       }
       const expected = N / 4;
