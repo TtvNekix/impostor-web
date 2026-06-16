@@ -479,6 +479,19 @@ body {
   background: rgba(0, 212, 255, 0.28);
 }
 
+.custom-select__option--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.custom-select__option--disabled.custom-select__option--active,
+.custom-select__option--disabled:hover {
+  /* Disabled options never get the active/hover highlight. */
+  background: transparent;
+  color: var(--text-muted);
+}
+
 .custom-select__check {
   color: var(--accent-primary);
   flex-shrink: 0;
@@ -1532,7 +1545,13 @@ body {
 .entry-page__lang {
   position: absolute;
   top: calc(0.75rem + var(--safe-top));
+  left: calc(0.75rem + var(--safe-left));
   right: calc(0.75rem + var(--safe-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  z-index: 5;
 }
 
 .entry-page__hero {
@@ -1846,6 +1865,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: center;
   gap: 0.85rem 1.1rem;
 }
 
@@ -1902,8 +1922,10 @@ body {
 }
 
 .public-rooms-filters__refresh {
-  margin-left: auto;
   align-self: flex-end;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* List */
@@ -3123,8 +3145,27 @@ body {
   max-width: 720px;
   margin: 0 auto;
   padding: 1.25rem 1.25rem calc(3rem + 2.5rem + var(--safe-bottom));
-  gap: 1rem;
+  gap: 1.25rem;
   min-height: 100vh;
+  justify-content: center;
+}
+
+.lobbies-page__panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
+  /* Min-height keeps the page from looking half-empty when there are
+     0 rooms. Caps at 80vh so a long list still scrolls inside the
+     panel rather than blowing out the page. */
+  min-height: 60vh;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .lobbies-page__topbar {
@@ -3208,6 +3249,13 @@ body {
 @media (max-width: 720px) {
   .lobbies-page {
     padding: 1rem 1rem calc(3rem + 2.5rem + var(--safe-bottom));
+    justify-content: flex-start;
+  }
+
+  .lobbies-page__panel {
+    padding: 1.25rem 1.1rem 1.4rem;
+    min-height: auto;
+    max-height: none;
   }
 
   .lobbies-page__title {
@@ -3221,21 +3269,148 @@ body {
 
 .entry-page__lobbies-link {
   background: transparent;
-  border: none;
-  color: var(--accent-primary);
-  font-size: 0.9rem;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0.35rem 0.5rem;
-  border-radius: var(--radius-sm);
-  align-self: flex-start;
-  transition: color 0.15s ease, background 0.15s ease, text-decoration 0.15s ease;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-md);
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .entry-page__lobbies-link:hover,
 .entry-page__lobbies-link:focus-visible {
   color: var(--text-primary);
   background: rgba(0, 0, 0, 0.22);
-  text-decoration: underline;
+  border-color: var(--accent-primary);
   outline: none;
+}
+
+/* ----------------------------------------------------------- */
+/*  Join Page (/join/CODE)                                     */
+/* ----------------------------------------------------------- */
+
+.join-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem calc(3rem + 2.5rem + var(--safe-bottom));
+  gap: 1.25rem;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+.join-page__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+}
+
+.join-page__back {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.join-page__back:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.join-page__head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  width: 100%;
+}
+
+.join-page__title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.join-page__code-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent-primary);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  padding: 0.3rem 0.85rem;
+  text-shadow: 0 0 12px var(--accent-primary-glow);
+}
+
+.join-page__subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.join-page__form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.join-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.join-page__field label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.join-page__field input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.join-page__field input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-glow);
+}
+
+@media (max-width: 720px) {
+  .join-page {
+    padding: 1rem 1rem calc(3rem + 2.5rem + var(--safe-bottom));
+    justify-content: flex-start;
+  }
+
+  .join-page__title {
+    font-size: 1.3rem;
+  }
 }
