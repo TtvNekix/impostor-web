@@ -6,13 +6,13 @@ describe('audit/logger.logEvent', () => {
 
   beforeEach(() => {
     fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).fetch = fetchMock;
+    vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
