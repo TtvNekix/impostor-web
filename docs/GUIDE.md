@@ -21,7 +21,7 @@
 | Client tests | **No hay** (0 E2E, 0 unitarios) |
 | Idioma | 6: EN, ES, PT, FR, IT, DE — **castellano sin voseo** (vosotros imperatives: "introduce", "completa", "elige", "separa", "hablad", "votad", "leed") |
 | Monorepo | pnpm workspaces (`shared/`, `server/`, `client/`) |
-| Deploy | Python paramiko a `192.168.1.11` |
+| Deploy | Python paramiko a servidor privado |
 
 ### URLs
 
@@ -260,7 +260,7 @@ python -c "
 import paramiko
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect('192.168.1.11', username='root', password='juanito2005', timeout=10)
+c.connect('[HOST]', username='[USER]', password='[PASSWORD]', timeout=10)
 si, so, se = c.exec_command('journalctl -u impostor-web -n 30 --no-pager', timeout=10)
 print(so.read().decode())
 print(se.read().decode())
@@ -384,7 +384,7 @@ python scripts/deploy.py --server-only      # Solo server
 import paramiko
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect('192.168.1.11', username='root', password='juanito2005', timeout=10)
+c.connect('[HOST]', username='[USER]', password='[PASSWORD]', timeout=10)
 
 # Ver logs
 si, so, se = c.exec_command('journalctl -u impostor-web -n 50 --no-pager')
@@ -464,4 +464,4 @@ git checkout main && git merge feature/<name>
 - Base de operaciones: Buenos Aires
 - Infraestructura propia (Proxmox en casa)
 - No hay contribuciones externas esperadas
-- Script de deploy usa paramiko con user `root` / password `juanito2005` (NO exponer en logs)
+- Script de deploy usa credenciales locales (NO exponer en logs, NO committear)

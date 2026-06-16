@@ -50,7 +50,7 @@ El usuario debe elegir:
 | Ruta local | `F:\web impostor` |
 | Repo remote | `https://github.com/TtvNekix/impostor-web` |
 | Producción | `https://impostor.nekix.lol` |
-| Server | `192.168.1.11` (root/juanito2005, paramiko) |
+| Server | Servidor privado vía paramiko (credenciales en `scripts/deploy.py`) |
 | Deploy script | `python scripts/deploy.py` |
 | Tests | `pnpm --filter @impostor/server test` (154/154) |
 | Build client | `pnpm --filter @impostor/client build` |

@@ -5,7 +5,7 @@ context: |
   Architecture: Server-authoritative game engine. All game state in-memory (Map<string, Room>). shared/ package consumed directly from src/ (no build step). Single-server deployment serving the built SPA from Express.
   Testing: Vitest 1.6.0 in server/ (131 tests passing). No client tests yet. TypeScript strict mode for type checking. No ESLint, no Prettier.
   Style: Castellano Spanish (no voseo), vosotros imperatives. 6-language i18n (en/es/pt/fr/it/de) with DeepStringify shape enforcement. Gold accent theme.
-  Deployment: Proxmox container (192.168.1.11) fronted by Nginx Proxy Manager + Cloudflare DNS. Deploys via paramiko (Windows OpenSSH kex-incompatible).
+  Deployment: Single-server deployment behind a reverse proxy with Cloudflare DNS. Deploys via paramiko.
   WebSocket transport: raw `ws` (NOT Socket.IO — replaced because Engine.IO didn't pass through NPM proxy).
   Impostor count: 1 for ≤4 players, 2 for ≥5 (server-enforced in GameEngine.getMaxImpostors(), not host-configurable).
   Game modes: "By word" ACTIVE, "By image" COMING SOON (Próximamente badge).

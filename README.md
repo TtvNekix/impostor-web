@@ -2,9 +2,6 @@
 
 **Real-time multiplayer social deduction in your browser. No installs, no accounts — just a room code and your friends.**
 
-[![Live](https://img.shields.io/badge/live-impostor.nekix.lol-00d4ff)](https://impostor.nekix.lol)
-[![Stack](https://img.shields.io/badge/stack-React%20%2B%20Node%20%2B%20ws-00d4ff?logo=typescript)]()
-
 ---
 
 ## ✨ The Game
@@ -14,7 +11,7 @@
 **Features:**
 
 - **"By Word" mode** — 30+ word categories, 548 unique words
-- **"By Image" mode** — *Coming soon* 🏗️
+- **"By Image" mode** — *Coming soon*
 - **Configurable voting timer** (15s–60s)
 - **Hardcore mode** — 1 impostor, no category hints, no skip-vote
 - **Custom word categories** — hosts can create and share their own
@@ -31,7 +28,7 @@
 ### Prerequisites
 
 - **Node.js** ≥ 20
-- **pnpm** ≥ 8 (`npm install -g pnpm`)
+- **pnpm** ≥ 8 (`npm i -g pnpm`)
 
 ### Setup
 
@@ -51,16 +48,15 @@ pnpm --filter @impostor/server dev
 pnpm --filter @impostor/client dev
 ```
 
-Open `http://localhost:5173` in your browser. The Vite dev server proxies API/WebSocket requests to the server at port 3001.
+Open `http://localhost:5173` in your browser.
 
 ### Build for production
 
 ```bash
+pnpm --filter @impostor/shared build
 pnpm --filter @impostor/client build
 pnpm --filter @impostor/server build
 ```
-
-The server serves the client build from `client/dist/` as static files.
 
 ### Run tests
 
@@ -78,7 +74,7 @@ pnpm --filter @impostor/server test -- src/__tests__/GameEngine.test.ts
 
 ```
 impostor-web/
-├── shared/          # Shared types & constants (both client and server)
+├── shared/          # Shared types & constants (client + server)
 │   └── src/
 │       ├── types/   # Room, Game, Protocol, API DTOs
 │       ├── constants.ts
@@ -86,35 +82,33 @@ impostor-web/
 │
 ├── server/          # Node.js + Express + raw WebSocket
 │   └── src/
-│       ├── index.ts           # Entry: Express routes + WS server
+│       ├── index.ts           # Express routes + WS server
 │       ├── room/              # Room lifecycle (RoomStore, RoomManager)
 │       ├── game/              # Game engine (StateMachine, GameEngine, RoundManager)
 │       ├── connection/        # WS connection lifecycle & reconnect
-│       ├── audit/logger.ts    # Discord webhook (fire-and-forget)
+│       ├── audit/logger.ts    # Event logging (fire-and-forget)
 │       ├── words/             # WordBank with 30 categories
 │       ├── ws/handlers.ts     # All WS event handlers
 │       └── __tests__/         # 9 test files, 154 tests
 │
-├── client/          # React 18 + Vite + Zustand
-│   └── src/
-│       ├── screens/           # EntryPage, LobbyScreen, DiscussionScreen, VotingScreen, etc.
-│       ├── components/        # Reusable UI components
-│       ├── hooks/             # useSocket, usePublicRooms, etc.
-│       ├── stores/            # Zustand stores
-│       ├── i18n/              # 6 language dictionaries
-│       └── styles/globals.css # Single stylesheet (~3076 lines)
-│
-└── scripts/
-    └── deploy.py    # Production deploy via paramiko
+└── client/          # React 18 + Vite + Zustand
+    └── src/
+        ├── screens/           # EntryPage, LobbyScreen, DiscussionScreen, etc.
+        ├── components/        # Reusable UI
+        ├── hooks/             # useSocket, usePublicRooms, etc.
+        ├── stores/            # Zustand stores
+        ├── i18n/              # 6 language dictionaries
+        └── styles/globals.css # Single stylesheet
 ```
 
 ### Key design decisions
 
-- **raw `ws` over Socket.IO**: Engine.IO didn't pass through the Nginx Proxy Manager. Migrated to raw WebSocket with a typed event protocol.
-- **In-memory state**: RoomStore is a `Map<string, Room>` — server restart loses all active games. No database. (A future persistence layer would add SQLite.)
+- **raw `ws` over Socket.IO**: Migrated from Socket.IO because Engine.IO had proxy issues with the reverse proxy. Now uses raw WebSocket with a typed event protocol.
+- **In-memory state**: RoomStore is a `Map<string, Room>` — server restart loses all active games. No database. (A future persistence layer could add SQLite.)
 - **Castellano Spanish**: All Spanish UI uses Spain Spanish (vosotros imperatives, no voseo).
 - **6-language i18n**: DeepStringify enforces shape parity at build time — all 6 files must have identical nested structure.
-- **Single CSS file**: No CSS-in-JS, no modules. 3076 lines of global CSS with BEM-like naming and custom properties.
+- **Single CSS file**: No CSS-in-JS, no modules. Global stylesheet with BEM-like naming and CSS custom properties.
+- **Discord audit log**: Server events (room created, match started, votes) are posted to a Discord webhook via fire-and-forget fetch. Never blocks the game loop.
 
 ---
 
@@ -122,70 +116,24 @@ impostor-web/
 
 | Layer | Tool | Tests | Notes |
 |-------|------|-------|-------|
-| Server unit | Vitest | 154 (9 files) | Covers game engine, room management, word bank, state machine, voting, integration |
-| Client unit | None | 0 | ❌ No test runner configured |
-| E2E | None | 0 | ❌ Playwright not set up |
+| Server unit | Vitest | 154 (9 files) | Game engine, room mgmt, word bank, state machine, voting, integ. |
+| Client unit | None | 0 | Need to add a runner |
+| E2E | None | 0 | Need Playwright |
 
 ---
 
-## 🚢 Deploy
-
-Production is deployed to a Proxmox container at `192.168.1.11` via a Python paramiko script.
-
-```bash
-# Full deploy (client + server + restart)
-python scripts/deploy.py
-
-# Client only (CSS/components)
-python scripts/deploy.py --client-only
-
-# Server only (handlers/engine)
-python scripts/deploy.py --server-only
-
-# Verify current state
-python scripts/deploy.py --verify
-```
-
-The deploy script:
-1. Auto-discovers all `.ts` files in `server/src/` and `shared/src/`
-2. Uploads via SFTP to `/opt/impostor-web/`
-3. Builds and uploads client assets from `client/dist/`
-4. Cleans up orphaned asset hashes
-5. Runs a smoke test (`import('@impostor/shared')` via tsx) verifying modules load
-6. Restarts the `impostor-web` systemd service
-7. Verifies all endpoints return 200
-
-See [`docs/GUIDE.md`](docs/GUIDE.md) for detailed deploy procedures.
-
----
-
-## 🌐 Infrastructure
-
-```
-Cloudflare (DNS only) ──> Nginx Proxy Manager ──> Proxmox Container
-                           192.168.1.50            192.168.1.11:3001
-```
-
-- **SSL**: Let's Encrypt via NPM (Flexible mode)
-- **WebSocket**: Proxied through NPM, no Engine.IO issues (raw ws)
-- **Restart policy**: systemd auto-restart on crash (with Pre-Restart Smoke check to prevent crash-loops)
-
----
-
-## 📝 Contributing / Development notes
+## 📝 Development notes
 
 - **Commit style**: Conventional commits (`feat|fix|chore|test|docs(scope): message`)
 - **No AI attribution**: No "Co-Authored-By" in commits
 - **Spanish UI**: Castellano (Spain), no voseo; vosotros imperatives for commands
-- **CSS**: Edit `client/src/styles/globals.css` only. Use BEM-like naming (`.block__element--modifier`). Prefer CSS custom properties from `:root`.
-- **Types**: All shared types in `shared/src/types/`. Server uses them directly via `tsx` (no build step).
+- **CSS**: Edit `client/src/styles/globals.css` only. BEM naming (`.block__element--modifier`). Custom properties from `:root`.
+- **Types**: All shared types in `shared/src/types/`. Server loads them directly from `src/` via `tsx` (no build step required).
+- **WebSocket protocol**: JSON messages with `{ event, data }` format. Event types in `shared/src/types/protocol.ts`.
+- **One-instance design**: Single server process. No horizontal scaling (rooms are in-memory Maps).
 
 ---
 
 ## 📄 License
 
 Private project — all rights reserved.
-
----
-
-*Built with ❤️ by TtvNekix. Deployed from Buenos Aires.*

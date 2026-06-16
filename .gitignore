@@ -5,3 +5,7 @@ dist/
 
 .vercel
 fonts/
+
+# Deployment config with credentials
+AGENTS.md
+11-ssl.conf

@@ -19,11 +19,13 @@ from pathlib import Path
 import paramiko
 
 # --- Config ---
-HOST = '192.168.1.11'
-USER = 'root'                  # SSH user on the Proxmox container (NOT 'juanp')
-PASSWORD = 'juanito2005'       # SSH password (also used for 192.168.1.50 NPM)
-REMOTE_BASE = '/opt/impostor-web'
-SERVICE_NAME = 'impostor-web'
+# Load from environment variables (or a .env sourced before calling the script).
+# NEVER hardcode credentials in this file.
+HOST = os.environ.get('IMPOSTOR_DEPLOY_HOST', 'localhost')
+USER = os.environ.get('IMPOSTOR_DEPLOY_USER', 'deploy')
+PASSWORD = os.environ.get('IMPOSTOR_DEPLOY_PASSWORD', '')
+REMOTE_BASE = os.environ.get('IMPOSTOR_REMOTE_BASE', '/opt/impostor-web')
+SERVICE_NAME = os.environ.get('IMPOSTOR_SERVICE_NAME', 'impostor-web')
 
 # (local_path, remote_path) — relative to REMOTE_BASE
 CLIENT_FILES = [
