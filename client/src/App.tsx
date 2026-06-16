@@ -10,10 +10,11 @@ import { EvaluationScreen } from './screens/EvaluationScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 import { EntryPage } from './screens/EntryPage';
 import { LobbiesPage } from './screens/LobbiesPage';
+import { JoinPage } from './screens/JoinPage';
 import { PoweredByFooter } from './components/PoweredByFooter';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { useT } from './i18n/I18nContext';
-import { useLocation } from './lib/router';
+import { parseJoinCode, useLocation } from './lib/router';
 
 type GamePhase = import('@impostor/shared').GamePhase;
 
@@ -240,6 +241,12 @@ function ScreenRouter({
 }: ScreenRouterProps) {
   const t = useT();
   const location = useLocation();
+
+  // /join/CODE — render the dedicated join page even if no room yet
+  const joinCode = parseJoinCode();
+  if (joinCode !== null) {
+    return <JoinPage code={joinCode} joinRoom={joinRoom} />;
+  }
 
   // Dedicated public-rooms page — always wins over the room-based
   // routing. This means navigating to /salas from anywhere (even with
