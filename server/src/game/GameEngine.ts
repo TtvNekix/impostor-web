@@ -18,10 +18,11 @@ export class GameEngine {
   private machines: Map<string, StateMachine> = new Map();
   /**
    * Impostor history per room. For each roomCode, an array of the impostor
-   * ID lists from the last 2 matches (most recent last). Used to enforce
-   * the "max 2 in a row" safeguard: a player who was impostor in BOTH of
-   * the last 2 matches is excluded from the candidate pool on the next
-   * match (when possible).
+   * ID lists from recent matches (most recent last, max 2 kept). Used to
+   * enforce the re-rol rule: no player can be picked as impostor in 2 of
+   * the last 3 rounds. Each entry is the full set of impostor IDs from
+   * that match (one entry for 1-impostor matches, two entries for
+   * 2-impostor matches, etc).
    */
   private impostorHistory: Map<string, string[][]> = new Map();
 
@@ -84,10 +85,15 @@ export class GameEngine {
       this.connManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
     }
 
-    // Create GamePlayer snapshot with re-rol exclusion
+    // Create GamePlayer snapshot with re-rol exclusion.
+    // Pass the per-round history (NOT a flattened list) so multi-impostor
+    // matches correctly exclude everyone from the last 2 rounds.
     const history = this.impostorHistory.get(roomCode) ?? [];
-    const flatHistory = history.flat();
-    const impostorIds = this.roomManager.selectImpostors(activePlayers, room.settings.impostorCount, flatHistory);
+    const impostorIds = this.roomManager.selectImpostors(
+      activePlayers,
+      room.settings.impostorCount,
+      history,
+    );
     // Update impostor history (last 2 rounds)
     const newHistory = history.length >= 2
       ? [history[history.length - 1], Array.from(impostorIds)]
@@ -457,5 +463,16 @@ export class GameEngine {
     const sm = this.machines.get(roomCode);
     sm?.cancelTimer();
     this.machines.delete(roomCode);
+  }
+
+  /**
+   * Clear the impostor history for a room. Called by RoomManager via
+   * the onRoomDestroyed callback when the room is truly destroyed
+   * (host disconnect, last player leaves). Do NOT call this when
+   * starting a new match in the same room — the re-rol rule depends
+   * on the history surviving across matches.
+   */
+  clearImpostorHistory(roomCode: string): void {
+    this.impostorHistory.delete(roomCode);
   }
 }

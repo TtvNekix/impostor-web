@@ -209,16 +209,16 @@ describe('RoomManager', () => {
       manager.joinRoom('RR01', 'Bob', 'bob');
       manager.joinRoom('RR01', 'Carol', 'carol');
 
-      // Alice was impostor in the last 2 rounds — her ID appears in both slots
+      // Alice was impostor in BOTH of the last 2 rounds (same ID in both rounds)
       const picked = manager.selectImpostors(
         Array.from(room.players.values()),
         1,
-        ['alice', 'alice'],
+        [['alice'], ['alice']],
       );
       expect(picked.has('alice')).toBe(false);
     });
 
-    it('does not exclude when different players were impostor each round', () => {
+    it('excludes BOTH impostors from the last round, regardless of count', () => {
       const { room } = manager.createRoom('RR02', 'Host');
       const host = room.players.get('Host')!;
       host.id = 'host-sid';
@@ -226,19 +226,20 @@ describe('RoomManager', () => {
       manager.joinRoom('RR02', 'Bob', 'bob');
       manager.joinRoom('RR02', 'Carol', 'carol');
 
-      // Bob was last round, Alice before that; both excluded, Host and Carol remain
+      // Last round had [bob, alice] as impostors; both must be excluded
       const picked = manager.selectImpostors(
         Array.from(room.players.values()),
         1,
-        ['bob', 'alice'],
+        [['bob', 'alice']],
       );
-      // Host and Carol are candidates; one of them must be picked
+      // Only host and carol are candidates
+      expect(picked.has('alice')).toBe(false);
+      expect(picked.has('bob')).toBe(false);
       expect(picked.has('host-sid') || picked.has('carol')).toBe(true);
     });
 
-    it('drops the oldest block when ALL players are excluded (FIFO expiry)', () => {
-      // With only 3 players in the room and all 3 have been impostor
-      // twice in a row, the FIFO fallback drops the oldest block
+    it('drops the oldest round (FIFO) when ALL players were in the last 2 rounds', () => {
+      // 3 players, last 2 rounds: every player was impostor → FIFO drops oldest
       const picked = manager.selectImpostors(
         [
           { id: 'a', username: 'A', status: 'ACTIVE' as const, isHost: false, joinedAt: 0 },
@@ -246,11 +247,35 @@ describe('RoomManager', () => {
           { id: 'c', username: 'C', status: 'ACTIVE' as const, isHost: false, joinedAt: 2 },
         ],
         1,
-        ['a', 'b', 'c', 'a', 'b', 'c'],
+        [['a', 'b', 'c'], ['a', 'b', 'c']],
       );
-      // Oldest entry ('a') is dropped, making 'a' eligible
+      // Oldest round dropped → everyone eligible → 'a' (or any) can be picked
       expect(picked.size).toBe(1);
-      expect(picked.has('a')).toBe(true);
+    });
+
+    it('multi-impostor: FIFO drops the oldest round (a, b) so c and d are eligible', () => {
+      // 4 players, last 2 rounds each had 2 impostors. The old flat-list
+      // bug would have only excluded the last 2 entries of the flat list,
+      // making a and b eligible to be picked again (they were impostors
+      // 2 rounds ago). The new per-round logic correctly excludes all 4
+      // from the last 2 rounds, then FIFO drops the oldest round [a, b]
+      // from the exclusion, leaving c and d as the only candidates.
+      const players = [
+        { id: 'a', username: 'A', status: 'ACTIVE' as const, isHost: false, joinedAt: 0 },
+        { id: 'b', username: 'B', status: 'ACTIVE' as const, isHost: false, joinedAt: 1 },
+        { id: 'c', username: 'C', status: 'ACTIVE' as const, isHost: false, joinedAt: 2 },
+        { id: 'd', username: 'D', status: 'ACTIVE' as const, isHost: false, joinedAt: 3 },
+      ];
+      const picked = manager.selectImpostors(
+        players,
+        2,
+        [['a', 'b'], ['c', 'd']],
+      );
+      // FIFO drops oldest round [a, b] → candidates = {c, d}
+      expect(picked.size).toBe(2);
+      expect(picked.has('a')).toBe(false);
+      expect(picked.has('b')).toBe(false);
+      expect(picked.has('c') && picked.has('d')).toBe(true);
     });
 
     it('returns a valid selection when history is empty (fresh room)', () => {

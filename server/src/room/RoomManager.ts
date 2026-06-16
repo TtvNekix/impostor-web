@@ -22,6 +22,15 @@ export interface LeaveResult {
 }
 
 export class RoomManager {
+  /**
+   * Optional callback fired when a room is truly destroyed (host
+   * disconnect cascade or last player leaves). Receives the room code.
+   * Used by GameEngine to clear its per-room impostor history to
+   * prevent a memory leak and avoid stale exclusion data if the same
+   * code is somehow reissued (random 5-char codes make this rare).
+   */
+  public onRoomDestroyed: ((code: string) => void) | null = null;
+
   constructor(private store: RoomStore) {}
 
   /* ------------------------------------------------------------------ */
@@ -139,6 +148,7 @@ export class RoomManager {
     // If last player, destroy room
     if (room.players.size === 0) {
       this.store.deleteRoom(code);
+      this.onRoomDestroyed?.(code);
       return { room, wasLastPlayer: true };
     }
 
@@ -168,43 +178,52 @@ export class RoomManager {
 
   destroyRoom(code: string): void {
     this.store.deleteRoom(code);
+    this.onRoomDestroyed?.(code);
   }
 
   /**
-   * Select impostor IDs from active players with optional exclusion.
-   * The exclusion list is a rolling history of impostor player IDs
-   * (most recent last). A player whose ID appears in either of the
-   * last 2 history slots is excluded from the candidate pool (re-rol
-   * rule — same person can't be impostor 3 times in a row by avoiding
-   * consecutive selections). If the resulting candidate set is too
-   * small, falls back to excluding only the player from the OLDEST
-   * history entry (FIFO expiry).
+   * Pick `count` impostors from `activePlayers`, avoiding players who were
+   * impostor in either of the last 2 rounds. Each inner array in
+   * `recentRounds` is the full set of impostor IDs from one round (most
+   * recent last). This guarantees no player is picked as impostor in 2 of
+   * the last 3 rounds — except in the FIFO fallback edge case below.
+   *
+   * FIFO fallback: if excluding the last 2 rounds leaves too few
+   * candidates to pick `count` impostors, drop the OLDEST round from the
+   * exclusion (so a player from that round becomes eligible again).
+   * Last resort: if still no candidates, fall back to all active players.
    */
   selectImpostors(
     activePlayers: Player[],
     count: number,
-    excludeIds: string[] = [],
+    recentRounds: string[][] = [],
   ): Set<string> {
     if (count > activePlayers.length) {
       throw new Error('Not enough players to select impostors');
     }
-    // Build the exclusion set from the last 2 history entries
+    // Build the exclusion set as the union of impostor IDs from the
+    // last 2 ROUNDS (not the last 2 entries of a flat list — that would
+    // miss impostors when a round has more than one impostor).
     const excludeSet = new Set<string>();
-    const lastIdx = excludeIds.length - 1;
-    if (lastIdx >= 0) excludeSet.add(excludeIds[lastIdx]);
-    if (lastIdx >= 1) excludeSet.add(excludeIds[lastIdx - 1]);
+    const lastTwoRounds = recentRounds.slice(-2);
+    for (const round of lastTwoRounds) {
+      for (const id of round) {
+        excludeSet.add(id);
+      }
+    }
 
     let candidates = activePlayers.filter((p) => !excludeSet.has(p.id));
-    // If too few candidates remain, drop only the oldest block (FIFO)
-    if (candidates.length < count && excludeIds.length > 0) {
-      const oldest = excludeIds[0];
-      candidates = activePlayers.filter((p) => p.id !== oldest);
+    // FIFO: if too few candidates, drop the entire oldest round.
+    if (candidates.length < count && recentRounds.length > 0) {
+      const oldestRound = recentRounds[0];
+      const oldestSet = new Set(oldestRound);
+      candidates = activePlayers.filter((p) => !oldestSet.has(p.id));
     }
-    // Last resort: all active players
+    // Last resort: all active players.
     if (candidates.length < count) {
       candidates = activePlayers;
     }
-    // Fisher-Yates shuffle for uniform distribution
+    // Fisher-Yates shuffle for uniform distribution.
     const shuffled = [...candidates];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

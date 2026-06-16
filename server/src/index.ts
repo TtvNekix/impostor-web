@@ -45,6 +45,12 @@ const roomManager = new RoomManager(roomStore);
 const connectionManager = new ConnectionManager(roomStore, roomManager);
 const gameEngine = new GameEngine(connectionManager, roomStore, roomManager, wordBank);
 
+// Wire room-destruction cleanup: when a room is truly destroyed (host
+// disconnect cascade, last player leaves), clear the game engine's
+// per-room impostor history. Prevents a memory leak and avoids stale
+// exclusion data if the random 5-char code is somehow reissued.
+roomManager.onRoomDestroyed = (code) => gameEngine.clearImpostorHistory(code);
+
 /* ------------------------------------------------------------------ */
 /*  Health check (required for Railway)                                */
 /* ------------------------------------------------------------------ */

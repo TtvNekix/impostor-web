@@ -398,6 +398,44 @@ describe('GameEngine', () => {
       // No error - cleanup should work
       engine.cleanupRoom('NONEXIST'); // Should not throw
     });
+
+    it('does NOT clear impostor history (re-rol rule must survive new matches)', () => {
+      // Verify that cleanupRoom (called from startNewMatch) preserves the
+      // impostor history so the re-rol rule continues to apply across
+      // matches in the same room.
+      roomManager.createRoom('KEEP', 'Host');
+      store.getRoom('KEEP')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('KEEP', 'Alice', 'socket-alice');
+      roomManager.joinRoom('KEEP', 'Bob', 'socket-bob');
+      engine.startMatch('KEEP', 'socket-host');
+
+      const histBefore = (engine as unknown as { impostorHistory: Map<string, unknown[][]> }).impostorHistory.get('KEEP');
+      expect(histBefore?.length).toBe(1);
+
+      engine.cleanupRoom('KEEP');
+
+      const histAfter = (engine as unknown as { impostorHistory: Map<string, unknown[][]> }).impostorHistory.get('KEEP');
+      // History must still be there — this is what makes the re-rol rule work
+      expect(histAfter?.length).toBe(1);
+    });
+  });
+
+  describe('clearImpostorHistory', () => {
+    it('clears the impostor history for a room (called on true destruction)', () => {
+      roomManager.createRoom('DESTROY', 'Host');
+      store.getRoom('DESTROY')!.players.get('Host')!.id = 'socket-host';
+      roomManager.joinRoom('DESTROY', 'Alice', 'socket-alice');
+      roomManager.joinRoom('DESTROY', 'Bob', 'socket-bob');
+      engine.startMatch('DESTROY', 'socket-host');
+
+      const histBefore = (engine as unknown as { impostorHistory: Map<string, unknown[][]> }).impostorHistory.get('DESTROY');
+      expect(histBefore?.length).toBe(1);
+
+      engine.clearImpostorHistory('DESTROY');
+
+      const histAfter = (engine as unknown as { impostorHistory: Map<string, unknown[][]> }).impostorHistory.get('DESTROY');
+      expect(histAfter).toBeUndefined();
+    });
   });
 
   describe('selectImpostors randomness', () => {
