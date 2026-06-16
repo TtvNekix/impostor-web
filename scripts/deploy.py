@@ -98,7 +98,7 @@ def run(client, cmd: str, label: str = '') -> tuple[str, str, int]:
 
 def deploy_client(sftp, repo_root: str):
     print('=== CLIENT ===')
-    dist = os.path.join(repo_root, 'client/dist')
+    dist = os.path.join(repo_root, 'client', 'dist')
     if not os.path.exists(dist):
         print(f'  ERROR: {dist} not found. Run `pnpm --filter @impostor/client build` first.')
         sys.exit(1)
@@ -107,6 +107,14 @@ def deploy_client(sftp, repo_root: str):
     # Hashed assets
     for local, remote in discover_client_assets(dist):
         sftp_put(sftp, local, f'{REMOTE_BASE}/{remote}')
+    # Static files at the dist root: favicons, logos, web manifest, etc.
+    # These come from client/public/ via Vite's static asset pipeline.
+    for entry in os.listdir(dist):
+        full = os.path.join(dist, entry)
+        if entry == 'index.html' or entry == 'assets':
+            continue
+        if os.path.isfile(full):
+            sftp_put(sftp, full, f'{REMOTE_BASE}/client/dist/{entry}')
 
 
 def deploy_server(sftp, repo_root: str):
