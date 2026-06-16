@@ -52,6 +52,15 @@ const de = {
       filterHasSpace: 'Nur mit freien Plätzen',
       joinButton: 'Beitreten',
     },
+    lobbiesLink: 'Öffentliche Räume ansehen',
+  },
+
+  lobbies: {
+    title: 'Öffentliche Räume',
+    subtitle: 'Tritt einer offenen Partie bei',
+    back: 'Zurück',
+    usernameLabel: 'Dein Name',
+    joinError: 'Gib deinen Namen ein, um beizutreten',
   },
 
   lobby: {

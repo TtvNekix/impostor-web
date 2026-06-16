@@ -52,6 +52,15 @@ const fr = {
       filterHasSpace: 'Avec de la place seulement',
       joinButton: 'Rejoindre',
     },
+    lobbiesLink: 'Voir les salles publiques',
+  },
+
+  lobbies: {
+    title: 'Salles publiques',
+    subtitle: 'Rejoins une partie ouverte',
+    back: 'Retour',
+    usernameLabel: 'Ton nom',
+    joinError: 'Indique ton nom pour rejoindre',
   },
 
   lobby: {
