@@ -4,6 +4,9 @@ import { useT, useLocale, useSetLocale, LOCALE_LABELS, type Locale } from '../i1
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
 import { VersionBadge } from '../components/VersionBadge';
 import { ContributeModal } from '../components/ContributeModal';
+import { PublicRoomList } from '../components/PublicRoomList';
+import { PublicRoomFiltersComponent } from '../components/PublicRoomFilters';
+import { usePublicRooms } from '../hooks/usePublicRooms';
 import { generateRoomCode, ALLOWED_MAX_PLAYERS, DEFAULT_MAX_PLAYERS } from '@impostor/shared';
 
 interface EntryPageProps {
@@ -172,6 +175,15 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
         </div>
       </div>
 
+      {/* Public rooms section — secondary discovery surface. Mounts the
+          list + filters; the hook inside kicks off the 5s polling. */}
+      <PublicRoomsSection
+        username={username}
+        onJoin={joinRoom}
+        error={error}
+        clearError={clearError}
+      />
+
       {/* "Help improve" button — opens the contribution modal. */}
       <div className="help-improve">
         <button
@@ -189,6 +201,95 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
         onClose={() => setContributeOpen(false)}
       />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public rooms section                                                */
+/* ------------------------------------------------------------------ */
+
+interface PublicRoomsSectionProps {
+  username: string;
+  onJoin: (payload: { code: string; username: string }) => void;
+  error: string | null;
+  clearError: () => void;
+}
+
+/**
+ * Wraps the public-rooms list and filters. Owns the polling hook so
+ * the 5s interval lifecycle is tied to the section's mount, and
+ * threads the username (taken from the entry form) into the Join handler.
+ */
+function PublicRoomsSection({ username, onJoin, error, clearError }: PublicRoomsSectionProps) {
+  const t = useT();
+  const {
+    rooms,
+    loading,
+    error: fetchError,
+    hasMore,
+    totalCount,
+    refresh,
+    filters,
+    setFilters,
+  } = usePublicRooms();
+
+  const handleJoin = (code: string) => {
+    const name = username.trim();
+    if (!name) {
+      // Without a username we can't join — keep the user on the entry page
+      // and surface the standard error string.
+      clearError();
+      // Re-use the connection error channel for the inline error below
+      // the create/join form by setting the error directly.
+      useConnectionStore.setState({ error: t.lobby.enterUsername });
+      return;
+    }
+    clearError();
+    onJoin({ code, username: name });
+  };
+
+  return (
+    <section className="public-rooms-section" aria-labelledby="public-rooms-title">
+      <header className="public-rooms-section__head">
+        <h2 id="public-rooms-title" className="public-rooms-section__title">
+          {t.entry.publicRooms.title}
+        </h2>
+        <p className="public-rooms-section__subtitle">
+          {t.entry.publicRooms.subtitle}
+        </p>
+      </header>
+
+      <PublicRoomFiltersComponent
+        filters={filters}
+        onChange={setFilters}
+        onRefresh={refresh}
+        loading={loading}
+      />
+
+      {/*
+        `error` is the join-time error (room_not_found, room_full, etc.).
+        `fetchError` is the HTTP-level failure from the polling. We pass
+        the join error down so the list can show it; the fetch error
+        already gets surfaced via the list's empty-state branch.
+      */}
+      <PublicRoomList
+        rooms={rooms}
+        loading={loading}
+        totalCount={totalCount}
+        hasMore={hasMore}
+        error={fetchError}
+        onJoin={handleJoin}
+      />
+
+      {/* Echo of the global connection error so the user sees feedback
+          when their Join click was rejected (room not found, room full,
+          etc.). */}
+      {error && (
+        <p className="public-rooms-section__join-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }
 
