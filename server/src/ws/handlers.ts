@@ -9,6 +9,7 @@ import {
   MAX_PLAYERS,
   ErrorCode,
   ALLOWED_VOTING_TIMERS,
+  ALLOWED_LOCALES,
 } from '@impostor/shared';
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
@@ -283,12 +284,14 @@ export function registerHandlers(
               return;
             }
 
-            const { impostorCount, discussionTime, category, votingTimer, hardcore } = data as {
+            const { impostorCount, discussionTime, category, votingTimer, hardcore, visibility, hostLocale } = data as {
               impostorCount?: number;
               discussionTime?: number;
               category?: string | null;
               votingTimer?: 15 | 30 | 45 | 60;
               hardcore?: boolean;
+              visibility?: 'public' | 'private';
+              hostLocale?: string;
             };
 
             // impostorCount: accepted freely in the lobby (host plans ahead).
@@ -337,6 +340,28 @@ export function registerHandlers(
                 sendError(ws, ErrorCode.GENERIC, `Unknown category: ${category}`);
                 return;
               }
+            }
+
+            // visibility: host can flip between public and private. Anything
+            // else is rejected so the same sanitization rule as createRoom
+            // applies on this in-lobby transport.
+            if (visibility !== undefined) {
+              if (visibility !== 'public' && visibility !== 'private') {
+                sendError(ws, ErrorCode.GENERIC,
+                  'Invalid visibility: must be "public" or "private"');
+                return;
+              }
+              room.settings.visibility = visibility;
+            }
+
+            // hostLocale: validated against the 6-code ALLOWED_LOCALES set.
+            if (hostLocale !== undefined) {
+              if (!ALLOWED_LOCALES.includes(hostLocale as typeof ALLOWED_LOCALES[number])) {
+                sendError(ws, ErrorCode.GENERIC,
+                  `Invalid hostLocale: must be one of ${ALLOWED_LOCALES.join(', ')}`);
+                return;
+              }
+              room.settings.hostLocale = hostLocale;
             }
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
