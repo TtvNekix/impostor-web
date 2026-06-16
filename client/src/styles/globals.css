@@ -1722,6 +1722,285 @@ body {
 }
 
 /* ----------------------------------------------------------- */
+/*  Checkbox row inside a mode card (e.g. "Hacer pública")        */
+/* ----------------------------------------------------------- */
+
+.mode-card__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.mode-card__checkbox:hover {
+  border-color: var(--accent-primary);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.mode-card__checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.mode-card__checkbox input[type="checkbox"]:checked + span {
+  color: var(--text-primary);
+}
+
+/* ----------------------------------------------------------- */
+/*  Public rooms section (list of public rooms on EntryPage)     */
+/* ----------------------------------------------------------- */
+
+.public-rooms-section {
+  width: 100%;
+  max-width: 720px;
+  margin: 0.5rem auto 0;
+  padding: 1.4rem 1.25rem 1.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
+}
+
+.public-rooms-section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.public-rooms-section__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.public-rooms-section__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.public-rooms-section__join-error {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(255, 80, 80, 0.45);
+  background: rgba(255, 80, 80, 0.1);
+  color: #ffb3b3;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+/* Filters row */
+.public-rooms-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem 1.1rem;
+}
+
+.public-rooms-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.public-rooms-filters__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.public-rooms-filters__lang {
+  min-width: 140px;
+}
+
+.public-rooms-filters__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  height: 38px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.public-rooms-filters__checkbox:hover {
+  border-color: var(--accent-primary);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.public-rooms-filters__checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.public-rooms-filters__checkbox input[type="checkbox"]:checked ~ span {
+  color: var(--text-primary);
+}
+
+.public-rooms-filters__refresh {
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+/* List */
+.public-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.public-rooms-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.public-rooms-list__empty {
+  margin: 0;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.public-rooms-list__error {
+  margin: 0;
+  padding: 0.75rem;
+  background: rgba(255, 80, 80, 0.1);
+  border: 1px solid rgba(255, 80, 80, 0.45);
+  color: #ffb3b3;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.public-rooms-list__cap {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Individual room card */
+.public-room-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.public-room-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.public-room-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.public-room-card__code {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-secondary);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.public-room-card__meta,
+.public-room-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+
+.public-room-card__host {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.public-room-card__locale {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  background: var(--accent-gold-dim);
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent-gold);
+}
+
+.public-room-card__category {
+  color: var(--text-secondary);
+}
+
+.public-room-card__dot {
+  color: var(--text-muted);
+}
+
+.public-room-card__count,
+.public-room-card__age {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.public-room-card__join {
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------- */
 /*  Language Selector (dropdown with 6 locales)                   */
 /* ----------------------------------------------------------- */
 
@@ -1957,6 +2236,20 @@ body {
 
   .settings-panel__category-controls > * {
     flex: 1 1 200px;
+  }
+
+  /* Public rooms: stack filters vertically and let the refresh button
+     take its natural width. */
+  .public-rooms-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .public-rooms-filters__refresh {
+    margin-left: 0;
+    align-self: stretch;
+    width: 100%;
   }
 }
 

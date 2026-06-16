@@ -33,31 +33,35 @@ CLIENT_FILES = [
     # Add the JS/CSS map files explicitly with their hashed names (we discover them below)
 ]
 
-# Server source files to deploy (only files we changed; full reinstall is via pnpm install)
-SERVER_FILES = [
-    'server/src/index.ts',
-    'server/src/room/RoomManager.ts',
-    'server/src/room/RoomStore.ts',
-    'server/src/game/GameEngine.ts',
-    'server/src/game/RoundManager.ts',
-    'server/src/game/StateMachine.ts',
-    'server/src/connection/ConnectionManager.ts',
-    'server/src/words/WordBank.ts',
-    'server/src/ws/handlers.ts',
-]
+# Subdirectories to EXCLUDE from auto-discovery of server/shared source.
+# (e.g., tests are not needed on the server because they run on the local repo.)
+EXCLUDE_DIR_NAMES = {'__tests__', 'node_modules', 'dist'}
 
-# Shared package source (server uses tsx to load directly from src/, not dist)
-# NOTE: must include any new file under shared/src/ — the script does not
-# auto-discover. Add here when creating new shared modules.
-SHARED_FILES = [
-    'shared/src/index.ts',
-    'shared/src/constants.ts',
-    'shared/src/utils.ts',
-    'shared/src/types/protocol.ts',
-    'shared/src/types/room.ts',
-    'shared/src/types/game.ts',
-    'shared/src/types/api.ts',
-]
+
+def discover_ts_files(repo_root: str, subdir: str) -> list[str]:
+    """Walk `repo_root/subdir` recursively and return every .ts file as a
+    repo-relative path (forward slashes, suitable for the SFTP remote
+    side). Excludes test dirs and build artifacts.
+
+    This replaces the old hand-maintained SERVER_FILES / SHARED_FILES
+    lists — any new file under server/src/ or shared/src/ is picked up
+    automatically. The previous lists caused a real production outage
+    when a new shared file (api.ts) was added but not added to the list
+    (see fix commit 2ace7f9 + this refactor).
+    """
+    root = Path(repo_root) / subdir
+    if not root.exists():
+        return []
+    out: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Prune excluded dirs in-place so os.walk doesn't descend
+        dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIR_NAMES]
+        for name in filenames:
+            if name.endswith('.ts'):
+                full = Path(dirpath) / name
+                rel = full.relative_to(repo_root).as_posix()
+                out.append(rel)
+    return sorted(out)
 
 
 def sftp_put(sftp, local: str, remote: str):
@@ -122,7 +126,11 @@ def deploy_client(sftp, repo_root: str):
 
 def deploy_server(sftp, repo_root: str):
     print('=== SERVER ===')
-    for rel in SERVER_FILES:
+    files = discover_ts_files(repo_root, 'server/src')
+    if not files:
+        print('  WARN: no server/src .ts files found')
+        return
+    for rel in files:
         local = os.path.join(repo_root, rel)
         remote = f'{REMOTE_BASE}/{rel}'
         sftp_put(sftp, local, remote)
@@ -130,7 +138,11 @@ def deploy_server(sftp, repo_root: str):
 
 def deploy_shared(sftp, repo_root: str):
     print('=== SHARED ===')
-    for rel in SHARED_FILES:
+    files = discover_ts_files(repo_root, 'shared/src')
+    if not files:
+        print('  WARN: no shared/src .ts files found')
+        return
+    for rel in files:
         local = os.path.join(repo_root, rel)
         remote = f'{REMOTE_BASE}/{rel}'
         sftp_put(sftp, local, remote)
@@ -171,6 +183,41 @@ def cleanup_old_assets(sftp, repo_root: str):
                 removed += 1
     if removed == 0:
         print('  (no orphans)')
+
+
+def pre_restart_smoke(client, repo_root: str):
+    """Run a 'can the server start?' check on the remote BEFORE restarting.
+
+    We exec `node -e "import('tsx')..."` in the server's dir to load every
+    shared/server source file. If any file is missing on disk (because
+    the deploy script forgot to upload it), this throws and we abort
+    before systemctl restart, leaving the old version still serving
+    traffic.
+
+    Cheap insurance: catches the class of bug that took the service
+    down on 2026-06-16 (new shared/src/types/api.ts not in
+    SHARED_FILES, server crashed at startup, systemd silently
+    auto-restart-looped into a 502 surface).
+    """
+    print('=== PRE-RESTART SMOKE ===')
+    # Use a dynamic import through tsx (matches how the real server
+    # loads shared/src/*.ts in production). Any unresolved import
+    # becomes an ERR_MODULE_NOT_FOUND that propagates as a non-zero
+    # exit code.
+    cmd = (
+        'cd /opt/impostor-web/server && '
+        'node --import tsx -e "import(\'@impostor/shared\').then(m => '
+        '{ if (!m.PublicRoomDTO) throw new Error(\'PublicRoomDTO missing\'); '
+        'console.log(\'SMOKE OK: shared module loads + new exports present\'); })"'
+    )
+    out, err, code = run(client, cmd, 'shared smoke import')
+    if code != 0:
+        print(f'  [FAIL] pre-restart smoke failed (exit {code})')
+        print(f'  Refusing to restart. Old version is still serving traffic.')
+        print(f'  stdout: {out}')
+        print(f'  stderr: {err}')
+        sys.exit(1)
+    print('  [OK] shared module loads + new exports present')
 
 
 def restart_service(client):
@@ -240,6 +287,7 @@ def main():
             cleanup_old_assets(sftp, str(repo_root))
 
         if not args.no_restart:
+            pre_restart_smoke(client, str(repo_root))
             restart_service(client)
             # Give the port a moment to actually open after restart — the
             # service can be "active" but the listen() call hasn't run yet,
