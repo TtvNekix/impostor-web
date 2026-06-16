@@ -58,11 +58,12 @@ export function LobbyScreen({
 
   const handleCopyCode = async () => {
     if (!roomCode) return;
+    const url = `${window.location.origin}/join/${roomCode}`;
     try {
-      await navigator.clipboard.writeText(roomCode);
-      pushToast({ message: t.lobby.codeCopied, variant: 'success' });
+      await navigator.clipboard.writeText(url);
+      pushToast({ message: t.lobby.linkCopied, variant: 'success' });
     } catch {
-      pushToast({ message: 'Copy failed', variant: 'error' });
+      pushToast({ message: t.common.copyFailed, variant: 'error' });
     }
   };
 
@@ -108,7 +109,7 @@ export function LobbyScreen({
             onClick={handleCopyCode}
             className="btn btn--ghost btn--sm"
           >
-            {t.common.copyCode}
+            {t.lobby.copyLink}
           </button>
         </div>
         <span className="player-count">
@@ -160,15 +161,22 @@ export function LobbyScreen({
           </div>
 
           {/* Impostor count — host picks 1 or 2.
-              1 always available; 2 only available with 5+ players.
+              1 always available; 2 is shown but disabled until there are
+              5+ players (the server enforces this with getMaxImpostors).
               Hardcore mode always uses 1 (overridden server-side). */}
           <div className="settings-panel__row">
             <label className="settings-panel__label">{t.lobby.impostors}</label>
             <CustomSelect
-              value={players.length >= 5 ? (settings?.impostorCount ?? 2) : 1}
+              value={settings?.impostorCount ?? 1}
               options={[
                 { value: 1, label: '1' },
-                ...(players.length >= 5 ? [{ value: 2, label: '2' }] : []),
+                {
+                  value: 2,
+                  label: players.length >= 5
+                    ? '2'
+                    : `2 (${t.lobby.impostorsNeedsFive ?? 'necesitás 5+ jugadores'})`,
+                  disabled: players.length < 5,
+                },
               ]}
               onChange={(v) => updateSettings({ impostorCount: v as 1 | 2 })}
               ariaLabel={t.lobby.impostors}
