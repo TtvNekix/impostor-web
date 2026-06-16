@@ -12,6 +12,10 @@ const en = {
     poweredBy: 'Powered by',
     copyCode: 'Copy code',
     codeCopied: 'Code copied to clipboard',
+    beta: 'BETA',
+    version: 'v1.0.0',
+    openSource: 'Open source on GitHub',
+    openSourceShort: 'Source',
   },
 
   connection: {
@@ -182,6 +186,31 @@ const en = {
     timesCaught: 'Times you were caught',
     timesSurvived: 'Times you survived as impostor',
     backToLobby: 'Back to lobby',
+  },
+
+  contribute: {
+    button: 'Help improve this game',
+    modalTitle: 'Help improve the game',
+    intro: 'This game is open source and free for everyone. You can help make it better — every contribution counts!',
+    ideasTitle: 'Ways you can help',
+    ideas: {
+      bugs: 'Report bugs or suggest features',
+      code: 'Submit code changes (Pull Requests)',
+      translate: 'Translate the UI to more languages',
+      design: 'Improve the visual design',
+      docs: 'Improve documentation',
+    },
+    stepsTitle: 'How to submit a code change',
+    steps: [
+      'Fork the repository on GitHub',
+      'Create a new branch for your changes',
+      'Make your changes and commit them',
+      'Open a Pull Request to the main repo',
+      'The maintainer reviews and merges',
+    ] as string[],
+    reviewNote: 'All Pull Requests are reviewed by the maintainer before being merged.',
+    githubButton: 'Open the GitHub repo',
+    issuesButton: 'Report an issue',
   },
 } as const;
 

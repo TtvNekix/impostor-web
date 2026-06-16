@@ -11,7 +11,11 @@ const pt = {
     leaveRoom: 'Sair da sala',
     poweredBy: 'Desenvolvido por',
     copyCode: 'Copiar código',
-    codeCopied: 'Código copiado para a área de transferência',
+    codeCopied: 'Código copiado para a área de transferência',    beta: 'BETA',
+    version: 'v1.0.0',
+    openSource: 'Código aberto no GitHub',
+    openSourceShort: 'Código',
+
   },
 
   connection: {
@@ -179,9 +183,34 @@ const pt = {
     roundsPlayed: 'Rondas jogadas',
     impostorsFound: 'Impostores descobertos',
     timesAsImpostor: 'Vezes que foste impostor',
-    timesCaught: 'Vezes que te apanharam',
+    timesCaught: 'Vezes que te descobriram',
     timesSurvived: 'Vezes que sobreviveste como impostor',
     backToLobby: 'Voltar à sala',
+  },
+
+  contribute: {
+    button: 'Ajuda a melhorar este jogo',
+    modalTitle: 'Ajuda a melhorar o jogo',
+    intro: 'Este jogo é de código aberto e gratuito para todos. Podes ajudar a torná-lo melhor — cada contribuição conta!',
+    ideasTitle: 'Formas de ajudar',
+    ideas: {
+      bugs: 'Reportar erros ou sugerir funcionalidades',
+      code: 'Enviar alterações de código (Pull Requests)',
+      translate: 'Traduzir a interface para mais idiomas',
+      design: 'Melhorar o design visual',
+      docs: 'Melhorar a documentação',
+    },
+    stepsTitle: 'Como enviar uma alteração de código',
+    steps: [
+      'Faz um fork do repositório no GitHub',
+      'Cria uma nova branch para as tuas alterações',
+      'Faz as tuas alterações e faz commit',
+      'Abre um Pull Request para o repositório principal',
+      'O mantenedor revisa e faz merge',
+    ] as string[],
+    reviewNote: 'Todos os Pull Requests são revisados pelo mantenedor antes de serem fundidos.',
+    githubButton: 'Abrir o repositório no GitHub',
+    issuesButton: 'Reportar um problema',
   },
 } as const;
 

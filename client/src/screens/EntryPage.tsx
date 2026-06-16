@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useConnectionStore } from '../stores/connectionStore';
 import { useT, useLocale, useSetLocale, LOCALE_LABELS, type Locale } from '../i18n/I18nContext';
 import { CustomSelect, type CustomSelectOption } from '../components/CustomSelect';
+import { VersionBadge } from '../components/VersionBadge';
+import { ContributeModal } from '../components/ContributeModal';
 import { generateRoomCode, ALLOWED_MAX_PLAYERS, DEFAULT_MAX_PLAYERS } from '@impostor/shared';
 
 interface EntryPageProps {
@@ -34,6 +36,7 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [maxPlayers, setMaxPlayers] = useState<number>(DEFAULT_MAX_PLAYERS);
+  const [contributeOpen, setContributeOpen] = useState(false);
   const error = useConnectionStore((s) => s.error);
   const clearError = useConnectionStore((s) => s.clearError);
 
@@ -57,15 +60,18 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
 
       {/* Title block: logo on the left, title + subtitle stacked on the right */}
       <div className="entry-page__hero">
-        <img
-          src="/logo-256x256.png"
-          alt=""
-          aria-hidden="true"
-          className="entry-page__logo"
-        />
-        <div className="entry-page__hero-text">
-          <h1 className="entry-page__title">{t.entry.title}</h1>
-          <p className="entry-page__subtitle">{t.entry.subtitle}</p>
+        <VersionBadge />
+        <div className="entry-page__hero-row">
+          <img
+            src="/logo-256x256.png"
+            alt=""
+            aria-hidden="true"
+            className="entry-page__logo"
+          />
+          <div className="entry-page__hero-text">
+            <h1 className="entry-page__title">{t.entry.title}</h1>
+            <p className="entry-page__subtitle">{t.entry.subtitle}</p>
+          </div>
         </div>
       </div>
 
@@ -165,6 +171,23 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
           <div className="mode-card__badge">{t.entry.imageMode.comingSoon}</div>
         </div>
       </div>
+
+      {/* "Help improve" button — opens the contribution modal. */}
+      <div className="help-improve">
+        <button
+          type="button"
+          className="help-improve__btn"
+          onClick={() => setContributeOpen(true)}
+        >
+          <span aria-hidden="true">💡</span> {t.contribute.button}
+        </button>
+      </div>
+
+      {/* Contribute modal */}
+      <ContributeModal
+        open={contributeOpen}
+        onClose={() => setContributeOpen(false)}
+      />
     </div>
   );
 }

@@ -11,7 +11,11 @@ const it = {
     leaveRoom: 'Esci dalla stanza',
     poweredBy: 'Realizzato da',
     copyCode: 'Copia codice',
-    codeCopied: 'Codice copiato negli appunti',
+    codeCopied: 'Codice copiato negli appunti',    beta: 'BETA',
+    version: 'v1.0.0',
+    openSource: 'Codice aperto su GitHub',
+    openSourceShort: 'Codice',
+
   },
 
   connection: {
@@ -182,6 +186,31 @@ const it = {
     timesCaught: 'Volte in cui sei stato scoperto',
     timesSurvived: 'Volte in cui sei sopravvissuto come impostore',
     backToLobby: 'Torna alla stanza',
+  },
+
+  contribute: {
+    button: 'Aiuta a migliorare questo gioco',
+    modalTitle: 'Aiuta a migliorare il gioco',
+    intro: 'Questo gioco è open source e gratuito per tutti. Puoi aiutare a migliorarlo — ogni contributo conta!',
+    ideasTitle: 'Come puoi aiutare',
+    ideas: {
+      bugs: 'Segnala bug o suggerisci funzionalità',
+      code: 'Invia modifiche al codice (Pull Requests)',
+      translate: "Traduci l'interfaccia in più lingue",
+      design: 'Migliora il design visivo',
+      docs: 'Migliora la documentazione',
+    },
+    stepsTitle: 'Come inviare una modifica',
+    steps: [
+      'Fai un fork del repository su GitHub',
+      'Crea un nuovo branch per le tue modifiche',
+      'Fai le tue modifiche e fai commit',
+      'Apri una Pull Request verso il repository principale',
+      'Il maintainer esamina e unisce',
+    ] as string[],
+    reviewNote: 'Tutte le Pull Requests vengono esaminate dal maintainer prima di essere unite.',
+    githubButton: 'Apri il repository su GitHub',
+    issuesButton: 'Segnala un problema',
   },
 } as const;
 

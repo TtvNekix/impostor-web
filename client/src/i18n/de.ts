@@ -11,7 +11,11 @@ const de = {
     leaveRoom: 'Raum verlassen',
     poweredBy: 'Bereitgestellt von',
     copyCode: 'Code kopieren',
-    codeCopied: 'Code in die Zwischenablage kopiert',
+    codeCopied: 'Code in die Zwischenablage kopiert',    beta: 'BETA',
+    version: 'v1.0.0',
+    openSource: 'Open Source auf GitHub',
+    openSourceShort: 'Quellcode',
+
   },
 
   connection: {
@@ -182,6 +186,31 @@ const de = {
     timesCaught: 'Male erwischt',
     timesSurvived: 'Male als Hochstapler überlebt',
     backToLobby: 'Zurück zum Warteraum',
+  },
+
+  contribute: {
+    button: 'Hilf mit, dieses Spiel zu verbessern',
+    modalTitle: 'Hilf mit, das Spiel zu verbessern',
+    intro: 'Dieses Spiel ist Open Source und für alle kostenlos. Du kannst helfen, es besser zu machen — jeder Beitrag zählt!',
+    ideasTitle: 'Wie du helfen kannst',
+    ideas: {
+      bugs: 'Fehler melden oder Funktionen vorschlagen',
+      code: 'Code-Änderungen einreichen (Pull Requests)',
+      translate: 'Die Benutzeroberfläche in weitere Sprachen übersetzen',
+      design: 'Das visuelle Design verbessern',
+      docs: 'Die Dokumentation verbessern',
+    },
+    stepsTitle: 'Wie du eine Code-Änderung einreichst',
+    steps: [
+      'Forke das Repository auf GitHub',
+      'Erstelle einen neuen Branch für deine Änderungen',
+      'Nimm deine Änderungen vor und committe sie',
+      'Öffne einen Pull Request an das Haupt-Repository',
+      'Der Maintainer prüft und merged',
+    ] as string[],
+    reviewNote: 'Alle Pull Requests werden vom Maintainer geprüft, bevor sie gemergt werden.',
+    githubButton: 'GitHub-Repository öffnen',
+    issuesButton: 'Problem melden',
   },
 } as const;
 
