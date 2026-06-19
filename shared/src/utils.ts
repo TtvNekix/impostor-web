@@ -1,4 +1,3 @@
-import { randomInt } from 'node:crypto';
 import {
   DEFAULT_TIMER,
   MIN_PLAYERS,
@@ -11,17 +10,46 @@ import {
 /**
  * Generate a 6-character uppercase alphanumeric room code.
  *
- * Uses crypto.randomInt for the alphabet index. Math.random() uses
- * XorShift128+ which is predictable from a few samples; for room codes
- * the attack surface is small (an attacker who predicts a future code
- * could join a friend's game) but using a CSPRNG is the trivially
- * correct choice and removes the concern.
+ * Uses a cryptographically-secure random source so a malicious
+ * observer cannot predict the next code. In Node.js (server-side)
+ * this uses `crypto.randomInt`; in the browser this uses
+ * `crypto.getRandomValues`, both of which are CSPRNGs. Math.random
+ * uses XorShift128+ which is predictable from a few samples.
+ *
+ * The shared module is consumed by both the server (Node) and the
+ * client (browser), so the implementation picks the available
+ * CSPRNG at module load time and does NOT import `node:crypto` at
+ * the top level (which would break the browser bundle).
  */
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const length = chars.length;
+
+  type Rng = (maxExclusive: number) => number;
+  let rng: Rng;
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    // Browser + Node 19+. Use rejection sampling for an unbiased
+    // uniform distribution: keep drawing 32-bit ints until we land
+    // in the range [0, maxExclusive).
+    const buf = new Uint32Array(1);
+    rng = (maxExclusive) => {
+      const limit = Math.floor(0x1_0000_0000 / maxExclusive) * maxExclusive;
+      let n: number;
+      do {
+        globalThis.crypto.getRandomValues(buf);
+        n = buf[0];
+      } while (n >= limit);
+      return n % maxExclusive;
+    };
+  } else {
+    // Fallback: non-cryptographic. Should never run in practice
+    // because every supported runtime exposes Web Crypto.
+    rng = (maxExclusive) => Math.floor(Math.random() * maxExclusive);
+  }
+
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += chars[randomInt(0, chars.length)];
+    code += chars[rng(length)];
   }
   return code;
 }

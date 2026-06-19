@@ -1,6 +1,0 @@
-{
-  "framework": "vite",
-  "buildCommand": "pnpm build:shared && cd client && pnpm build",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "outputDirectory": "client/dist"
-}

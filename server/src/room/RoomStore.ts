@@ -46,8 +46,13 @@ export class RoomStore {
   /**
    * Build a sanitized DTO list of every public room with at least one
    * ACTIVE player. Privacy bar:
-   *   - only the host's first whitespace-delimited name token is exposed
-   *   - only the agreed field set is leaked (no settings, no full host name)
+   *   - the host's actual username is NEVER exposed (was previously
+   *     leaked as the first whitespace-delimited token of the name)
+   *   - the host is identified by a deterministic `hostTag` derived
+   *     from the room code, so two rooms can be told apart without
+   *     revealing the chosen name
+   *   - only the agreed field set is leaked (no settings, no player
+   *     list, no full room state)
    * Results are capped at MAX_PUBLIC_ROOMS_RETURNED; `hasMore` reports
    * whether more rooms existed before the cap, and `totalCount` is the
    * pre-cap total so the client can show an overflow hint.
@@ -65,12 +70,9 @@ export class RoomStore {
       // filtering".
       if (activeCount === 0) continue;
 
-      const host = Array.from(room.players.values()).find((p) => p.isHost);
-      const hostFirstName = (host?.username ?? '').trim().split(/\s+/)[0] ?? '';
-
       all.push({
         roomCode: room.code,
-        hostFirstName,
+        hostTag: makeHostTag(room.code),
         category: room.settings.category,
         hostLocale: room.settings.hostLocale,
         playerCount: activeCount,
@@ -85,5 +87,15 @@ export class RoomStore {
 
     return { rooms, hasMore, totalCount };
   }
+}
+
+/**
+ * Build the anonymized host tag from a room code. Format: "Host-AB12".
+ * The room code is already short, unique, and not personally
+ * identifying, so deriving the tag from it is safe. Two rooms in the
+ * same list are still distinguishable because their codes differ.
+ */
+function makeHostTag(roomCode: string): string {
+  return `Host-${roomCode}`;
 }
 

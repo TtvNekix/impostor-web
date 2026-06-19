@@ -195,6 +195,7 @@ async function hostCreate(
     hardcore?: boolean;
     maxPlayers?: number;
     visibility?: 'public' | 'private';
+    category?: string | null;
   } = {},
 ): Promise<void> {
   const joined = waitForEvent(host, 'room_joined');

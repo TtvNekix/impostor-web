@@ -38,12 +38,32 @@ export class ConnectionManager {
   /*  Broadcast to all clients in a room                                 */
   /* ------------------------------------------------------------------ */
 
+  /**
+   * Cap on per-socket buffered outbound bytes. A slow consumer (one
+   * that doesn't read its messages) would otherwise accumulate
+   * messages in Node's `ws` internal buffer indefinitely. When the
+   * buffer exceeds this threshold, we terminate the socket and let
+   * the reconnect timer recreate the player. 1 MB is well above any
+   * legitimate game message burst (the largest is the room DTO at a
+   * few hundred bytes).
+   */
+  private static readonly MAX_BUFFERED_BYTES = 1 * 1024 * 1024;
+
   broadcastToRoom(roomCode: string, event: string, data: unknown): void {
     const payload = JSON.stringify({ event, data });
     for (const [, entry] of this.connections) {
-      if (entry.roomCode === roomCode && entry.ws.readyState === WebSocket.OPEN) {
-        entry.ws.send(payload);
+      if (entry.roomCode !== roomCode) continue;
+      if (entry.ws.readyState !== WebSocket.OPEN) continue;
+      // Backpressure: a socket whose outbound buffer has grown past
+      // MAX_BUFFERED_BYTES is too slow to keep up. We silently drop
+      // (do not terminate -- the consumer may catch up). Terminating
+      // would broadcast PLAYER_DISCONNECTED to the rest of the room,
+      // which is too disruptive for what is most likely a brief
+      // network hiccup.
+      if (entry.ws.bufferedAmount > ConnectionManager.MAX_BUFFERED_BYTES) {
+        continue;
       }
+      entry.ws.send(payload);
     }
   }
 
@@ -54,9 +74,9 @@ export class ConnectionManager {
   sendToSocket(socketId: string, event: string, data: unknown): void {
     const entry = this.connections.get(socketId);
     if (!entry) return;
-    if (entry.ws.readyState === WebSocket.OPEN) {
-      entry.ws.send(JSON.stringify({ event, data }));
-    }
+    if (entry.ws.readyState !== WebSocket.OPEN) return;
+    if (entry.ws.bufferedAmount > ConnectionManager.MAX_BUFFERED_BYTES) return;
+    entry.ws.send(JSON.stringify({ event, data }));
   }
 
   /* ------------------------------------------------------------------ */

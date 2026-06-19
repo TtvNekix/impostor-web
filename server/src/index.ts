@@ -35,12 +35,48 @@ const wordBank = new WordBank(wordBankRaw);
 
 const app = express();
 const server = http.createServer(app);
-// maxPayload caps the size of a single WebSocket message at 16 KB. The
-// default in `ws` is 100 MB, which lets a single client OOM the server
-// by sending one huge JSON blob.  16 KB is well above any legitimate
-// game message (the largest legitimate payload is the public-rooms
-// response, which goes over HTTP, not WS).
-const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
+// WebSocket hardening:
+//   - maxPayload caps the size of a single message at 16 KB (default
+//     in `ws` is 100 MB, which lets a single client OOM the server).
+//   - perMessageDeflate: false disables the permessage-deflate
+//     extension. The extension is normally a perf win, but a malicious
+//     peer can use it as a "zlib bomb" -- a small payload that
+//     decompresses to gigabytes, exhausting server memory. 16 KB of
+//     raw text in this app is well under any threshold where
+//     compression matters, so disabling is the safe trade.
+//   - verifyClient enforces an Origin allowlist on the WS handshake.
+//     Browsers send an Origin header on every WS upgrade; rejecting
+//     handshakes whose Origin is not on the list blocks a malicious
+//     site loaded in the user's browser from opening a WS back to
+//     this server with the user's same-origin context. Loopback
+//     connections (no Origin) are allowed so the server-to-server
+//     paramiko self-check and local development still work.
+const ALLOWED_ORIGINS = new Set<string>([
+  'https://impostor.nekix.lol',
+  'http://localhost:5173', // Vite dev
+  'http://localhost:3001', // self
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3001',
+]);
+const wss = new WebSocketServer({
+  server,
+  maxPayload: 16 * 1024,
+  perMessageDeflate: false,
+  verifyClient: ({ origin, req }: { origin: string; req: http.IncomingMessage }) => {
+    if (origin) {
+      return ALLOWED_ORIGINS.has(origin);
+    }
+    // No Origin header. Allow only loopback (server-to-server or
+    // local dev). In production every browser sets Origin, so this
+    // branch is taken only for self-checks.
+    const remoteAddr = req.socket.remoteAddress ?? '';
+    return (
+      remoteAddr === '127.0.0.1' ||
+      remoteAddr === '::1' ||
+      remoteAddr === '::ffff:127.0.0.1'
+    );
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /*  HTTP rate limit                                                     */

@@ -4,15 +4,21 @@
  * These DTOs are the security boundary between the in-memory room state
  * and any unauthenticated external reader. The DTO surface is kept
  * deliberately small: only the fields a public visitor needs to decide
- * whether to join. No discussion timer, no hardcore flag, no full host
- * name — those stay private.
+ * whether to join. No discussion timer, no hardcore flag, no host
+ * identity (not even first name) — those stay private.
  */
 
 export interface PublicRoomDTO {
   /** 5-character room code. */
   roomCode: string;
-  /** Host's first whitespace-delimited name token. "Alice Smith" -> "Alice". */
-  hostFirstName: string;
+  /**
+   * Anonymized host identifier, e.g. "Host-7K3". The first 4 chars
+   * of the room code give every room a unique prefix, and the
+   * suffix is a deterministic short tag from the host's socket
+   * id. This is enough to tell two rooms in the list apart at a
+   * glance without exposing the host's chosen username.
+   */
+  hostTag: string;
   /** Room category (kebab-case identifier) or null for random. */
   category: string | null;
   /** Host's preferred locale code (one of the 6 supported). */
