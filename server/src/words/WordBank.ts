@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 export interface WordBankCategory {
   /** Stable machine-readable identifier (kebab-case). */
   name: string;
@@ -27,23 +29,30 @@ export class WordBank {
     }
   }
 
-  /** Returns a random word from a random category. */
+  /**
+   * Returns a random word from a random category. Uses randomInt
+   * (CSPRNG) so a malicious observer cannot predict the next word
+   * from prior round outcomes and pre-position themselves.
+   */
   randomWord(): { word: string; category: string } | null {
     if (this.categories.size === 0) return null;
     const cats = Array.from(this.categories.values());
-    const cat = cats[Math.floor(Math.random() * cats.length)];
+    const cat = cats[randomInt(0, cats.length)];
     if (!cat || cat.words.length === 0) return null;
     return {
-      word: cat.words[Math.floor(Math.random() * cat.words.length)],
+      word: cat.words[randomInt(0, cat.words.length)],
       category: cat.name,
     };
   }
 
-  /** Returns a random word from a specific category, or null if empty/missing. */
+  /**
+   * Returns a random word from a specific category, or null if
+   * empty/missing. CSPRNG-backed (see randomWord).
+   */
   randomWordFromCategory(category: string): string | null {
     const cat = this.categories.get(category);
     if (!cat || cat.words.length === 0) return null;
-    return cat.words[Math.floor(Math.random() * cat.words.length)];
+    return cat.words[randomInt(0, cat.words.length)];
   }
 
   /** Returns the display name for a category, falling back to the raw name. */

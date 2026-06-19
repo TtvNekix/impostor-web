@@ -35,7 +35,97 @@ const wordBank = new WordBank(wordBankRaw);
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+// maxPayload caps the size of a single WebSocket message at 16 KB. The
+// default in `ws` is 100 MB, which lets a single client OOM the server
+// by sending one huge JSON blob.  16 KB is well above any legitimate
+// game message (the largest legitimate payload is the public-rooms
+// response, which goes over HTTP, not WS).
+const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
+
+/* ------------------------------------------------------------------ */
+/*  HTTP rate limit                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Per-IP token bucket for the public HTTP endpoints (/api/rooms,
+ * /health, static assets). Caps the request rate at 10 requests per
+ * second per IP, with a burst of 30. This is intentionally tighter
+ * than the WS limit because the HTTP surface is the most attractive
+ * for "scrape the room list 1000 times/sec" abuse. Excludes the
+ * /play redirect and the static-asset middleware (those are CDN-able
+ * and have their own caching). The bucket is in-process; in a
+ * multi-instance deployment this would need a shared store (Redis),
+ * but the current deployment is a single Proxmox container.
+ */
+const RATE_LIMIT_PER_SEC = 10;
+const RATE_LIMIT_BURST = 30;
+const rateBuckets = new Map<string, { tokens: number; lastRefill: number }>();
+
+function httpRateLimit(req: express.Request, res: express.Response, next: express.NextFunction): void {
+  const ip = req.ip ?? 'unknown';
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+  if (!bucket) {
+    bucket = { tokens: RATE_LIMIT_BURST, lastRefill: now };
+    rateBuckets.set(ip, bucket);
+  }
+  const elapsed = (now - bucket.lastRefill) / 1000;
+  bucket.tokens = Math.min(RATE_LIMIT_BURST, bucket.tokens + elapsed * RATE_LIMIT_PER_SEC);
+  bucket.lastRefill = now;
+  if (bucket.tokens < 1) {
+    res.status(429).json({ error: 'rate_limited' });
+    return;
+  }
+  bucket.tokens -= 1;
+  next();
+}
+
+// Periodically prune the rate-limit map to avoid unbounded growth
+// from unique-IP scans. Bucket entries older than 10 minutes are
+// dropped; the in-flight count is tiny compared to the active set.
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000;
+  for (const [ip, b] of rateBuckets) {
+    if (b.lastRefill < cutoff) rateBuckets.delete(ip);
+  }
+}, 60_000).unref();
+
+/* ------------------------------------------------------------------ */
+/*  Security headers                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Security headers applied to every HTTP response. Cloudflare + Nginx
+ * Proxy Manager handle TLS termination; these cover the application
+ * layer. The X-Frame-Options/CSP pair defends against clickjacking;
+ * nosniff blocks MIME-type sniffing; Referrer-Policy keeps the room
+ * code out of cross-origin referer headers; Permissions-Policy locks
+ * down the powerful APIs we don't need.
+ *
+ * X-Powered-By is removed to suppress Express fingerprinting.
+ */
+app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'", // Vite inlines styles in dev; production bundles a single .css
+      "img-src 'self' data:",
+      "font-src 'self' data:",
+      "connect-src 'self' wss:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '),
+  });
+  next();
+});
 
 /* ------------------------------------------------------------------ */
 /*  Domain layer                                                        */
@@ -69,7 +159,7 @@ app.get('/sitemap.xml', (_req, res) => {
 </urlset>`);
 });
 
-app.get('/health', (_req, res) => {
+app.get('/health', httpRateLimit, (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
@@ -91,7 +181,7 @@ app.get('/health', (_req, res) => {
  *     doesn't match are excluded.
  *   - hasSpace: 'true' to keep only rooms with activeCount < maxPlayers.
  */
-app.get('/api/rooms', (req, res) => {
+app.get('/api/rooms', httpRateLimit, (req, res) => {
   res.set('Cache-Control', 'max-age=3');
 
   const visibility = String(req.query.visibility ?? 'public');

@@ -1056,7 +1056,10 @@ describe('Edge cases — additional coverage (10 tests)', () => {
 
   it('21. ADD_WORDS to a non-existent category → server rejects with generic error', async () => {
     // WordBank.addWords throws 'Categoría "X" no encontrada' for
-    // unknown names. The handler surfaces it as a room_error.
+    // unknown names. The handler surfaces it as a room_error with a
+    // generic English message (the internal Spanish text is no
+    // longer forwarded to the client, to avoid leaking server
+    // internals — see the security audit, finding A9-5).
     const code = 'ADD05';
     const [host] = await connectN(server, 1);
     clients.push(host);
@@ -1070,14 +1073,14 @@ describe('Edge cases — additional coverage (10 tests)', () => {
     }));
     const err = await errEvt;
     expect(err.code).toBe('generic');
-    expect(err.message).toMatch(/no encontrada|not found/i);
+    expect(err.message).toBe('Could not add words');
   });
 
   it('22. KICK_PLAYER with non-existent username → server emits room_error, no crash', async () => {
     // The handleKick function looks up the target via
     // connectionManager.getSocketIdByUsername(). If no entry is found
     // (the username is not in the room), it emits a room_error with
-    // code 'generic' and the message 'Player not found in room'.
+    // code 'generic' and a localized message.
     // The room state is unchanged.
     const code = 'KIKG1';
     const [host, alice] = await connectN(server, 2);
@@ -1093,7 +1096,7 @@ describe('Edge cases — additional coverage (10 tests)', () => {
     }));
     const err = await errEvt;
     expect(err.code).toBe('generic');
-    expect(err.message).toMatch(/not found|player/i);
+    expect(err.message).toMatch(/player|not found|kicked/i);
 
     // Room still exists with both players — no crash, no side effects.
     const room = server.store.getRoom(code);

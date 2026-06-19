@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import {
   DEFAULT_TIMER,
   MIN_PLAYERS,
@@ -9,12 +10,18 @@ import {
 
 /**
  * Generate a 6-character uppercase alphanumeric room code.
+ *
+ * Uses crypto.randomInt for the alphabet index. Math.random() uses
+ * XorShift128+ which is predictable from a few samples; for room codes
+ * the attack surface is small (an attacker who predicts a future code
+ * could join a friend's game) but using a CSPRNG is the trivially
+ * correct choice and removes the concern.
  */
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[randomInt(0, chars.length)];
   }
   return code;
 }

@@ -10,12 +10,70 @@ import {
   ErrorCode,
   ALLOWED_VOTING_TIMERS,
   ALLOWED_LOCALES,
+  validateUsername,
+  validateRoomCode,
+  validateCategoryName,
+  validateWordList,
 } from '@impostor/shared';
 import { RoomManager } from '../room/RoomManager';
 import { GameEngine } from '../game/GameEngine';
 import { ConnectionManager } from '../connection/ConnectionManager';
 import { WordBank } from '../words/WordBank';
 import { logEvent } from '../audit/logger';
+
+/* ------------------------------------------------------------------ */
+/*  Per-socket rate limit                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Token bucket rate limiter, per WebSocket. Each socket gets at most
+ * MAX_MESSAGES_PER_SECOND messages per second; a burst of up to
+ * MAX_BURST messages is allowed before throttling kicks in. Sockets
+ * that exceed the limit are terminated (not just throttled) because
+ * legitimate clients never approach the limit.
+ *
+ * The limiter is attached as a property of the WebSocket instance so
+ * the message handler can reach it through `ws[RL_PROP]`. The values
+ * are tuned for the game: the most chatty legitimate client sends
+ * one event per click (start match, vote, change setting, etc.) --
+ * even a power user stays under 10 msg/s.
+ */
+const MAX_MESSAGES_PER_SECOND = 30;
+const MAX_BURST = 60;
+const RL_PROP = Symbol('rateLimit');
+
+interface RateLimitState {
+  tokens: number;
+  lastRefill: number;
+}
+
+function getRateLimit(ws: WebSocket): RateLimitState {
+  let state = (ws as unknown as Record<symbol, RateLimitState>)[RL_PROP];
+  if (!state) {
+    state = { tokens: MAX_BURST, lastRefill: Date.now() };
+    (ws as unknown as Record<symbol, RateLimitState>)[RL_PROP] = state;
+  }
+  return state;
+}
+
+function allowMessage(ws: WebSocket): boolean {
+  const state = getRateLimit(ws);
+  const now = Date.now();
+  const elapsed = (now - state.lastRefill) / 1000;
+  state.tokens = Math.min(
+    MAX_BURST,
+    state.tokens + elapsed * MAX_MESSAGES_PER_SECOND,
+  );
+  state.lastRefill = now;
+  if (state.tokens < 1) {
+    // Hard-cap: malicious client that floods past the burst is
+    // disconnected. A single dropped message is never catastrophic
+    // for the game flow.
+    return false;
+  }
+  state.tokens -= 1;
+  return true;
+}
 
 /** Helper to send a localized error code to a single socket. */
 function sendError(
@@ -107,6 +165,16 @@ export function registerHandlers(
     /* ---------------------------------------------------------------- */
 
     ws.on('message', (raw: Buffer) => {
+      // Per-socket rate limit. A single client opening 10,000 ws.send
+      // calls per second would otherwise pin the CPU serializing
+      // and dispatching messages. Terminating is the simplest correct
+      // response; the client can reconnect at its leisure.
+      if (!allowMessage(ws)) {
+        logEvent('rate_limit_exceeded', { socketId });
+        ws.terminate();
+        return;
+      }
+
       let msg: { event: string; data: unknown };
       try {
         msg = JSON.parse(raw.toString());
@@ -135,27 +203,29 @@ export function registerHandlers(
             username: string;
             settings?: Record<string, unknown>;
           };
-          if (!code || !username) {
-            sendError(ws, ErrorCode.GENERIC, 'Missing room code or username');
+          const cleanCode = validateRoomCode(code);
+          const cleanName = validateUsername(username);
+          if (!cleanCode || !cleanName) {
+            sendError(ws, ErrorCode.GENERIC, 'Invalid room code or username');
             return;
           }
           try {
             const { room, player } = roomManager.createRoom(
-              code.toUpperCase(),
-              username.trim(),
+              cleanCode,
+              cleanName,
               settings as any,
             );
             player.id = socketId;
-            room.players.set(username.trim(), player);
+            room.players.set(cleanName, player);
 
-            connectionManager.register(socketId, ws, room.code, username.trim());
+            connectionManager.register(socketId, ws, room.code, cleanName);
             ws.send(JSON.stringify({
               event: ServerEvent.ROOM_JOINED,
               data: { room: roomToDTO(room) },
             }));
             logEvent('room_created', {
-              code: code.toUpperCase(),
-              hostUsername: username.trim(),
+              code: cleanCode,
+              hostUsername: cleanName,
               maxPlayers: settings?.maxPlayers ?? 'default',
               category: settings?.category ?? 'random',
               votingTimer: settings?.votingTimer ?? 'default',
@@ -164,7 +234,11 @@ export function registerHandlers(
               hostLocale: settings?.hostLocale ?? 'en',
             });
           } catch (err: any) {
-            sendError(ws, roomErrorCode(err), err.message);
+            // Translate the error to a structured code; do not leak
+            // the raw `err.message` to the client (it can include
+            // server-internal language like Spanish strings from
+            // RoomManager).
+            sendError(ws, roomErrorCode(err), 'Could not create room');
           }
           break;
         }
@@ -177,14 +251,13 @@ export function registerHandlers(
             code: string;
             username: string;
           };
-          if (!code || !username) {
-            sendError(ws, ErrorCode.GENERIC, 'Missing room code or username');
+          const roomCode = validateRoomCode(code);
+          const trimmedName = validateUsername(username);
+          if (!roomCode || !trimmedName) {
+            sendError(ws, ErrorCode.GENERIC, 'Invalid room code or username');
             return;
           }
           try {
-            const roomCode = code.toUpperCase();
-            const trimmedName = username.trim();
-
             // Check for reconnection
             try {
               const room = roomManager.getRoom(roomCode);
@@ -226,7 +299,9 @@ export function registerHandlers(
             // Broadcast to room (excluding the new joiner — they already got room_joined)
             connectionManager.broadcastToRoom(room.code, ServerEvent.PLAYER_JOINED, { player });
           } catch (err: any) {
-            sendError(ws, roomErrorCode(err), err.message);
+            // Translate to a structured code; do not leak raw message
+            // to the client.
+            sendError(ws, roomErrorCode(err), 'Could not join room');
           }
           break;
         }
@@ -243,7 +318,7 @@ export function registerHandlers(
           try {
             gameEngine.startMatch(roomCode, socketId);
           } catch (err: any) {
-            sendError(ws, ErrorCode.MIN_PLAYERS, err.message, { min: MIN_PLAYERS });
+            sendError(ws, ErrorCode.MIN_PLAYERS, 'Not enough players to start', { min: MIN_PLAYERS });
           }
           break;
         }
@@ -374,7 +449,7 @@ export function registerHandlers(
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
           } catch (err: any) {
-            sendError(ws, ErrorCode.GENERIC, err.message);
+            sendError(ws, ErrorCode.GENERIC, 'Could not update settings');
           }
           break;
         }
@@ -392,11 +467,11 @@ export function registerHandlers(
             const room = roomManager.getRoom(roomCode);
             const player = room.players.get(connectionManager.getUsername(socketId)!);
             if (!player?.isHost) {
-              sendError(ws, ErrorCode.NOT_HOST, 'Solo el anfitrión puede crear categorías');
+              sendError(ws, ErrorCode.NOT_HOST, 'Only the host can create categories');
               return;
             }
             if (room.gameState && room.gameState.phase !== 'LOBBY' && room.gameState.phase !== 'GAME_OVER') {
-              sendError(ws, ErrorCode.GENERIC, 'No se pueden crear categorías durante la partida');
+              sendError(ws, ErrorCode.GAME_IN_PROGRESS, 'Cannot add categories during a match');
               return;
             }
 
@@ -406,9 +481,23 @@ export function registerHandlers(
               words: string;
             };
 
-            // Accept ';', ',', '\n' as separators
-            const wordList = words.split(/[;,\n]/);
-            const created = wordBank.addCategory(name, displayName, wordList);
+            // Validate the category name and word list. Reject
+            // oversized / control-character / empty inputs before
+            // they reach the WordBank.
+            const cleanName = validateCategoryName(name);
+            const cleanDisplay = displayName !== undefined
+              ? validateCategoryName(displayName)
+              : undefined;
+            const rawList = typeof words === 'string'
+              ? words.split(/[;,\n]/)
+              : words;
+            const cleanWords = validateWordList(rawList);
+            if (!cleanName || !cleanWords) {
+              sendError(ws, ErrorCode.GENERIC, 'Invalid category or words');
+              return;
+            }
+
+            const created = wordBank.addCategory(cleanName, cleanDisplay ?? cleanName, cleanWords);
 
             // Auto-select the new category so the host doesn't have to pick again
             room.settings.category = created.name;
@@ -417,7 +506,7 @@ export function registerHandlers(
             });
             connectionManager.broadcastToRoom(roomCode, ServerEvent.SETTINGS_UPDATED, room.settings);
           } catch (err: any) {
-            sendError(ws, ErrorCode.GENERIC, err.message);
+            sendError(ws, ErrorCode.GENERIC, 'Could not add category');
           }
           break;
         }
@@ -435,11 +524,11 @@ export function registerHandlers(
             const room = roomManager.getRoom(roomCode);
             const player = room.players.get(connectionManager.getUsername(socketId)!);
             if (!player?.isHost) {
-              sendError(ws, ErrorCode.NOT_HOST, 'Solo el anfitrión puede añadir palabras');
+              sendError(ws, ErrorCode.NOT_HOST, 'Only the host can add words');
               return;
             }
             if (room.gameState && room.gameState.phase !== 'LOBBY' && room.gameState.phase !== 'GAME_OVER') {
-              sendError(ws, ErrorCode.GENERIC, 'No se pueden añadir palabras durante la partida');
+              sendError(ws, ErrorCode.GAME_IN_PROGRESS, 'Cannot add words during a match');
               return;
             }
 
@@ -448,20 +537,30 @@ export function registerHandlers(
               words: string;
             };
 
-            const wordList = words.split(/[;,\n]/);
-            const result = wordBank.addWords(category, wordList);
+            // Validate the category reference and the word list.
+            const cleanCategory = validateCategoryName(category);
+            const rawList = typeof words === 'string'
+              ? words.split(/[;,\n]/)
+              : words;
+            const cleanWords = validateWordList(rawList);
+            if (!cleanCategory || !cleanWords) {
+              sendError(ws, ErrorCode.GENERIC, 'Invalid category or words');
+              return;
+            }
+
+            const result = wordBank.addWords(cleanCategory, cleanWords);
 
             connectionManager.broadcastToRoom(roomCode, ServerEvent.CATEGORIES, {
               categories: wordBank.getCategories(),
             });
             // Notify the host about the success (sent only to caller)
             sendEvent(ws, ServerEvent.WORDS_ADDED, {
-              category,
+              category: cleanCategory,
               added: result.added,
               total: result.total,
             });
           } catch (err: any) {
-            sendError(ws, ErrorCode.GENERIC, err.message);
+            sendError(ws, ErrorCode.GENERIC, 'Could not add words');
           }
           break;
         }

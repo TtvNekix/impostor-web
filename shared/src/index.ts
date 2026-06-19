@@ -4,3 +4,4 @@ export * from './types/protocol';
 export * from './types/api';
 export * from './constants';
 export * from './utils';
+export * from './validators';

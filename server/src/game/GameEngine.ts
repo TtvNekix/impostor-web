@@ -46,6 +46,22 @@ export class GameEngine {
       return false;
     }
 
+    // Phase guard: a match can only be started from the lobby (no game
+    // state) or after a previous match ended. Re-starting mid-round
+    // would re-shuffle impostors, overwrite the active game state, and
+    // send conflicting GAME_STARTED / WORD_ASSIGNED events to clients.
+    if (
+      room.gameState &&
+      room.gameState.phase !== 'LOBBY' &&
+      room.gameState.phase !== 'GAME_OVER'
+    ) {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GAME_IN_PROGRESS,
+        message: 'A match is already in progress',
+      });
+      return false;
+    }
+
     const host = this.findPlayerBySocket(room, callerSocketId);
     if (!host || !host.isHost) {
       this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
@@ -157,19 +173,17 @@ export class GameEngine {
       impostorIds: gameState.impostorIds,
     });
 
+    // Audit log: record the round's metadata but NOT the secret word
+    // or the per-player word table. The full word is the core secret of
+    // every round -- it must never leave the server, and certainly
+    // never reach a third-party log destination (Discord webhook).
     logEvent('match_started', {
       code: roomCode,
       roundNumber: gameState.roundNumber,
       hardcore: room.settings.hardcore,
       votingTimer: room.settings.votingTimer,
       wordCategory: gameState.category,
-      wordAssignments: gamePlayers.reduce(
-        (acc, gp) => {
-          acc[gp.id] = gp.isImpostor ? '<impostor>' : gameState.word!;
-          return acc;
-        },
-        {} as Record<string, string>,
-      ),
+      impostorIds: Array.from(gameState.impostorIds),
     });
 
     // 3. Send word_assigned individually

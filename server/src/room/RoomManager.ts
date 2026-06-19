@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { Player, Room, RoomSettings } from '@impostor/shared';
 import {
   MAX_PLAYERS,
@@ -252,10 +253,12 @@ export class RoomManager {
     if (candidates.length < count) {
       candidates = activePlayers;
     }
-    // Fisher-Yates shuffle for uniform distribution.
+    // Fisher-Yates shuffle for uniform distribution. Uses randomInt
+    // (CSPRNG) so a malicious observer cannot predict the next
+    // impostor selection from prior round outcomes.
     const shuffled = [...candidates];
     for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = randomInt(0, i + 1);
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     const ids = new Set<string>();
