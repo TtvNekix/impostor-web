@@ -78,22 +78,20 @@ describe('RoomStore.getAllPublicRooms', () => {
     const result = store.getAllPublicRooms(0);
     expect(result.rooms).toHaveLength(1);
     const dto = result.rooms[0];
-    // Agreed field set only — no extras. Note: hostFirstName was
-    // removed (privacy: the host's actual name is no longer leaked
-    // to public room lists). Replaced by hostTag.
+    // Agreed field set only — no extras
     expect(Object.keys(dto).sort()).toEqual([
-      'ageSeconds', 'category', 'hostLocale', 'hostTag',
+      'ageSeconds', 'category', 'hostFirstName', 'hostLocale',
       'maxPlayers', 'playerCount', 'roomCode',
     ]);
     expect(dto.roomCode).toBe('DTO01');
-    expect(dto.hostTag).toBe('Host-DTO01'); // derived from the code, not the name
+    expect(dto.hostFirstName).toBe('Alice'); // first whitespace-delimited token
     expect(dto.category).toBe('food');
     expect(dto.hostLocale).toBe('es');
     expect(dto.maxPlayers).toBe(8);
     expect(dto.playerCount).toBe(2);
   });
 
-  it('host tag is derived from the room code (not from the host username)', () => {
+  it('exposes only the first whitespace-delimited host name token', () => {
     const room = store.createRoom('NAM01', makeSettings({ visibility: 'public' }));
     room.players.set('María José García', {
       id: 's1', username: 'María José García', status: 'ACTIVE', isHost: true, joinedAt: 0,
@@ -104,10 +102,7 @@ describe('RoomStore.getAllPublicRooms', () => {
     });
 
     const result = store.getAllPublicRooms();
-    // The tag must NOT contain any part of the host's name.
-    expect(result.rooms[0].hostTag).toBe('Host-NAM01');
-    expect(result.rooms[0].hostTag).not.toContain('María');
-    expect(result.rooms[0].hostTag).not.toContain('Carl');
+    expect(result.rooms[0].hostFirstName).toBe('María');
   });
 
   it('counts only ACTIVE players for playerCount', () => {

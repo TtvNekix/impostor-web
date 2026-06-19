@@ -446,13 +446,10 @@ describe('GET /api/rooms', () => {
     const found = res.body.rooms[0];
     expect(found.roomCode).toBe(code);
     expect(Object.keys(found).sort()).toEqual([
-      'ageSeconds', 'category', 'hostLocale', 'hostTag',
+      'ageSeconds', 'category', 'hostFirstName', 'hostLocale',
       'maxPlayers', 'playerCount', 'roomCode',
     ]);
-    // hostTag is derived from the code; the host's actual username
-    // is never exposed in the public rooms DTO.
-    expect(found.hostTag).toBe(`Host-${code}`);
-    expect(found.hostTag).not.toContain('Alice');
+    expect(found.hostFirstName).toBe('Alice');
     expect(found.hostLocale).toBe('es');
   });
 

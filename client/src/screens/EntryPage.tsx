@@ -71,8 +71,15 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
 
   return (
     <div className="entry-page">
-      {/* Language selector — top right */}
+      {/* Top bar: nav link (left) + language selector (right) */}
       <div className="entry-page__lang">
+        <button
+          type="button"
+          className="entry-page__lobbies-link"
+          onClick={() => navigate('/salas')}
+        >
+          {t.entry.lobbiesLink}
+        </button>
         <LanguageSelector current={locale} onChange={setLocale} />
       </div>
 
@@ -91,15 +98,6 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
             <p className="entry-page__subtitle">{t.entry.subtitle}</p>
           </div>
         </div>
-
-        {/* Link to the dedicated public-rooms browser at /salas */}
-        <button
-          type="button"
-          className="entry-page__lobbies-link"
-          onClick={() => navigate('/salas')}
-        >
-          {t.entry.lobbiesLink} →
-        </button>
       </div>
 
       {/* Game mode cards */}
@@ -174,8 +172,7 @@ export function EntryPage({ createRoom, joinRoom }: EntryPageProps) {
                   value={code}
                   onChange={(e) => { setCode(e.target.value); if (error) clearError(); }}
                   maxLength={6}
-                  className="input"
-                  style={{ textTransform: 'uppercase' }}
+                  className="input text-uppercase"
                 />
               )}
 

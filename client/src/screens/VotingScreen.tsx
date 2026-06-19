@@ -61,8 +61,8 @@ export function VotingScreen({
       </div>
 
       {/* Phase info */}
-      <div className="card" style={{ textAlign: 'center', padding: '0.6rem 1rem' }}>
-        <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
+      <div className="card card--centered">
+        <span className="text-warning-emphasis text-warning-emphasis--sm">
           {t.voting.phaseInfo}
         </span>
       </div>

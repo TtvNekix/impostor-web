@@ -86,7 +86,6 @@ export function VotingTable({
             type="button"
             className="btn btn--ghost btn--sm voting-table__force-end"
             onClick={onForceEnd}
-            style={{ marginTop: '0.75rem' }}
           >
             {t.voting.forceEnd}
           </button>

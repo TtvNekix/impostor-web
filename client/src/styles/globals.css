@@ -3414,3 +3414,75 @@ body {
     font-size: 1.3rem;
   }
 }
+
+/* ----------------------------------------------------------- */
+/*  Inline-style replacements (CSP: avoid 'unsafe-inline')        */
+/*  These are static utilities/modifiers that previously lived   */
+/*  in `style={{...}}` JSX attributes. Keep them at the bottom    */
+/*  so future readers can find the "extract to class" ledger.    */
+/* ----------------------------------------------------------- */
+
+/* Text utilities */
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-warning-emphasis {
+  color: var(--accent-warning);
+  font-weight: 600;
+}
+
+/* Small variant of .text-warning-emphasis — composed with the base class. */
+.text-warning-emphasis--sm {
+  font-size: 0.85rem;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+}
+
+/* Layout utility — same shape as .settings-panel__row, kept tiny for
+   one-off flex spacers (e.g. lobby header bar with code + count). */
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Card modifiers — center text inside the card with a compact padding.
+   Three variants exist because the original inline paddings differ slightly
+   between DiscussionScreen (0.75rem 1rem), VotingScreen (0.6rem 1rem) and
+   LobbyScreen (0.6rem 0.9rem). We preserve the exact values. */
+.card--centered {
+  text-align: center;
+  padding: 0.6rem 1rem;
+}
+
+.card--centered-tall {
+  text-align: center;
+  padding: 0.75rem 1rem;
+}
+
+.card--centered-narrow {
+  text-align: center;
+  padding: 0.6rem 0.9rem;
+}
+
+/* Result card modifiers */
+.result-card__title--warning {
+  color: var(--accent-warning);
+}
+
+.result-card__info--spaced {
+  margin-top: var(--space-sm);
+}
+
+.result-card__info--centered {
+  text-align: center;
+}
+
+/* Force-end button inside the "voted" message. Only adds the spacing that
+   used to be inline; the button itself is styled by .btn .btn--ghost .btn--sm. */
+.voting-table__force-end {
+  margin-top: 0.75rem;
+}

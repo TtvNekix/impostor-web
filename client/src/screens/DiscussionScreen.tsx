@@ -69,11 +69,11 @@ export function DiscussionScreen({ totalTime, startVoting }: DiscussionScreenPro
 
       {/* Category — hidden in hardcore mode (no hint) */}
       {category && !settings?.hardcore && (
-        <div className="card" style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>
-          <span style={{ color: 'var(--accent-warning)', fontWeight: 600 }}>
+        <div className="card card--centered-tall">
+          <span className="text-warning-emphasis">
             {t.discussion.category}:
           </span>{' '}
-          <span style={{ color: 'var(--text-secondary)' }}>
+          <span className="text-secondary">
             {getDisplayName(category)}
           </span>
         </div>

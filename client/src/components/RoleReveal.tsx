@@ -45,6 +45,9 @@ export function RoleReveal({
 
   return (
     <div
+      // DYNAMIC: animation/transform are toggled at runtime based on the
+      // `animate` prop. Cannot be expressed as a static CSS class. Keep as
+      // inline style.
       className={`role-reveal ${cardClass}`}
       style={{
         animation: animate ? undefined : 'none',

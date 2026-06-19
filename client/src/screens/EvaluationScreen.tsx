@@ -50,10 +50,10 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
       <div className={`result-card ${resultCardClass}`}>
         {isNoOneExpelled ? (
           <>
-            <p className="result-card__title" style={{ color: 'var(--accent-warning)' }}>
+            <p className="result-card__title result-card__title--warning">
               {t.evaluation.noOneExpelled}
             </p>
-            <p className="result-card__info" style={{ marginTop: 'var(--space-sm)' }}>
+            <p className="result-card__info result-card__info--spaced">
               {roundResult?.expelledId === null &&
               roundResult?.expelledUsername === ''
                 ? t.evaluation.allSkipped
@@ -92,7 +92,7 @@ export function EvaluationScreen({ onNextRound }: EvaluationScreenProps) {
 
       {/* Alive counts */}
       {roundResult && (
-        <div className="result-card__info" style={{ textAlign: 'center' }}>
+        <div className="result-card__info result-card__info--centered">
           {t.evaluation.aliveInfo
             .replace('{impostors}', String(roundResult.aliveImpostors))
             .replace('{nonImpostors}', String(roundResult.aliveNonImpostors))}

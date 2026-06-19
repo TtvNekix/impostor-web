@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 export interface CustomSelectOption<T extends string | number> {
   value: T;
   label: string;
+  /** When true, the option is rendered but not selectable. */
+  disabled?: boolean;
 }
 
 interface CustomSelectProps<T extends string | number> {
@@ -138,7 +140,7 @@ export function CustomSelect<T extends string | number>({
 
   const commit = (idx: number) => {
     const opt = options[idx];
-    if (!opt) return;
+    if (!opt || opt.disabled) return;
     onChange(opt.value);
     setOpen(false);
     triggerRef.current?.focus();
@@ -152,8 +154,16 @@ export function CustomSelect<T extends string | number>({
         setOpen(true);
         return;
       }
+      // Skip disabled options when navigating with the keyboard
       const dir = e.key === 'ArrowDown' ? 1 : -1;
-      setHighlight((h) => (h + dir + options.length) % options.length);
+      setHighlight((h) => {
+        let next = h;
+        for (let i = 0; i < options.length; i++) {
+          next = (next + dir + options.length) % options.length;
+          if (!options[next]?.disabled) return next;
+        }
+        return h;
+      });
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (open) commit(highlight);
@@ -168,6 +178,9 @@ export function CustomSelect<T extends string | number>({
       ? createPortal(
           <ul
             ref={popupRef}
+            // DYNAMIC: top/left/width/maxHeight are measured from the trigger
+            // rect on every open/scroll/resize (computePopupStyle). Cannot be
+            // a static CSS class. Keep as inline style.
             className="custom-select__menu"
             role="listbox"
             aria-label={ariaLabel}
@@ -182,16 +195,19 @@ export function CustomSelect<T extends string | number>({
             {options.map((opt, idx) => {
               const selected = opt.value === value;
               const active = idx === highlight;
+              const optDisabled = !!opt.disabled;
               return (
                 <li
                   key={String(opt.value)}
                   role="option"
                   aria-selected={selected}
+                  aria-disabled={optDisabled || undefined}
                   className={
                     `custom-select__option${selected ? ' custom-select__option--selected' : ''}` +
-                    `${active ? ' custom-select__option--active' : ''}`
+                    `${active ? ' custom-select__option--active' : ''}` +
+                    `${optDisabled ? ' custom-select__option--disabled' : ''}`
                   }
-                  onMouseEnter={() => setHighlight(idx)}
+                  onMouseEnter={() => !optDisabled && setHighlight(idx)}
                   onMouseDown={(e) => {
                     // Use mousedown so the click registers before the
                     // outside-click handler runs (which would close us first).
@@ -199,6 +215,7 @@ export function CustomSelect<T extends string | number>({
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (optDisabled) return;
                     commit(idx);
                   }}
                 >

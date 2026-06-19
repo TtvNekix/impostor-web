@@ -102,7 +102,7 @@ export function LobbyScreen({
       </div>
 
       {/* Room code + copy */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="flex-between">
         <div className="room-code-display">
           <span className="room-code-display__code">{roomCode}</span>
           <button
@@ -260,11 +260,11 @@ export function LobbyScreen({
 
       {/* Selected category preview (non-host viewers) */}
       {!isHost && settings?.category && (
-        <div className="card" style={{ textAlign: 'center', padding: '0.6rem 0.9rem' }}>
-          <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: '0.85rem' }}>
+        <div className="card card--centered-narrow">
+          <span className="text-warning-emphasis text-warning-emphasis--sm">
             {t.lobby.category}:
           </span>{' '}
-          <span style={{ color: 'var(--text-secondary)' }}>
+          <span className="text-secondary">
             {getDisplayName(settings.category)}
           </span>
         </div>

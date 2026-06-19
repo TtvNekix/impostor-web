@@ -47,6 +47,8 @@ export function TimerBar({ total, remaining, onExpire }: TimerBarProps) {
   return (
     <div className="timer-bar">
       <div
+        // DYNAMIC: width is computed every tick from the remaining/total ratio
+        // (0%..100%). Cannot be a static CSS class. Keep as inline style.
         className={`timer-bar__fill ${fillClass}`}
         style={{ width: `${pct}%` }}
       />

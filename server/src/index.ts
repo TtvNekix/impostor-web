@@ -146,18 +146,69 @@ app.use((_req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    // Permissions-Policy locks down every browser feature the app
+    // does not use. The defaults are the safest: an empty allowlist
+    // for each feature means the feature is blocked for the page
+    // and for any iframes it embeds. interest-cohort=() opts out
+    // of FLoC / Topics tracking.
+    'Permissions-Policy': [
+      'accelerometer=()',
+      'autoplay=()',
+      'camera=()',
+      'clipboard-read=()',
+      'clipboard-write=()',
+      'cross-origin-isolated=()',
+      'display-capture=()',
+      'encrypted-media=()',
+      'fullscreen=()',
+      'geolocation=()',
+      'gyroscope=()',
+      'hid=()',
+      'identity-credentials-get=()',
+      'idle-detection=()',
+      'magnetometer=()',
+      'microphone=()',
+      'midi=()',
+      'otp-credentials=()',
+      'payment=()',
+      'picture-in-picture=()',
+      'publickey-credentials-create=()',
+      'publickey-credentials-get=()',
+      'screen-wake-lock=()',
+      'serial=()',
+      'storage-access=()',
+      'usb=()',
+      'web-share=()',
+      'window-management=()',
+      'xr-spatial-tracking=()',
+      'interest-cohort=()',
+    ].join(', '),
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    // Cross-Origin headers mitigate Spectre-class side-channel
+    // attacks by isolating the browsing context group.
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Embedder-Policy': 'require-corp',
+    'Cross-Origin-Resource-Policy': 'same-origin',
     'Content-Security-Policy': [
       "default-src 'self'",
       "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'", // Vite inlines styles in dev; production bundles a single .css
+      // CSP-3 split: style-src-elem controls <style> blocks and
+      // <link rel="stylesheet"> (we serve the bundle from /assets);
+      // style-src-attr controls inline style="..." attributes
+      // (kept open for the three dynamic styles in TimerBar,
+      // RoleReveal, and CustomSelect that compute values from
+      // runtime state and so cannot be expressed as static classes).
+      "style-src-elem 'self'",
+      "style-src-attr 'unsafe-inline'",
       "img-src 'self' data:",
       "font-src 'self' data:",
       "connect-src 'self' wss:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      // object-src 'none' is the safest default; we don't load
+      // any <object>, <embed>, or <applet> tags.
+      "object-src 'none'",
     ].join('; '),
   });
   next();

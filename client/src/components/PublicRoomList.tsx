@@ -114,13 +114,7 @@ function PublicRoomCard({ room, onJoin, getCategoryLabel }: PublicRoomCardProps)
 
       <div className="public-room-card__meta">
         <span className="public-room-card__host">
-          {/* Anonymized host identifier. We expose a deterministic
-              "Host-XXXX" tag instead of the host's real username so
-              that someone who joined with their full name isn't
-              leaked to every public-room-list visitor. The tag is
-              derived from the room code, so two rooms in the list
-              are still distinguishable at a glance. */}
-          {room.hostTag}
+          {room.hostFirstName || '—'}
         </span>
         <span className="public-room-card__dot" aria-hidden="true">·</span>
         <span className="public-room-card__locale" aria-label={room.hostLocale}>
