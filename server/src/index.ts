@@ -154,23 +154,21 @@ if (fs.existsSync(clientDist)) {
   // We exclude paths that look like static assets (have a file
   // extension) so missing assets return 404 instead of index.html.
   app.use((req, res, next) => {
-    const path = req.path;
+    const reqPath = req.path;
     // Reject paths with a file extension (likely static assets)
-    if (/\.[a-zA-Z0-9]{1,8}$/.test(path)) {
+    if (/\.[a-zA-Z0-9]{1,8}$/.test(reqPath)) {
       next();
       return;
     }
     res.sendFile(path.join(clientDist, 'index.html'));
   });
-}
-
-// Final 404 handler: missing static assets (e.g. /missing.png) fall
-// through express.static with an error, skip the SPA fallback (which
-// excludes extension paths), and land here. This prevents the React
-// app from being served for missing static files.
-app.use((_req, res) => {
-  res.status(404).json({ error: 'not_found' });
-});
+  // Final 404 handler: missing static assets (e.g. /missing.png) fall
+  // through express.static, skip the SPA fallback (which excludes
+  // extension paths), and land here. Keeps the 404 handler inside the
+  // static-serve block so it doesn't fire when client/dist is absent.
+  app.use((_req, res) => {
+    res.status(404).json({ error: 'not_found' });
+  });
 } else {
   console.warn(
     `[server] client/dist not found at ${clientDist}. Build the client with \`pnpm build:client\`.`,
