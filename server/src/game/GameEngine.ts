@@ -242,22 +242,68 @@ export class GameEngine {
 
   processVote(roomCode: string, voterId: string, targetId: string | null): void {
     const room = this.roomStore.getRoom(roomCode);
-    if (!room || !room.gameState) return;
+    if (!room || !room.gameState) {
+      this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.NOT_IN_ROOM,
+        message: 'You are not in a room',
+      });
+      return;
+    }
 
     const gs = room.gameState;
-    if (gs.phase !== 'VOTING') return;
+    if (gs.phase !== 'VOTING') {
+      this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC,
+        message: 'Voting is not active right now',
+      });
+      return;
+    }
 
     // Validate voter is ACTIVE
     const voter = gs.players.find((p) => p.id === voterId);
-    if (!voter || voter.status !== 'ACTIVE') return;
+    if (!voter || voter.status !== 'ACTIVE') {
+      this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC,
+        message: 'You are not an active player',
+      });
+      return;
+    }
 
     // Prevent double-voting
-    if (gs.votes.some((v) => v.voterId === voterId)) return;
+    if (gs.votes.some((v) => v.voterId === voterId)) {
+      this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC,
+        message: 'You have already voted',
+      });
+      return;
+    }
 
-    // If targetId is set, validate target exists and is active
+    // Self-vote: voter cannot vote for themselves
+    if (targetId !== null && targetId === voterId) {
+      this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC,
+        message: 'You cannot vote for yourself',
+      });
+      return;
+    }
+
+    // If targetId is set, it must reference an active player
     if (targetId !== null) {
+      if (targetId === '' || typeof targetId !== 'string') {
+        this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+          code: ErrorCode.GENERIC,
+          message: 'Invalid vote target',
+        });
+        return;
+      }
       const target = gs.players.find((p) => p.id === targetId);
-      if (!target || target.status !== 'ACTIVE') return;
+      if (!target || target.status !== 'ACTIVE') {
+        this.connManager.sendToSocket(voterId, ServerEvent.ROOM_ERROR, {
+          code: ErrorCode.GENERIC,
+          message: 'Invalid vote target',
+        });
+        return;
+      }
     }
 
     gs.votes.push({ voterId, targetId });

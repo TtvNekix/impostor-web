@@ -434,8 +434,16 @@ describe('Full game flow — impostors win', () => {
       const aliveNonImpostors = gs.players.filter((p) => !p.isImpostor && p.status === 'ACTIVE');
       if (aliveNonImpostors.length === 0) break;
       const innocentTarget = aliveNonImpostors[0].username;
+      // Everyone EXCEPT the innocent target votes for the innocent.
+      // The server now rejects self-votes (see processVote), so the
+      // innocent target must cast a skip vote (null) to satisfy
+      // allVotesIn().
       for (const c of clients) {
-        await clientVote(c, innocentTarget, server, code);
+        if (c.username === innocentTarget) {
+          await clientVote(c, null, server, code);
+        } else {
+          await clientVote(c, innocentTarget, server, code);
+        }
       }
       const result = await waitForEvent(host, 'round_result', 6000);
       expect(result.wasImpostor).toBe(false);

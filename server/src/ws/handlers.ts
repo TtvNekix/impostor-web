@@ -53,6 +53,12 @@ function roomErrorCode(err: Error): string {
     case 'Player not found in room':
       return ErrorCode.GENERIC;
     default:
+      // Match the room-already-taken error from RoomStore. The message
+      // includes the code, so we use a startsWith check instead of an
+      // exact match.
+      if (err.message.startsWith('Room code "') && err.message.endsWith('" is already taken')) {
+        return ErrorCode.ROOM_CODE_TAKEN;
+      }
       return ErrorCode.GENERIC;
   }
 }
