@@ -80,14 +80,17 @@ export function LobbiesPage({ joinRoom }: LobbiesPageProps) {
         <LanguageSelector current={locale} onChange={setLocale} />
       </div>
 
-      {/* Head: title + subtitle */}
-      <header className="lobbies-page__head">
-        <h1 className="lobbies-page__title">{t.lobbies.title}</h1>
-        <p className="lobbies-page__subtitle">{t.lobbies.subtitle}</p>
-      </header>
+      {/* Panel: head + form + list. The card has min-height so the page
+          doesn't look half-empty when there are 0 rooms. */}
+      <div className="lobbies-page__panel">
+        {/* Head: title + subtitle */}
+        <header className="lobbies-page__head">
+          <h1 className="lobbies-page__title">{t.lobbies.title}</h1>
+          <p className="lobbies-page__subtitle">{t.lobbies.subtitle}</p>
+        </header>
 
-      {/* Username input — required to join a room */}
-      <div className="lobbies-page__username">
+        {/* Username input — required to join a room */}
+        <div className="lobbies-page__username">
         <label htmlFor="lobbies-username">{t.lobbies.usernameLabel}</label>
         <input
           id="lobbies-username"
@@ -104,39 +107,40 @@ export function LobbiesPage({ joinRoom }: LobbiesPageProps) {
         />
       </div>
 
-      {/* Filters */}
-      <PublicRoomFiltersComponent
-        filters={filters}
-        onChange={setFilters}
-        onRefresh={refresh}
-        loading={loading}
-      />
+        {/* Filters */}
+        <PublicRoomFiltersComponent
+          filters={filters}
+          onChange={setFilters}
+          onRefresh={refresh}
+          loading={loading}
+        />
 
-      {/* Rooms list — the fetch error already surfaces inside the list's empty-state */}
-      <PublicRoomList
-        rooms={rooms}
-        loading={loading}
-        totalCount={totalCount}
-        hasMore={hasMore}
-        error={fetchError}
-        onJoin={handleJoin}
-      />
+        {/* Rooms list — the fetch error already surfaces inside the list's empty-state */}
+        <PublicRoomList
+          rooms={rooms}
+          loading={loading}
+          totalCount={totalCount}
+          hasMore={hasMore}
+          error={fetchError}
+          onJoin={handleJoin}
+        />
 
-      {/* Local join-time error — clears when the user types */}
-      {localJoinError && (
-        <p className="public-rooms-section__join-error" role="alert">
-          {localJoinError}
-        </p>
-      )}
+        {/* Local join-time error — clears when the user types */}
+        {localJoinError && (
+          <p className="public-rooms-section__join-error" role="alert">
+            {localJoinError}
+          </p>
+        )}
 
-      {/* Echo of the global connection error so the user sees feedback
-          when their Join click was rejected (room not found, room full,
-          etc.). */}
-      {globalError && !localJoinError && (
-        <p className="public-rooms-section__join-error" role="alert">
-          {globalError}
-        </p>
-      )}
+        {/* Echo of the global connection error so the user sees feedback
+            when their Join click was rejected (room not found, room full,
+            etc.). */}
+        {globalError && !localJoinError && (
+          <p className="public-rooms-section__join-error" role="alert">
+            {globalError}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
