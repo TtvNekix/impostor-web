@@ -183,12 +183,16 @@ export class GameEngine {
     const impostorUsernames = gamePlayers
       .filter((gp) => gp.isImpostor)
       .map((gp) => gp.username);
+    // Total players (active + spectator) in this round. The maintainer
+    // wants to know how many people joined each match in the log.
+    const totalPlayers = gamePlayers.length;
     logEvent('match_started', {
       code: roomCode,
       roundNumber: gameState.roundNumber,
       hardcore: room.settings.hardcore,
       votingTimer: room.settings.votingTimer,
       wordCategory: gameState.category,
+      totalPlayers,
       impostors: impostorUsernames.join(', '),
     });
 

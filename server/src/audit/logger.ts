@@ -92,6 +92,7 @@ const EVENT_REGISTRY: Record<string, EventDescriptor> = {
       hardcore: 'Modo hardcore',
       votingTimer: 'Temporizador de votación',
       wordCategory: 'Categoría de palabras',
+      totalPlayers: 'Jugadores',
       impostors: 'Impostores',
     },
   },
