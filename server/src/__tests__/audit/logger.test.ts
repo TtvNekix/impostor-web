@@ -90,12 +90,24 @@ describe('audit/logger.logEvent', () => {
     expect(hardcore.value).toBe('Sí');
   });
 
-  it('formats array values joined by comma', () => {
-    logEvent('match_started', { code: 'A01', impostorIds: ['id1', 'id2'] });
+  it('renders impostor field as a comma-joined string', () => {
+    // The server pre-resolves the impostor list to a comma-joined
+    // string of usernames before calling logEvent (so Discord shows
+    // "Alice, Bob" instead of socket UUIDs). The registry maps
+    // `impostors` to the Spanish label "Impostores".
+    logEvent('match_started', { code: 'A01', impostors: 'Alice, Bob' });
     const [, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(init.body);
     const impostors = body.embeds[0].fields.find((f: { name: string }) => f.name === 'Impostores');
-    expect(impostors.value).toBe('id1, id2');
+    expect(impostors.value).toBe('Alice, Bob');
+  });
+
+  it('formats array values joined by comma', () => {
+    logEvent('match_started', { code: 'A01', unknownArray: ['id1', 'id2'] });
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body);
+    const arr = body.embeds[0].fields.find((f: { name: string }) => f.name === 'Unknown Array');
+    expect(arr.value).toBe('id1, id2');
   });
 
   it('uses the error color for server_error events', () => {

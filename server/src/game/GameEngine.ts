@@ -177,13 +177,19 @@ export class GameEngine {
     // or the per-player word table. The full word is the core secret of
     // every round -- it must never leave the server, and certainly
     // never reach a third-party log destination (Discord webhook).
+    // We resolve socket IDs to usernames here so the maintainer
+    // reading the Discord log sees "Alice, Bob" instead of
+    // "7ad4406e-4c90-4548-9737-d9f5d06d9aef".
+    const impostorUsernames = gamePlayers
+      .filter((gp) => gp.isImpostor)
+      .map((gp) => gp.username);
     logEvent('match_started', {
       code: roomCode,
       roundNumber: gameState.roundNumber,
       hardcore: room.settings.hardcore,
       votingTimer: room.settings.votingTimer,
       wordCategory: gameState.category,
-      impostorIds: Array.from(gameState.impostorIds),
+      impostors: impostorUsernames.join(', '),
     });
 
     // 3. Send word_assigned individually
@@ -322,11 +328,17 @@ export class GameEngine {
 
     gs.votes.push({ voterId, targetId });
 
+    // Resolve socket IDs to usernames for the audit log so Discord
+    // shows "Alice -> Bob" instead of UUIDs.
+    const voterName = gs.players.find((p) => p.id === voterId)?.username;
+    const targetName = targetId
+      ? gs.players.find((p) => p.id === targetId)?.username
+      : null;
     logEvent('vote_cast', {
       code: roomCode,
       roundNumber: gs.roundNumber,
-      voter: voterId,
-      target: targetId,  // null if skip
+      voter: voterName ?? voterId,
+      target: targetName ?? (targetId ?? 'omitir'),
     });
 
     // Broadcast vote progress

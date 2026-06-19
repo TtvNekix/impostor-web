@@ -92,7 +92,7 @@ const EVENT_REGISTRY: Record<string, EventDescriptor> = {
       hardcore: 'Modo hardcore',
       votingTimer: 'Temporizador de votación',
       wordCategory: 'Categoría de palabras',
-      impostorIds: 'Impostores',
+      impostors: 'Impostores',
     },
   },
   vote_cast: {
