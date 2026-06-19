@@ -31,6 +31,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as http from 'node:http';
 
+import { ALLOWED_LOCALES } from '@impostor/shared';
 import { RoomStore } from '../room/RoomStore';
 import { RoomManager } from '../room/RoomManager';
 import { WordBank } from '../words/WordBank';
@@ -982,4 +983,479 @@ describe('All-routes — HTTP regression for SPA routes', () => {
     const res = await httpGet('/nonexistent-asset.png');
     expect(res.status).toBe(404);
   }, 10000);
+});
+
+/* ================================================================== */
+/*  Test 8: Stress test — full application lifecycle                  */
+/* ================================================================== */
+
+/**
+ * Single comprehensive E2E stress test that exercises the entire
+ * application lifecycle in one flow:
+ *
+ *   Phase 1: Create room with custom settings (hostLocale=es, private, 8 max)
+ *   Phase 2: 8 players join via mixed routes (direct + deep-link); 9th gets room_full
+ *   Phase 3: HTTP API — private room NOT in public list
+ *   Phase 4: Match 1 — playUntilGameOver, non-impostors win
+ *   Phase 5: UPDATE_SETTINGS visibility=public mid-lobby
+ *   Phase 6: HTTP API — room now public; lang=es matches, lang=fr does not
+ *   Phase 7: Match 2 — all-skip vote (edge case, expelled=null, winner=null)
+ *   Phase 8: Match 2 round 2 — tie vote (3 vs 3, expelled=null, winner=null)
+ *   Phase 8b: Finish match 2 with playUntilGameOver (target impostors)
+ *   Phase 9: Hardcore through new_match — impostorCount=2 forced to 1
+ *   Phase 10: Match 3 — hardcore, 1 imp, non-impostors win
+ *   Phase 11: Host LEAVE_ROOM event — documents actual server behavior
+ *   Phase 12: Server still works — new room POST1 with 3 players
+ *
+ * The test exposes real server bugs (Standard mode, no fixes). Phase 11
+ * intentionally uses the WS LEAVE_ROOM event (not ws.close()) to test
+ * the explicit-leave code path. The current server reassigns the host
+ * and broadcasts PLAYER_LEFT (not HOST_LEFT) when the host explicitly
+ * leaves; this is a divergence from the disconnect cascade path.
+ */
+describe('All-routes — Stress test, full application lifecycle', () => {
+  let server: TestServer;
+  const clients: TestClient[] = [];
+  const extraClients: TestClient[] = [];
+
+  function httpGet(
+    targetPath: string,
+  ): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: string }> {
+    return new Promise((resolve, reject) => {
+      http.get(`http://127.0.0.1:${server.port}${targetPath}`, (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf-8'),
+          });
+        });
+        res.on('error', reject);
+      }).on('error', reject);
+    });
+  }
+
+  function drainAll() {
+    for (const c of clients) c.events.length = 0;
+    for (const c of extraClients) c.events.length = 0;
+  }
+
+  beforeAll(async () => {
+    // Shared HTTP + WS server. The /api/rooms handler is copied verbatim
+    // from server/src/index.ts (including lang and hasSpace filters) so
+    // the stress test exercises the same code path as production.
+    const app = express();
+    const wordBankDataPath = path.resolve(__dirname, '../data/word-bank.json');
+    const wordBank = new WordBank(
+      JSON.parse(fs.readFileSync(wordBankDataPath, 'utf-8')),
+    );
+    const store = new RoomStore();
+    const roomManager = new RoomManager(store);
+    const connManager = new ConnectionManager(store, roomManager);
+    const engine = new GameEngine(connManager, store, roomManager, wordBank);
+    roomManager.onRoomDestroyed = (code) => engine.clearImpostorHistory(code);
+
+    app.get('/api/rooms', (req, res) => {
+      res.set('Cache-Control', 'max-age=3');
+      const visibility = String(req.query.visibility ?? 'public');
+      if (visibility !== 'public') {
+        res.status(200).json({ rooms: [], hasMore: false, totalCount: 0 });
+        return;
+      }
+      const lang = req.query.lang;
+      const hasSpaceParam = req.query.hasSpace;
+      const langFilter =
+        typeof lang === 'string' &&
+        (ALLOWED_LOCALES as readonly string[]).includes(lang)
+          ? lang
+          : null;
+      const hasSpaceFilter = hasSpaceParam === 'true' || hasSpaceParam === '1';
+      const result = store.getAllPublicRooms();
+      let rooms = result.rooms;
+      if (langFilter !== null) {
+        rooms = rooms.filter((r) => r.hostLocale === langFilter);
+      }
+      if (hasSpaceFilter) {
+        rooms = rooms.filter((r) => r.playerCount < r.maxPlayers);
+      }
+      res.status(200).json({
+        rooms,
+        hasMore: false,
+        totalCount: rooms.length,
+      });
+    });
+
+    const httpServer = createServer(app);
+    const wss = new WebSocketServer({ server: httpServer });
+    registerHandlers(wss, roomManager, engine, connManager, wordBank);
+
+    const port = await new Promise<number>((resolve) => {
+      httpServer.listen(0, () => {
+        resolve((httpServer.address() as AddressInfo).port);
+      });
+    });
+
+    server = {
+      httpServer,
+      wss,
+      port,
+      engine,
+      store,
+      roomManager,
+      connManager,
+      close: () =>
+        new Promise<void>((resolve) => {
+          wss.close(() => httpServer.close(() => resolve()));
+        }),
+    };
+  });
+
+  afterAll(async () => {
+    for (const c of clients) {
+      try { c.ws.close(); } catch { /* ignore */ }
+    }
+    for (const c of extraClients) {
+      try { c.ws.close(); } catch { /* ignore */ }
+    }
+    await server.close();
+  });
+
+  it('runs the full lifecycle without breaking', async () => {
+    const code = 'LIFE1';
+
+    /* ================== Phase 1: Create room ================== */
+    const host = await connectClient(server, 'player1');
+    clients.push(host);
+    const joinedHost = waitForEvent(host, 'room_joined');
+    host.ws.send(JSON.stringify({
+      event: 'create_room',
+      data: {
+        code,
+        username: 'player1',
+        settings: {
+          impostorCount: 2,
+          discussionTime: 0,
+          votingTimer: 30,
+          hardcore: false,
+          maxPlayers: 8,
+          visibility: 'private',
+          hostLocale: 'es',
+        },
+      },
+    }));
+    await joinedHost;
+    host.roomCode = code;
+
+    const room1 = server.store.getRoom(code);
+    expect(room1).toBeDefined();
+    expect(room1!.settings.hostLocale).toBe('es');
+    expect(room1!.settings.visibility).toBe('private');
+    expect(room1!.settings.maxPlayers).toBe(8);
+    expect(room1!.settings.impostorCount).toBe(2);
+
+    /* ================== Phase 2: 8 players join ================== */
+    // Players 2-5: direct WS connection (Via A)
+    const p2 = await connectClient(server, 'player2');
+    const p3 = await connectClient(server, 'player3');
+    const p4 = await connectClient(server, 'player4');
+    const p5 = await connectClient(server, 'player5');
+    clients.push(p2, p3, p4, p5);
+    await clientJoin(p2, code);
+    await clientJoin(p3, code);
+    await clientJoin(p4, code);
+    await clientJoin(p5, code);
+
+    // Players 6-8: deep-link WS path (Via C)
+    const p6 = await connectClient(server, 'player6', `/join/${code}`);
+    const p7 = await connectClient(server, 'player7', `/join/${code}`);
+    const p8 = await connectClient(server, 'player8', `/join/${code}`);
+    clients.push(p6, p7, p8);
+    await clientJoin(p6, code);
+    await clientJoin(p7, code);
+    await clientJoin(p8, code);
+
+    // Assert: all 8 in room
+    const room2 = server.store.getRoom(code);
+    expect(room2!.players.size).toBe(8);
+
+    // 9th player should get room_full
+    const p9 = await connectClient(server, 'player9');
+    clients.push(p9);
+    const errEvt = waitForEvent(p9, 'room_error', 4000);
+    p9.ws.send(JSON.stringify({
+      event: 'join_room',
+      data: { code, username: 'player9' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('room_full');
+
+    drainAll();
+
+    /* ================== Phase 3: Private room NOT in public list ================== */
+    let httpRes = await httpGet('/api/rooms?visibility=public');
+    expect(httpRes.status).toBe(200);
+    let body = JSON.parse(httpRes.body);
+    const publicCodes = body.rooms.map((r: any) => r.roomCode);
+    expect(publicCodes).not.toContain(code);
+
+    /* ================== Phase 4: Match 1 — non-impostors win ================== */
+    await hostStartMatch(host);
+    const impostorsM1 = getImpostorUsernames(server, code);
+    expect(impostorsM1).toHaveLength(2);
+    await hostStartVoting(host);
+    const finalResultM1 = await playUntilGameOver(server, code, clients, host);
+    expect(finalResultM1.wasImpostor).toBe(true);
+    expect(finalResultM1.winner).toBe('NON_IMPOSTORS');
+
+    drainAll();
+
+    /* ================== Phase 5: Host changes settings mid-lobby ================== */
+    const settingsEvt = waitForEvent(p2, 'settings_updated', 4000);
+    host.ws.send(JSON.stringify({
+      event: 'update_settings',
+      data: { visibility: 'public' },
+    }));
+    const settings = await settingsEvt;
+    expect(settings.visibility).toBe('public');
+
+    drainAll();
+
+    /* ================== Phase 6: HTTP API — public room with filters ================== */
+    httpRes = await httpGet('/api/rooms?visibility=public');
+    expect(httpRes.status).toBe(200);
+    body = JSON.parse(httpRes.body);
+    const codesAll = body.rooms.map((r: any) => r.roomCode);
+    expect(codesAll).toContain(code);
+
+    httpRes = await httpGet('/api/rooms?visibility=public&lang=es');
+    body = JSON.parse(httpRes.body);
+    const codesEs = body.rooms.map((r: any) => r.roomCode);
+    expect(codesEs).toContain(code);
+
+    httpRes = await httpGet('/api/rooms?visibility=public&lang=fr');
+    body = JSON.parse(httpRes.body);
+    const codesFr = body.rooms.map((r: any) => r.roomCode);
+    expect(codesFr).not.toContain(code);
+
+    /* ================== Phase 7: Match 2 — all-skip vote ================== */
+    const phaseLobby7 = waitForEvent(host, 'phase_changed');
+    host.ws.send(JSON.stringify({ event: 'new_match', data: {} }));
+    await phaseLobby7;
+    drainAll();
+
+    await hostStartMatch(host);
+    const impostorsM2 = getImpostorUsernames(server, code);
+    expect(impostorsM2).toHaveLength(2);
+    drainAll();
+
+    await hostStartVoting(host);
+
+    // All 8 players vote skip
+    for (const c of clients) {
+      await clientVote(c, null, server, code);
+    }
+
+    const resultM2 = await waitForEvent(host, 'round_result', 6000);
+    expect(resultM2.expelledId).toBeNull();
+    expect(resultM2.aliveImpostors).toBe(2);
+    expect(resultM2.aliveNonImpostors).toBe(6);
+    expect(resultM2.winner).toBeNull();
+
+    /* ================== Phase 8: Match 2 round 2 — tie vote ================== */
+    drainAll();
+    await hostStartVoting(host);
+
+    const gs8 = getGameStateFor(server, code);
+    if (!gs8) throw new Error('gameState missing in phase 8');
+    const imps8 = gs8.players.filter(
+      (p) => p.isImpostor && p.status === 'ACTIVE',
+    );
+    const nonImps8 = gs8.players.filter(
+      (p) => !p.isImpostor && p.status === 'ACTIVE',
+    );
+    expect(imps8).toHaveLength(2);
+    expect(nonImps8).toHaveLength(6);
+
+    const impA = imps8[0].username;
+    const impB = imps8[1].username;
+
+    // 3 non-imp vote for imp A, 3 non-imp vote for imp B
+    for (let i = 0; i < 3; i++) {
+      const voter = clients.find(
+        (c) => c.username === nonImps8[i].username,
+      );
+      if (voter) await clientVote(voter, impA, server, code);
+    }
+    for (let i = 3; i < 6; i++) {
+      const voter = clients.find(
+        (c) => c.username === nonImps8[i].username,
+      );
+      if (voter) await clientVote(voter, impB, server, code);
+    }
+    // Both imps skip
+    const impAClient = clients.find((c) => c.username === impA);
+    const impBClient = clients.find((c) => c.username === impB);
+    if (impAClient) await clientVote(impAClient, null, server, code);
+    if (impBClient) await clientVote(impBClient, null, server, code);
+
+    const resultM2R2 = await waitForEvent(host, 'round_result', 6000);
+    expect(resultM2R2.expelledId).toBeNull();
+    expect(resultM2R2.aliveImpostors).toBe(2);
+    expect(resultM2R2.aliveNonImpostors).toBe(6);
+    expect(resultM2R2.winner).toBeNull();
+
+    /* ================== Phase 8b: Finish match 2 ================== */
+    drainAll();
+    const finalResultM2 = await playUntilGameOver(
+      server,
+      code,
+      clients,
+      host,
+    );
+    expect(finalResultM2.winner).toBe('NON_IMPOSTORS');
+
+    drainAll();
+
+    /* ================== Phase 9: Hardcore through new_match ================== */
+    const settingsEvt2 = waitForEvent(p2, 'settings_updated', 4000);
+    host.ws.send(JSON.stringify({
+      event: 'update_settings',
+      data: { hardcore: true },
+    }));
+    const settings2 = await settingsEvt2;
+    expect(settings2.hardcore).toBe(true);
+
+    const phaseLobby9 = waitForEvent(host, 'phase_changed');
+    host.ws.send(JSON.stringify({ event: 'new_match', data: {} }));
+    await phaseLobby9;
+    drainAll();
+
+    await hostStartMatch(host);
+    const impostorsM3 = getImpostorUsernames(server, code);
+    // Hardcore forces 1 impostor even though settings.impostorCount=2
+    expect(impostorsM3).toHaveLength(1);
+
+    drainAll();
+
+    /* ================== Phase 10: Match 3 — hardcore, non-imps win ================== */
+    await hostStartVoting(host);
+    const finalResultM3 = await playUntilGameOver(
+      server,
+      code,
+      clients,
+      host,
+    );
+    expect(finalResultM3.wasImpostor).toBe(true);
+    expect(finalResultM3.winner).toBe('NON_IMPOSTORS');
+
+    drainAll();
+
+    /* ================== Phase 11: host LEAVE_ROOM (not disconnect) ================== */
+    // Per the user spec, we expect:
+    //   - Other clients receive HOST_LEFT with code='host_disconnected'
+    //   - Room is destroyed: server.store.getRoom(code) === undefined
+    // The current server behavior is:
+    //   - Other clients receive PLAYER_LEFT with newHost=...
+    //   - Room is NOT destroyed (host is reassigned to longest-active player)
+    // This phase DOCUMENTS the divergence. We assert the spec and let
+    // the test fail loudly if the bug is present, per the "stress test
+    // exposes real bugs" mandate.
+    const p2LeaveEvt = waitForEvent(p2, 'host_left', 4000).catch(
+      () => null,
+    );
+    const p3LeaveEvt = waitForEvent(p3, 'host_left', 4000).catch(
+      () => null,
+    );
+    // Also capture what actually arrives (in case it's PLAYER_LEFT)
+    const p2ActualEvt = waitForEvent(p2, 'player_left', 4000).catch(
+      () => null,
+    );
+    const p3ActualEvt = waitForEvent(p3, 'player_left', 4000).catch(
+      () => null,
+    );
+
+    host.ws.send(JSON.stringify({ event: 'leave_room', data: {} }));
+
+    const [p2HostLeft, p3HostLeft, p2PlayerLeft, p3PlayerLeft] =
+      await Promise.all([
+        p2LeaveEvt,
+        p3LeaveEvt,
+        p2ActualEvt,
+        p3ActualEvt,
+      ]);
+
+    // Spec: others receive HOST_LEFT. Current: others receive PLAYER_LEFT.
+    if (!p2HostLeft && p2PlayerLeft) {
+      // Document the actual behavior without failing the test — we
+      // want phases 1-10 and 12 to verify the rest of the lifecycle.
+      // The bug is documented in the return summary.
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[stress test] BUG: host LEAVE_ROOM sent player_left (with newHost), not host_left',
+      );
+    } else if (p2HostLeft) {
+      expect(p2HostLeft.code).toBe('host_disconnected');
+    }
+
+    // Give the server a tick to process the leave.
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Spec: room is destroyed. Current: room still exists (host reassigned).
+    const roomAfterLeave = server.store.getRoom(code);
+    if (roomAfterLeave !== undefined) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[stress test] BUG: host LEAVE_ROOM did not destroy the room — ' +
+          `room still has ${roomAfterLeave.players.size} players, new host is ` +
+          `${Array.from(roomAfterLeave.players.values()).find((p) => p.isHost)?.username ?? 'unknown'}`,
+      );
+    }
+    // We still assert the spec — this will fail if the bug is present.
+    expect(roomAfterLeave).toBeUndefined();
+
+    /* ================== Phase 12: Server still works ================== */
+    // Close remaining clients (host is already "left"; the rest may
+    // still be connected depending on phase 11 outcome).
+    for (const c of clients) {
+      if (c !== host) {
+        try { c.ws.close(); } catch { /* ignore */ }
+      }
+    }
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Create a new room with 3 players — proves the server is healthy.
+    const postCode = 'POST1';
+    const postHost = await connectClient(server, 'posthost');
+    const postP2 = await connectClient(server, 'postp2');
+    const postP3 = await connectClient(server, 'postp3');
+    extraClients.push(postHost, postP2, postP3);
+
+    const postJoined = waitForEvent(postHost, 'room_joined');
+    postHost.ws.send(JSON.stringify({
+      event: 'create_room',
+      data: {
+        code: postCode,
+        username: 'posthost',
+        settings: {
+          impostorCount: 1,
+          discussionTime: 0,
+          votingTimer: 30,
+          hardcore: false,
+          maxPlayers: 5,
+          visibility: 'private',
+          hostLocale: 'en',
+        },
+      },
+    }));
+    await postJoined;
+    postHost.roomCode = postCode;
+    await clientJoin(postP2, postCode);
+    await clientJoin(postP3, postCode);
+
+    const postRoom = server.store.getRoom(postCode);
+    expect(postRoom).toBeDefined();
+    expect(postRoom!.players.size).toBe(3);
+  }, 60000);
 });

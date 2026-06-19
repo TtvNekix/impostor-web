@@ -523,11 +523,21 @@ function handleLeave(
   const username = connectionManager.getUsername(socketId);
   if (!roomCode || !username) return;
 
-  try {
-    // Capture host status before leaving (player is removed by leaveRoom)
-    const preRoom = roomManager.getRoom(roomCode);
-    const wasHost = preRoom.players.get(username)?.isHost ?? false;
+  // Capture host status before leaving (player is removed by leaveRoom)
+  const preRoom = roomManager.getRoom(roomCode);
+  const wasHost = preRoom?.players.get(username)?.isHost ?? false;
 
+  if (wasHost) {
+    // Host leaving — the room can't function without an admin. Destroy
+    // the room and notify every remaining member. Same behaviour as the
+    // host's WS disconnecting.
+    connectionManager.handleHostLeft(roomCode);
+    connectionManager.removeConnection(socketId);
+    logEvent('room_destroyed', { code: roomCode, reason: 'host_left' });
+    return;
+  }
+
+  try {
     const { wasLastPlayer, newHost } = roomManager.leaveRoom(roomCode, username);
     connectionManager.removeConnection(socketId);
 
@@ -535,7 +545,7 @@ function handleLeave(
       logEvent('room_left', {
         code: roomCode,
         username,
-        wasHost,
+        wasHost: false,
       });
       connectionManager.broadcastToRoom(roomCode, ServerEvent.PLAYER_LEFT, {
         playerId: socketId,

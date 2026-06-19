@@ -60,6 +60,32 @@ export class ConnectionManager {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Handle host leaving                                                  */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Called when the host either disconnects or explicitly leaves the
+   * room. Destroys the room and notifies every remaining member.
+   * Centralises the cascade so both code paths (disconnect + explicit
+   * leave_room) behave identically.
+   */
+  handleHostLeft(roomCode: string, code: string = 'host_disconnected', message?: string): void {
+    this.broadcastToRoom(roomCode, ServerEvent.HOST_LEFT, {
+      code,
+      message: message ?? 'The host left the room. The room has been deleted.',
+    });
+    this.roomManager.destroyRoom(roomCode);
+    // Drop every connection entry that pointed at this room so future
+    // messages from those sockets become no-ops.
+    for (const [otherId, other] of this.connections) {
+      if (other.roomCode === roomCode) {
+        if (other.disconnectTimer) clearTimeout(other.disconnectTimer);
+        this.connections.delete(otherId);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Handle disconnect                                                  */
   /* ------------------------------------------------------------------ */
 
@@ -77,20 +103,7 @@ export class ConnectionManager {
         // Host disconnected — the room can't function without an admin.
         // Destroy the room immediately and notify every remaining member.
         if (player.isHost) {
-          this.broadcastToRoom(roomCode, ServerEvent.HOST_LEFT, {
-            code: 'host_disconnected',
-            message: 'The host disconnected. The room has been deleted.',
-          });
-          this.roomManager.destroyRoom(roomCode);
-          // Drop every connection entry that pointed at this room so future
-          // messages from those sockets become no-ops (they'll also see the
-          // HOST_LEFT event and reset their own state).
-          for (const [otherId, other] of this.connections) {
-            if (other.roomCode === roomCode) {
-              if (other.disconnectTimer) clearTimeout(other.disconnectTimer);
-              this.connections.delete(otherId);
-            }
-          }
+          this.handleHostLeft(roomCode);
           return;
         }
 
