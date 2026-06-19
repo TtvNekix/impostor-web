@@ -170,7 +170,12 @@ export function registerHandlers(
       // and dispatching messages. Terminating is the simplest correct
       // response; the client can reconnect at its leisure.
       if (!allowMessage(ws)) {
-        logEvent('rate_limit_exceeded', { socketId });
+        // _remoteAddress is exposed by the `ws` library on the upgrade
+        // event; it is the raw TCP peer. Useful for the maintainer
+        // when triaging a flood -- they can correlate the socket ID
+        // with the connection's source IP.
+        const remoteAddress = (ws as unknown as { _remoteAddress?: string })._remoteAddress;
+        logEvent('rate_limit_exceeded', { socketId, remoteAddress });
         ws.terminate();
         return;
       }
@@ -226,12 +231,12 @@ export function registerHandlers(
             logEvent('room_created', {
               code: cleanCode,
               hostUsername: cleanName,
-              maxPlayers: settings?.maxPlayers ?? 'default',
-              category: settings?.category ?? 'random',
-              votingTimer: settings?.votingTimer ?? 'default',
-              hardcore: settings?.hardcore ?? false,
-              visibility: settings?.visibility ?? 'private',
-              hostLocale: settings?.hostLocale ?? 'en',
+              maxPlayers: room.settings.maxPlayers,
+              category: room.settings.category ?? 'aleatoria',
+              votingTimer: room.settings.votingTimer,
+              hardcore: room.settings.hardcore,
+              visibility: room.settings.visibility,
+              hostLocale: room.settings.hostLocale,
             });
           } catch (err: any) {
             // Translate the error to a structured code; do not leak
