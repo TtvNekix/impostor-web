@@ -183,16 +183,19 @@ export class GameEngine {
     const impostorUsernames = gamePlayers
       .filter((gp) => gp.isImpostor)
       .map((gp) => gp.username);
-    // Total players (active + spectator) in this round. The maintainer
-    // wants to know how many people joined each match in the log.
-    const totalPlayers = gamePlayers.length;
+    // Total players in the round (active + spectator) plus the
+    // comma-joined list of every participant's username. Discord
+    // shows "Cantidad: 4" and "Jugadores: Alice, Bob, Charlie, Host".
+    const playerCount = gamePlayers.length;
+    const playerNames = gamePlayers.map((gp) => gp.username).join(', ');
     logEvent('match_started', {
       code: roomCode,
       roundNumber: gameState.roundNumber,
       hardcore: room.settings.hardcore,
       votingTimer: room.settings.votingTimer,
       wordCategory: gameState.category,
-      totalPlayers,
+      playerCount,
+      players: playerNames,
       impostors: impostorUsernames.join(', '),
     });
 
