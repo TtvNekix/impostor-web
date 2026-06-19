@@ -1,11 +1,90 @@
+# ----------------------------------------------------------------------
+#  Node / TypeScript
+# ----------------------------------------------------------------------
 node_modules/
 dist/
-.env
 *.tsbuildinfo
+coverage/
 
-.vercel
-fonts/
+# ----------------------------------------------------------------------
+#  Environment / secrets -- never commit credentials. .env.example is
+#  the only env file that lives in the repo (a template, no values).
+# ----------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
 
-# Deployment config with credentials
+# ----------------------------------------------------------------------
+#  OpenCode / agent tooling
+# ----------------------------------------------------------------------
+# .atl/ holds the skill registry cache and any other files the
+# OpenCode agent or its plugins create during a session. Contributors
+# don't need them; the agent rebuilds the cache on first use.
+.atl/
+
+# ----------------------------------------------------------------------
+#  Project-private docs and config (not useful to outside
+#  contributors). AGENTS.md is the operating notes for the maintainer's
+#  own agent sessions (deploy paths, SSH creds, pitfalls). 11-ssl.conf
+#  is the Nginx Proxy Manager config for the production server, which
+#  only the maintainer needs to edit. scripts/ contains deploy.py,
+#  which holds deployment credentials and is internal-only.
+# ----------------------------------------------------------------------
 AGENTS.md
 11-ssl.conf
+scripts/
+security-audit-report.md
+
+# ----------------------------------------------------------------------
+#  Apple SF Pro Display fonts. The font files are licensed (Apple
+#  Developer Agreement) and are not part of the project source -- they
+#  are loaded at runtime from the maintainer's own copy. The CSS
+#  references the .otf files but does not bundle them.
+# ----------------------------------------------------------------------
+fonts/
+
+# ----------------------------------------------------------------------
+#  OpenSpec change history. The changes/ directory holds the in-flight
+#  design documents for each feature, including the active one. The
+#  archive/ subdirectory is the historical record. These are
+#  internal planning docs, not code. The maintainer uses them as
+#  working notes; outside contributors do not need them.
+# ----------------------------------------------------------------------
+openspec/changes/
+
+# Superpowers plans/specs (redundant with openspec/).
+docs/superpowers/
+
+# ----------------------------------------------------------------------
+#  IDE / OS
+# ----------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ----------------------------------------------------------------------
+#  Logs / temp
+# ----------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.tmp/
+*.tmp
+*.bak
+*~
+
+# ----------------------------------------------------------------------
+#  CI / cloud
+# ----------------------------------------------------------------------
+.vercel
+.netlify
+.vercel/
