@@ -14,8 +14,10 @@ export class RoundManager {
    */
   static tally(votes: Vote[], players: GamePlayer[]): TallyResult {
     const activePlayers = players.filter((p) => p.status === 'ACTIVE');
+    // Count only ACTIVE impostors. SPECTATOR impostors from previous
+    // rounds must not be counted as "alive" — they were expelled.
     const impostorIds = new Set(
-      players.filter((p) => p.isImpostor).map((p) => p.id),
+      players.filter((p) => p.isImpostor && p.status === 'ACTIVE').map((p) => p.id),
     );
 
     // Count votes per target (exclude skip votes)
