@@ -336,9 +336,11 @@ export function registerHandlers(
             }
 
             // Category: host can pick a specific category or null for random.
-            // Validate that the category exists in the word bank.
+            // The lobby UI labels this option "Random" but sends the
+            // literal string "random" over the wire — we accept that
+            // as a synonym for null/empty.
             if (category !== undefined) {
-              if (category === null || category === '') {
+              if (category === null || category === '' || category === 'random') {
                 room.settings.category = null;
               } else if (wordBank.getCategories().some((c) => c.name === category)) {
                 room.settings.category = category;

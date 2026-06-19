@@ -854,3 +854,360 @@ describe('Edge cases — vote during discussion (1 test)', () => {
     expect(gs2!.phase).toBe('VOTING');
   });
 });
+
+/* ================================================================== */
+/*  Group 7: Additional coverage — UPDATE_SETTINGS category,           */
+/*  ADD_CATEGORY, ADD_WORDS, KICK_PLAYER, mid-vote host disconnect,    */
+/*  and load test (10 tests)                                            */
+/* ================================================================== */
+
+describe('Edge cases — additional coverage (10 tests)', () => {
+  let server: TestServer;
+  const clients: TestClient[] = [];
+
+  beforeEach(async () => {
+    server = await setupServer();
+  });
+
+  afterEach(async () => {
+    for (const c of clients) {
+      try { c.ws.close(); } catch { /* ignore */ }
+    }
+    await server.close();
+    clients.length = 0;
+  });
+
+  it('15. UPDATE_SETTINGS with category: "random" string is accepted; "nonexistent" rejected', async () => {
+    // The lobby UI labels the random option "Random" and historically
+    // sent the literal string "random" over the wire. After the fix,
+    // the server accepts "random" (and null, and '') as a synonym
+    // for "no category, use random". Truly unknown categories are
+    // still rejected.
+    const code = 'CAT01';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    // (a) category: 'random' — the host expects to switch back to
+    //     random mode. Server accepts, broadcasts SETTINGS_UPDATED.
+    const settingsEvt = waitForEvent(host, 'settings_updated');
+    host.ws.send(JSON.stringify({
+      event: 'update_settings',
+      data: { category: 'random' },
+    }));
+    const settings = await settingsEvt;
+    expect(settings.category).toBeNull();
+    // Drain
+    host.events.length = 0;
+
+    // (b) category: 'nonexistent' — expected rejection.
+    const errEvt = waitForEvent(host, 'room_error');
+    host.ws.send(JSON.stringify({
+      event: 'update_settings',
+      data: { category: 'nonexistent' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+    expect(err.message).toMatch(/nonexistent/i);
+
+    // Settings remain null (random) — the failed update didn't apply.
+    const room = server.store.getRoom(code);
+    expect(room!.settings.category).toBeNull();
+  });
+
+  it('16. UPDATE_SETTINGS with category: "" (empty string) → server sets to null (random)', async () => {
+    // The handler treats both `null` and `''` as "switch to random
+    // mode". Verify the empty-string case works end-to-end: the
+    // SETTINGS_UPDATED broadcast is sent and the room state reflects
+    // the change.
+    const code = 'CAT02';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code, { category: 'test' });
+    host.events.length = 0;
+
+    const settingsEvt = waitForEvent(host, 'settings_updated');
+    host.ws.send(JSON.stringify({
+      event: 'update_settings',
+      data: { category: '' },
+    }));
+    const settings = await settingsEvt;
+    expect(settings.category).toBeNull();
+
+    const room = server.store.getRoom(code);
+    expect(room!.settings.category).toBeNull();
+  });
+
+  it('17. ADD_CATEGORY creates a new custom category → appears in CATEGORIES broadcast', async () => {
+    // The handler:
+    //   1. Calls wordBank.addCategory (which creates and stores the cat).
+    //   2. Auto-selects the new category (room.settings.category = name).
+    //   3. Broadcasts CATEGORIES with the new list.
+    //   4. Broadcasts SETTINGS_UPDATED with the updated settings.
+    const code = 'ADD01';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    // Drain any leftover events from hostCreate.
+    const catsEvt = waitForEvent(host, 'categories');
+    const settingsEvt = waitForEvent(host, 'settings_updated');
+    host.ws.send(JSON.stringify({
+      event: 'add_category',
+      data: { name: 'food', displayName: 'Food', words: 'apple,banana,cherry' },
+    }));
+
+    const cats = await catsEvt;
+    const settings = await settingsEvt;
+
+    // The new category appears in the CATEGORIES broadcast.
+    const foodCat = (cats.categories as Array<{ name: string; displayName: string }>)
+      .find((c) => c.name === 'food');
+    expect(foodCat).toBeDefined();
+    expect(foodCat!.displayName).toBe('Food');
+
+    // The original 'test' category is still there.
+    const testCat = (cats.categories as Array<{ name: string; displayName: string }>)
+      .find((c) => c.name === 'test');
+    expect(testCat).toBeDefined();
+
+    // The room's settings.category is auto-selected to the new category.
+    expect(settings.category).toBe('food');
+    const room = server.store.getRoom(code);
+    expect(room!.settings.category).toBe('food');
+  });
+
+  it('18. ADD_CATEGORY with empty name → server rejects with generic error', async () => {
+    // WordBank.addCategory calls normalizeName('') which returns ''.
+    // The `if (!name)` guard throws 'Nombre de categoría inválido',
+    // which the handler surfaces as a room_error with code 'generic'.
+    const code = 'ADD02';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    const errEvt = waitForEvent(host, 'room_error');
+    host.ws.send(JSON.stringify({
+      event: 'add_category',
+      data: { name: '', displayName: 'Foo', words: 'a,b,c' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+    // The error message is the Spanish one thrown by WordBank.
+    expect(err.message).toMatch(/inválido|invalid/i);
+  });
+
+  it('19. ADD_CATEGORY with empty words → server rejects with generic error', async () => {
+    // WordBank.addCategory calls cleanWords(['']) which returns [].
+    // The `if (cleanWords.length === 0)` guard throws 'La categoría
+    // debe tener al menos una palabra', which the handler surfaces
+    // as a room_error with code 'generic'. Use a unique name so the
+    // 'category already exists' check doesn't fire first.
+    const code = 'ADD03';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    const errEvt = waitForEvent(host, 'room_error');
+    host.ws.send(JSON.stringify({
+      event: 'add_category',
+      data: { name: 'empty-cat', displayName: 'Empty', words: '' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+    expect(err.message).toMatch(/palabra|word/i);
+  });
+
+  it('20. ADD_WORDS to an existing category → WORDS_ADDED response shows new total', async () => {
+    // ADD_CATEGORY doesn't send a WORDS_ADDED event (only ADD_WORDS
+    // does). So we wait for the CATEGORIES broadcast to know the
+    // category was created, then send ADD_WORDS and wait for
+    // WORDS_ADDED with `total` = 3.
+    const code = 'ADD04';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    // Create a category with 1 word.
+    const catsEvt = waitForEvent(host, 'categories');
+    host.ws.send(JSON.stringify({
+      event: 'add_category',
+      data: { name: 'food', displayName: 'Food', words: 'apple' },
+    }));
+    await catsEvt;
+    host.events.length = 0;
+
+    // Add 2 more words.
+    const wordsEvt = waitForEvent(host, 'words_added');
+    host.ws.send(JSON.stringify({
+      event: 'add_words',
+      data: { category: 'food', words: 'banana,cherry' },
+    }));
+    const words = await wordsEvt;
+    expect(words.category).toBe('food');
+    expect(words.added).toBe(2);
+    expect(words.total).toBe(3);
+  });
+
+  it('21. ADD_WORDS to a non-existent category → server rejects with generic error', async () => {
+    // WordBank.addWords throws 'Categoría "X" no encontrada' for
+    // unknown names. The handler surfaces it as a room_error.
+    const code = 'ADD05';
+    const [host] = await connectN(server, 1);
+    clients.push(host);
+    await hostCreate(host, code);
+    host.events.length = 0;
+
+    const errEvt = waitForEvent(host, 'room_error');
+    host.ws.send(JSON.stringify({
+      event: 'add_words',
+      data: { category: 'nonexistent', words: 'a,b' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+    expect(err.message).toMatch(/no encontrada|not found/i);
+  });
+
+  it('22. KICK_PLAYER with non-existent username → server emits room_error, no crash', async () => {
+    // The handleKick function looks up the target via
+    // connectionManager.getSocketIdByUsername(). If no entry is found
+    // (the username is not in the room), it emits a room_error with
+    // code 'generic' and the message 'Player not found in room'.
+    // The room state is unchanged.
+    const code = 'KIKG1';
+    const [host, alice] = await connectN(server, 2);
+    clients.push(host, alice);
+    await hostCreate(host, code);
+    await clientJoin(alice, code);
+    host.events.length = 0;
+
+    const errEvt = waitForEvent(host, 'room_error');
+    host.ws.send(JSON.stringify({
+      event: 'kick_player',
+      data: { username: 'ghost' },
+    }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+    expect(err.message).toMatch(/not found|player/i);
+
+    // Room still exists with both players — no crash, no side effects.
+    const room = server.store.getRoom(code);
+    expect(room).toBeDefined();
+    expect(room!.players.size).toBe(2);
+    expect(room!.players.has(host.username)).toBe(true);
+    expect(room!.players.has(alice.username)).toBe(true);
+  });
+
+  it('23. Host disconnects mid-vote (advanced) → others receive HOST_LEFT, room destroyed', async () => {
+    // Near-duplicate of test 12 in this file. The scenario is
+    // intentionally tested twice because it's the most important
+    // cascade in the system (host disconnect → room destroy) and
+    // we want regression coverage from two different angles. Here we
+    // focus on the room store being cleaned up AFTER the disconnect.
+    const code = 'HMDV2';
+    const [host, alice, bob, carol, dave] = await connectN(server, 5);
+    clients.push(host, alice, bob, carol, dave);
+
+    await hostCreate(host, code, { impostorCount: 2, discussionTime: 0 });
+    await clientJoin(alice, code);
+    await clientJoin(bob, code);
+    await clientJoin(carol, code);
+    await clientJoin(dave, code);
+    await hostStartMatch(host);
+    await hostStartVoting(host);
+
+    // Cast 2 votes so we're "in the middle of" the voting round.
+    // Pick a non-host, non-alice player as the target.
+    const gs = getGameStateFor(server, code);
+    if (!gs) throw new Error('gameState missing');
+    const aliceClient = clients.find((c) => c.username === 'player2')!;
+    const targetPlayer = gs.players.find(
+      (p) => p.username !== 'player1' && p.username !== 'player2' && p.status === 'ACTIVE',
+    );
+    if (!targetPlayer) throw new Error('test setup: no eligible target');
+    const targetClient = clients.find((c) => c.username === targetPlayer.username)!;
+    aliceClient.ws.send(JSON.stringify({
+      event: 'vote',
+      data: { targetId: targetPlayer.id },
+    }));
+    targetClient.ws.send(JSON.stringify({
+      event: 'vote',
+      data: { targetId: null },
+    }));
+
+    // Wait for both votes to be processed.
+    await new Promise((r) => setTimeout(r, 200));
+    const gsAfter = getGameStateFor(server, code);
+    expect(gsAfter!.votes.length).toBe(2);
+
+    // Sanity check: the room still exists and the host is marked
+    // as host BEFORE we close the socket. The disconnect handler
+    // is what triggers the cascade.
+    const roomBefore = server.store.getRoom(code);
+    expect(roomBefore).toBeDefined();
+    expect(roomBefore!.players.get(host.username)?.isHost).toBe(true);
+
+    // Now the host disconnects. The other 4 players should each
+    // receive HOST_LEFT.
+    const evts = [alice, bob, carol, dave].map((c) => waitForEvent(c, 'host_left', 4000));
+    host.ws.close();
+    for (const e of evts) {
+      const data = await e;
+      expect(data).toBeDefined();
+      expect(data.code).toBe('host_disconnected');
+    }
+
+    // Give the server a tick to actually destroy the room and clean
+    // up the connection entries.
+    await new Promise((r) => setTimeout(r, 100));
+    expect(server.store.getRoom(code)).toBeUndefined();
+  });
+
+  it('24. Load test — 5 simultaneous public rooms × 5 players each, all listed via HTTP', async () => {
+    // Basic load test: create 5 separate rooms, each with 5 players
+    // and visibility=public. Then hit the /api/rooms endpoint and
+    // verify all 5 codes are returned. This catches crashes in
+    // RoomStore / ConnectionManager / GameEngine under modest
+    // concurrency. Default visibility is 'private' so we set
+    // visibility=public via the hostCreate settings.
+    const codes = ['LOAD01', 'LOAD02', 'LOAD03', 'LOAD04', 'LOAD05'];
+
+    for (const code of codes) {
+      const players = await connectN(server, 5);
+      clients.push(...players);
+      const [host, ...others] = players;
+      await hostCreate(host, code, { visibility: 'public' });
+      for (const other of others) {
+        await clientJoin(other, code);
+      }
+    }
+
+    // Verify all 5 rooms are in the public list via HTTP.
+    const res = await fetch(`http://localhost:${server.port}/api/rooms?visibility=public`);
+    expect(res.status).toBe(200);
+    const body = await res.json() as {
+      rooms: Array<{ roomCode: string; playerCount: number }>;
+      totalCount: number;
+    };
+    const returnedCodes = body.rooms.map((r) => r.roomCode);
+    for (const code of codes) {
+      expect(returnedCodes).toContain(code);
+    }
+
+    // Each room has exactly 5 ACTIVE players.
+    for (const code of codes) {
+      const room = server.store.getRoom(code);
+      expect(room).toBeDefined();
+      expect(room!.players.size).toBe(5);
+      expect(room!.settings.visibility).toBe('public');
+      const active = Array.from(room!.players.values())
+        .filter((p) => p.status === 'ACTIVE').length;
+      expect(active).toBe(5);
+    }
+  }, 15000);
+});
