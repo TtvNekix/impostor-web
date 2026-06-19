@@ -79,54 +79,6 @@ const wss = new WebSocketServer({
 });
 
 /* ------------------------------------------------------------------ */
-/*  HTTP rate limit                                                     */
-/* ------------------------------------------------------------------ */
-
-/**
- * Per-IP token bucket for the public HTTP endpoints (/api/rooms,
- * /health, static assets). Caps the request rate at 10 requests per
- * second per IP, with a burst of 30. This is intentionally tighter
- * than the WS limit because the HTTP surface is the most attractive
- * for "scrape the room list 1000 times/sec" abuse. Excludes the
- * /play redirect and the static-asset middleware (those are CDN-able
- * and have their own caching). The bucket is in-process; in a
- * multi-instance deployment this would need a shared store (Redis),
- * but the current deployment is a single Proxmox container.
- */
-const RATE_LIMIT_PER_SEC = 10;
-const RATE_LIMIT_BURST = 30;
-const rateBuckets = new Map<string, { tokens: number; lastRefill: number }>();
-
-function httpRateLimit(req: express.Request, res: express.Response, next: express.NextFunction): void {
-  const ip = req.ip ?? 'unknown';
-  const now = Date.now();
-  let bucket = rateBuckets.get(ip);
-  if (!bucket) {
-    bucket = { tokens: RATE_LIMIT_BURST, lastRefill: now };
-    rateBuckets.set(ip, bucket);
-  }
-  const elapsed = (now - bucket.lastRefill) / 1000;
-  bucket.tokens = Math.min(RATE_LIMIT_BURST, bucket.tokens + elapsed * RATE_LIMIT_PER_SEC);
-  bucket.lastRefill = now;
-  if (bucket.tokens < 1) {
-    res.status(429).json({ error: 'rate_limited' });
-    return;
-  }
-  bucket.tokens -= 1;
-  next();
-}
-
-// Periodically prune the rate-limit map to avoid unbounded growth
-// from unique-IP scans. Bucket entries older than 10 minutes are
-// dropped; the in-flight count is tiny compared to the active set.
-setInterval(() => {
-  const cutoff = Date.now() - 10 * 60 * 1000;
-  for (const [ip, b] of rateBuckets) {
-    if (b.lastRefill < cutoff) rateBuckets.delete(ip);
-  }
-}, 60_000).unref();
-
-/* ------------------------------------------------------------------ */
 /*  Security headers                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -246,7 +198,7 @@ app.get('/sitemap.xml', (_req, res) => {
 </urlset>`);
 });
 
-app.get('/health', httpRateLimit, (_req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
@@ -268,7 +220,7 @@ app.get('/health', httpRateLimit, (_req, res) => {
  *     doesn't match are excluded.
  *   - hasSpace: 'true' to keep only rooms with activeCount < maxPlayers.
  */
-app.get('/api/rooms', httpRateLimit, (req, res) => {
+app.get('/api/rooms', (req, res) => {
   res.set('Cache-Control', 'max-age=3');
 
   const visibility = String(req.query.visibility ?? 'public');

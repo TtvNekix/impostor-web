@@ -105,13 +105,6 @@ describe('audit/logger.logEvent', () => {
     expect(body.embeds[0].color).toBe(0xff3333);
   });
 
-  it('uses the warn color for rate_limit_exceeded events', () => {
-    logEvent('rate_limit_exceeded', { socketId: 'abc' });
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(body.embeds[0].color).toBe(0xffaa00);
-  });
-
   it('falls back to a humanized label for unknown fields', () => {
     logEvent('room_created', { code: 'U01', someUnknownKey: 'value' });
     const [, init] = fetchMock.mock.calls[0];

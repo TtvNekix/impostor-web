@@ -135,14 +135,6 @@ const EVENT_REGISTRY: Record<string, EventDescriptor> = {
       targetUsername: 'Objetivo',
     },
   },
-  rate_limit_exceeded: {
-    label: 'Límite de velocidad excedido',
-    emoji: '⚠️',
-    fieldLabels: {
-      socketId: 'ID de socket',
-      remoteAddress: 'Dirección remota',
-    },
-  },
   server_error: {
     label: 'Error del servidor',
     emoji: '🔴',
@@ -155,12 +147,10 @@ const EVENT_REGISTRY: Record<string, EventDescriptor> = {
 };
 
 const COLOR_INFO = 0x00d4ff;
-const COLOR_WARN = 0xffaa00;
 const COLOR_ERROR = 0xff3333;
 
 function colorForType(type: string): number {
   if (type === 'server_error') return COLOR_ERROR;
-  if (type === 'rate_limit_exceeded') return COLOR_WARN;
   return COLOR_INFO;
 }
 

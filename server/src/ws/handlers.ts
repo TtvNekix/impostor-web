@@ -21,60 +21,6 @@ import { ConnectionManager } from '../connection/ConnectionManager';
 import { WordBank } from '../words/WordBank';
 import { logEvent } from '../audit/logger';
 
-/* ------------------------------------------------------------------ */
-/*  Per-socket rate limit                                              */
-/* ------------------------------------------------------------------ */
-
-/**
- * Token bucket rate limiter, per WebSocket. Each socket gets at most
- * MAX_MESSAGES_PER_SECOND messages per second; a burst of up to
- * MAX_BURST messages is allowed before throttling kicks in. Sockets
- * that exceed the limit are terminated (not just throttled) because
- * legitimate clients never approach the limit.
- *
- * The limiter is attached as a property of the WebSocket instance so
- * the message handler can reach it through `ws[RL_PROP]`. The values
- * are tuned for the game: the most chatty legitimate client sends
- * one event per click (start match, vote, change setting, etc.) --
- * even a power user stays under 10 msg/s.
- */
-const MAX_MESSAGES_PER_SECOND = 30;
-const MAX_BURST = 60;
-const RL_PROP = Symbol('rateLimit');
-
-interface RateLimitState {
-  tokens: number;
-  lastRefill: number;
-}
-
-function getRateLimit(ws: WebSocket): RateLimitState {
-  let state = (ws as unknown as Record<symbol, RateLimitState>)[RL_PROP];
-  if (!state) {
-    state = { tokens: MAX_BURST, lastRefill: Date.now() };
-    (ws as unknown as Record<symbol, RateLimitState>)[RL_PROP] = state;
-  }
-  return state;
-}
-
-function allowMessage(ws: WebSocket): boolean {
-  const state = getRateLimit(ws);
-  const now = Date.now();
-  const elapsed = (now - state.lastRefill) / 1000;
-  state.tokens = Math.min(
-    MAX_BURST,
-    state.tokens + elapsed * MAX_MESSAGES_PER_SECOND,
-  );
-  state.lastRefill = now;
-  if (state.tokens < 1) {
-    // Hard-cap: malicious client that floods past the burst is
-    // disconnected. A single dropped message is never catastrophic
-    // for the game flow.
-    return false;
-  }
-  state.tokens -= 1;
-  return true;
-}
-
 /** Helper to send a localized error code to a single socket. */
 function sendError(
   ws: WebSocket,
@@ -165,21 +111,6 @@ export function registerHandlers(
     /* ---------------------------------------------------------------- */
 
     ws.on('message', (raw: Buffer) => {
-      // Per-socket rate limit. A single client opening 10,000 ws.send
-      // calls per second would otherwise pin the CPU serializing
-      // and dispatching messages. Terminating is the simplest correct
-      // response; the client can reconnect at its leisure.
-      if (!allowMessage(ws)) {
-        // _remoteAddress is exposed by the `ws` library on the upgrade
-        // event; it is the raw TCP peer. Useful for the maintainer
-        // when triaging a flood -- they can correlate the socket ID
-        // with the connection's source IP.
-        const remoteAddress = (ws as unknown as { _remoteAddress?: string })._remoteAddress;
-        logEvent('rate_limit_exceeded', { socketId, remoteAddress });
-        ws.terminate();
-        return;
-      }
-
       let msg: { event: string; data: unknown };
       try {
         msg = JSON.parse(raw.toString());
