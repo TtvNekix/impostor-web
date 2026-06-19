@@ -134,6 +134,10 @@ app.get('/api/rooms', (req, res) => {
 const clientDist = path.resolve(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
   console.log(`[server] Serving static files from ${clientDist}`);
+  // Default fallthrough is true. We rely on it so unknown paths reach
+  // the SPA fallback below. The SPA fallback regex explicitly excludes
+  // file-extension paths (e.g. .png, .js, .css) so a missing static
+  // asset is NOT served as index.html.
   app.use(express.static(clientDist));
   // App lives at the root. The X button navigates to "/".
   // /play is kept as an alias for backwards compatibility.
@@ -143,6 +147,30 @@ if (fs.existsSync(clientDist)) {
   app.get('/', (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
+  // SPA fallback: any non-API, non-asset GET (e.g. /salas, /lobbies) gets
+  // the index.html so the client-side router can take over. Must stay
+  // AFTER /play* and / so explicit routes win, and AFTER express.static
+  // so real files in client/dist are still served with the right MIME type.
+  // We exclude paths that look like static assets (have a file
+  // extension) so missing assets return 404 instead of index.html.
+  app.use((req, res, next) => {
+    const path = req.path;
+    // Reject paths with a file extension (likely static assets)
+    if (/\.[a-zA-Z0-9]{1,8}$/.test(path)) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
+
+// Final 404 handler: missing static assets (e.g. /missing.png) fall
+// through express.static with an error, skip the SPA fallback (which
+// excludes extension paths), and land here. This prevents the React
+// app from being served for missing static files.
+app.use((_req, res) => {
+  res.status(404).json({ error: 'not_found' });
+});
 } else {
   console.warn(
     `[server] client/dist not found at ${clientDist}. Build the client with \`pnpm build:client\`.`,
