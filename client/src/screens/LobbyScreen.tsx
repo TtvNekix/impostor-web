@@ -59,9 +59,34 @@ export function LobbyScreen({
   const handleCopyCode = async () => {
     if (!roomCode) return;
     const url = `${window.location.origin}/join/${roomCode}`;
+    // Try the modern Clipboard API first. It requires a secure context
+    // (https or localhost) AND a user gesture; on http://192.168.x.x
+    // it throws "Document is not focused" or "Write permission denied".
+    // Fall back to the legacy execCommand path which works in any
+    // environment where text selection is allowed.
     try {
       await navigator.clipboard.writeText(url);
       pushToast({ message: t.lobby.linkCopied, variant: 'success' });
+      return;
+    } catch {
+      // fall through to legacy fallback
+    }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        pushToast({ message: t.lobby.linkCopied, variant: 'success' });
+      } else {
+        pushToast({ message: t.common.copyFailed, variant: 'error' });
+      }
     } catch {
       pushToast({ message: t.common.copyFailed, variant: 'error' });
     }

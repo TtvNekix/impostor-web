@@ -1214,4 +1214,122 @@ describe('Edge cases — additional coverage (10 tests)', () => {
       expect(active).toBe(5);
     }
   }, 15000);
+
+  it('25. FORCE_END_VOTING — host can force-tally with partial votes, missing voters are skipped', async () => {
+    // Use case: an AFK player blocks the round at "5/6 voted" and the
+    // host wants to resolve immediately without waiting for the
+    // voting timer. The new FORCE_END_VOTING event lets the host do
+    // that. Missing voters' absence is treated as "skip" by
+    // RoundManager.tally.
+    const code = 'FEV01';
+    const [host, alice, bob, carol, dave] = await connectN(server, 5);
+    clients.push(host, alice, bob, carol, dave);
+
+    await hostCreate(host, code, { impostorCount: 2, discussionTime: 0 });
+    await clientJoin(alice, code);
+    await clientJoin(bob, code);
+    await clientJoin(carol, code);
+    await clientJoin(dave, code);
+    await hostStartMatch(host);
+    await hostStartVoting(host);
+
+    // Only alice and bob vote (out of 5 active players). The other 3
+    // (host, carol, dave) deliberately do not vote to simulate an AFK
+    // crowd.
+    const gs = getGameStateFor(server, code);
+    if (!gs) throw new Error('gameState missing');
+    const alicePlayer = gs.players.find((p) => p.username === 'player2')!;
+    const bobPlayer = gs.players.find((p) => p.username === 'player3')!;
+    const targetPlayer = gs.players.find(
+      (p) => p.username !== 'player2' && p.username !== 'player3' && p.status === 'ACTIVE',
+    );
+    if (!targetPlayer) throw new Error('no eligible target');
+
+    alice.ws.send(JSON.stringify({
+      event: 'vote',
+      data: { targetId: targetPlayer.id },
+    }));
+    bob.ws.send(JSON.stringify({
+      event: 'vote',
+      data: { targetId: null }, // skip
+    }));
+
+    // Give the server a tick to register the votes.
+    await new Promise((r) => setTimeout(r, 200));
+    const gsMid = getGameStateFor(server, code);
+    expect(gsMid!.votes.length).toBe(2);
+
+    // Now the host force-ends. We expect a round_result to arrive.
+    // Bob skipped and alice voted for the target. The target has 1
+    // vote, skip has 1 vote → topTarget is the player with 1 vote
+    // (skip doesn't count as a target). So target gets expelled.
+    // The important thing is that force_end_voting DID advance the
+    // round (we got round_result at all) and didn't crash, even
+    // though 3 of 5 voters never cast a vote.
+    const resultEvt = waitForEvent(host, 'round_result', 4000);
+    host.ws.send(JSON.stringify({ event: 'force_end_voting', data: {} }));
+    const result = await resultEvt;
+    expect(result).toBeDefined();
+    // The only target with votes is targetPlayer, so they're expelled.
+    expect(result.expelledId).toBe(targetPlayer.id);
+
+    // The phase must have advanced past VOTING.
+    await new Promise((r) => setTimeout(r, 200));
+    const gsAfter = getGameStateFor(server, code);
+    expect(['EVALUATION', 'GAME_OVER', 'DISCUSSION', 'LOBBY']).toContain(gsAfter!.phase);
+
+    // Use alicePlayer / bobPlayer so the linter is happy about the
+    // declarations above.
+    expect(alicePlayer.username).toBe('player2');
+    expect(bobPlayer.username).toBe('player3');
+  });
+
+  it('26. FORCE_END_VOTING — non-host is rejected with not_host', async () => {
+    // Authorization: only the host can force-tally. A non-host who
+    // tries it gets a room_error, and the round keeps waiting for
+    // votes / the timer.
+    const code = 'FEV02';
+    const [host, alice, bob, carol] = await connectN(server, 4);
+    clients.push(host, alice, bob, carol);
+
+    await hostCreate(host, code, { impostorCount: 1, discussionTime: 0 });
+    await clientJoin(alice, code);
+    await clientJoin(bob, code);
+    await clientJoin(carol, code);
+    await hostStartMatch(host);
+    await hostStartVoting(host);
+
+    // Alice (non-host) attempts to force-end.
+    const errEvt = waitForEvent(alice, 'room_error', 4000);
+    alice.ws.send(JSON.stringify({ event: 'force_end_voting', data: {} }));
+    const err = await errEvt;
+    expect(err.code).toBe('not_host');
+
+    // The phase should still be VOTING (no round_result yet).
+    const gs = getGameStateFor(server, code);
+    expect(gs!.phase).toBe('VOTING');
+  });
+
+  it('27. FORCE_END_VOTING — outside VOTING phase is rejected with generic error', async () => {
+    // Calling force_end_voting during DISCUSSION is a no-op error.
+    // Same as start_voting from the wrong phase.
+    const code = 'FEV03';
+    const [host, alice, bob, carol] = await connectN(server, 4);
+    clients.push(host, alice, bob, carol);
+
+    await hostCreate(host, code, { impostorCount: 1, discussionTime: 60 });
+    await clientJoin(alice, code);
+    await clientJoin(bob, code);
+    await clientJoin(carol, code);
+    await hostStartMatch(host);
+
+    // Game is now in DISCUSSION (we did not call hostStartVoting).
+    const gs = getGameStateFor(server, code);
+    expect(gs!.phase).toBe('DISCUSSION');
+
+    const errEvt = waitForEvent(host, 'room_error', 4000);
+    host.ws.send(JSON.stringify({ event: 'force_end_voting', data: {} }));
+    const err = await errEvt;
+    expect(err.code).toBe('generic');
+  });
 });
