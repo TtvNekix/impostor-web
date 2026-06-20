@@ -17,6 +17,8 @@ interface GameState {
   word: string | null;
   /** Raw category identifier (kebab-case) from the server. */
   category: string | null;
+  /** This client's socket id (assigned by the server on connect). */
+  myId: string | null;
   myRole: PlayerRole;
   votes: Vote[];
   roundResult: RoundResult | null;
@@ -34,12 +36,19 @@ interface GameState {
   roundNumber: number;
   /** Player IDs who are impostors in the current match (set on game start). */
   impostorIds: string[];
+  /**
+   * Random speaking order for the discussion phase. Set once at
+   * match start and reused for every round. Empty until the first
+   * game_started event of a match.
+   */
+  turnOrder: string[];
   /** Stats for the local user across the current match. */
   myStats: MyMatchStats;
 
   setPhase: (phase: GamePhase, phaseEndsAt?: number) => void;
   setWord: (word: string | null) => void;
   setCategory: (category: string) => void;
+  setMyId: (id: string | null) => void;
   setMyRole: (role: PlayerRole) => void;
   setVotes: (votes: Vote[]) => void;
   setRoundResult: (result: RoundResult) => void;
@@ -48,6 +57,7 @@ interface GameState {
   setVoterCount: (voterCount: number, totalVoters?: number) => void;
   setRoundNumber: (n: number) => void;
   setImpostorIds: (ids: string[]) => void;
+  setTurnOrder: (turnOrder: string[]) => void;
   resetMyStats: () => void;
   recordRoundPlayed: () => void;
   recordAsImpostor: () => void;
@@ -61,6 +71,7 @@ const initialState = {
   phase: 'LOBBY' as GamePhase,
   word: null,
   category: null,
+  myId: null as string | null,
   myRole: null as PlayerRole,
   votes: [] as Vote[],
   roundResult: null as RoundResult | null,
@@ -72,6 +83,7 @@ const initialState = {
   totalVoters: 0,
   roundNumber: 0,
   impostorIds: [] as string[],
+  turnOrder: [] as string[],
   myStats: {
     roundsPlayed: 0,
     timesAsImpostor: 0,
@@ -112,6 +124,8 @@ export const useGameStore = create<GameState>((set) => ({
 
   setMyRole: (myRole) => set({ myRole }),
 
+  setMyId: (id) => set({ myId: id }),
+
   setVotes: (votes) => set({ votes }),
 
   setRoundResult: (result) => set({ roundResult: result }),
@@ -129,6 +143,8 @@ export const useGameStore = create<GameState>((set) => ({
 
   setImpostorIds: (impostorIds) => set({ impostorIds }),
 
+  setTurnOrder: (turnOrder) => set({ turnOrder }),
+
   resetMyStats: () => set({ myStats: { ...initialState.myStats } }),
   recordRoundPlayed: () =>
     set((state) => ({ myStats: { ...state.myStats, roundsPlayed: state.myStats.roundsPlayed + 1 } })),
@@ -141,5 +157,13 @@ export const useGameStore = create<GameState>((set) => ({
   recordImpostorFound: () =>
     set((state) => ({ myStats: { ...state.myStats, impostorsFound: state.myStats.impostorsFound + 1 } })),
 
-  resetGame: () => set({ ...initialState }),
+  resetGame: () => {
+    // Preserve myId across resets -- it is the socket id assigned
+    // on connect and does not change between matches. Everything
+    // else goes back to the lobby state.
+    set((state) => {
+      const { myId: _, ...rest } = initialState;
+      return { ...rest, myId: state.myId };
+    });
+  },
 }));

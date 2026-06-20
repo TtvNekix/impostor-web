@@ -52,6 +52,14 @@ export function useSocket() {
   const myIdRef = useRef<string | null>(null);
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Messages queued while the WebSocket is not yet OPEN. Flushed on
+   * the `open` event. Bounded FIFO (see sendMessage). The buffer
+   * exists because the user can click "Join" in /salas before the
+   * socket finishes its initial connection — without buffering, the
+   * first click is silently dropped and the user has to click again.
+   */
+  const pendingRef = useRef<Array<{ event: string; data: unknown }>>([]);
 
   const t = useT();
   const localizeError = useLocalizeError();
@@ -80,6 +88,8 @@ export function useSocket() {
   const setWinner = useGameStore((s) => s.setWinner);
   const setRoundNumber = useGameStore((s) => s.setRoundNumber);
   const setImpostorIds = useGameStore((s) => s.setImpostorIds);
+  const setTurnOrder = useGameStore((s) => s.setTurnOrder);
+  const setMyId = useGameStore((s) => s.setMyId);
   const resetGame = useGameStore((s) => s.resetGame);
   const resetMyStats = useGameStore((s) => s.resetMyStats);
   const recordRoundPlayed = useGameStore((s) => s.recordRoundPlayed);
@@ -115,6 +125,20 @@ export function useSocket() {
 
       ws.addEventListener('open', () => {
         setConnected();
+        // Flush any messages queued while the socket was connecting.
+        // This is what makes the "first click on /salas does nothing"
+        // bug go away: the user can fire JOIN_ROOM before the WS
+        // finishes its handshake, and we replay it the moment we're
+        // open.
+        const queue = pendingRef.current;
+        pendingRef.current = [];
+        for (const { event, data } of queue) {
+          try {
+            ws.send(JSON.stringify({ event, data }));
+          } catch {
+            // ignore — best-effort delivery
+          }
+        }
       });
 
       ws.addEventListener('message', (event: MessageEvent) => {
@@ -139,7 +163,13 @@ export function useSocket() {
 
         switch (eventName) {
           case 'connected': {
-            myIdRef.current = (data as { id: string }).id;
+            const id = (data as { id: string }).id;
+            myIdRef.current = id;
+            // Keep the gameStore in sync so components that don't
+            // have access to useSocket (e.g. the DiscussionScreen
+            // reading the turn order) can read myId for the
+            // "is this you?" highlight.
+            setMyId(id);
             break;
           }
 
@@ -160,6 +190,7 @@ export function useSocket() {
               setCategory(room.gameState.category);
               setRoundNumber(room.gameState.roundNumber);
               setImpostorIds(room.gameState.impostorIds ?? []);
+              setTurnOrder(room.gameState.turnOrder ?? []);
               if (room.gameState.phase !== 'LOBBY') {
                 setVotes(room.gameState.votes);
               }
@@ -182,16 +213,19 @@ export function useSocket() {
 
           case ServerEvent.PLAYER_LEFT: {
             const { playerId, newHost } = data as { playerId: string; newHost?: string };
-            removePlayer(playerId, newHost);
+            // Pass my own socket id so removePlayer can decide whether
+            // I was promoted to host.
+            removePlayer(playerId, newHost, myIdRef.current ?? undefined);
             break;
           }
 
           case ServerEvent.GAME_STARTED: {
             setPhase('WORD_REVEAL', 0);
-            const gs = data as { category: string; roundNumber: number; impostorIds: string[] };
+            const gs = data as { category: string; roundNumber: number; impostorIds: string[]; turnOrder?: string[] };
             setCategory(gs.category);
             setRoundNumber(gs.roundNumber);
             setImpostorIds(gs.impostorIds ?? []);
+            setTurnOrder(gs.turnOrder ?? []);
             // New match (round 1) → reset stats. Subsequent rounds in the
             // same match just bump the roundsPlayed counter.
             if (gs.roundNumber === 1) {
@@ -275,6 +309,14 @@ export function useSocket() {
 
           case ServerEvent.KICKED: {
             const payload = data as { code: string; message: string };
+            // Same teardown as HOST_LEFT: the server is about to close
+            // the socket (removeConnection → close), but if we don't
+            // clear the room locally first, App.tsx will keep rendering
+            // the in-room UI because roomCode is still set when the
+            // socketStatus flips to 'disconnected'. The "Algo salió mal"
+            // crash was the disconnected-screen failing to render
+            // inside the still-mounted room tree.
+            clearRoom();
             resetGame();
             setDisconnected(payload.message || t.errors.generic);
             pushToast({
@@ -339,8 +381,24 @@ export function useSocket() {
   /* ---------------------------------------------------------------- */
 
   const sendMessage = useCallback((event: string, data?: unknown) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ event, data }));
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ event, data }));
+      return;
+    }
+    // Buffer the message. It will be flushed when the WS finishes
+    // connecting. The buffer is bounded — if we accumulate too many
+    // stale events (e.g. the user spams Join before the socket is up)
+    // we drop the oldest. JOIN_ROOM / CREATE_ROOM are the critical
+    // ones that lose state if dropped (they're the user's primary
+    // intent), so we keep them at the head by NOT dropping those
+    // specifically; only other events get evicted FIFO.
+    const buffered = { event, data };
+    if (event === ClientEvent.JOIN_ROOM || event === ClientEvent.CREATE_ROOM) {
+      // Never drop the user's join/create intent — prepend it.
+      pendingRef.current = [buffered, ...pendingRef.current].slice(0, 32);
+    } else {
+      pendingRef.current = [...pendingRef.current, buffered].slice(-32);
     }
   }, []);
 
@@ -389,6 +447,11 @@ export function useSocket() {
     [sendMessage],
   );
 
+  const forceEndVoting = useCallback(
+    () => sendMessage(ClientEvent.FORCE_END_VOTING),
+    [sendMessage],
+  );
+
   const leaveRoom = useCallback(() => {
     // Tell the server to remove us. The WebSocket stays open so the
     // socketStatus remains 'connected' and the user lands on the
@@ -417,6 +480,7 @@ export function useSocket() {
     newMatch,
     leaveRoom,
     kickPlayer,
+    forceEndVoting,
     /** This client's assigned socket id (server sends it on connect). */
     get myId() { return myIdRef.current; },
   };

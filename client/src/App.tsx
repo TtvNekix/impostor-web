@@ -50,6 +50,7 @@ export default function App() {
   const roomCode = useRoomStore((s) => s.roomCode);
   const phase = useGameStore((s) => s.phase);
   const isHost = useRoomStore((s) => s.isHost);
+  const settings = useRoomStore((s) => s.settings);
 
   const {
     createRoom,
@@ -64,6 +65,7 @@ export default function App() {
     leaveRoom,
     kickPlayer,
     myId,
+    forceEndVoting,
   } = useSocket();
 
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
@@ -179,6 +181,8 @@ export default function App() {
         myId={myId}
         newMatch={newMatch}
         kickPlayer={kickPlayer}
+        settings={settings}
+        forceEndVoting={forceEndVoting}
       />
 
       {/* Global "powered by coffeeprojects" footer — fixed at the bottom,
@@ -222,6 +226,12 @@ interface ScreenRouterProps {
   newMatch: () => void;
   kickPlayer: (username: string) => void;
   myId: string | null;
+  /** Room settings (max players, voting timer, hardcore, etc.) —
+   *  used to drive UI elements like the voting timer bar. */
+  settings: import('@impostor/shared').RoomSettings | null;
+  /** Host-only: force-tally the current set of votes even if some
+   *  active players haven't voted yet. */
+  forceEndVoting: () => void;
 }
 
 function ScreenRouter({
@@ -238,6 +248,8 @@ function ScreenRouter({
   newMatch,
   kickPlayer,
   myId,
+  settings,
+  forceEndVoting,
 }: ScreenRouterProps) {
   const t = useT();
   const location = useLocation();
@@ -280,7 +292,14 @@ function ScreenRouter({
       return <DiscussionScreen totalTime={90} startVoting={startVoting} />;
 
     case 'VOTING':
-      return <VotingScreen vote={vote} myId={myId ?? ''} />;
+      return (
+        <VotingScreen
+          vote={vote}
+          myId={myId ?? ''}
+          totalTime={settings?.votingTimer}
+          forceEndVoting={forceEndVoting}
+        />
+      );
 
     case 'EVALUATION':
       return <EvaluationScreen />;

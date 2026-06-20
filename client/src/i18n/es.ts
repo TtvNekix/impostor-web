@@ -150,6 +150,7 @@ const es = {
     waitingForVoting: 'Esperando a que termine la discusión...',
     waitingForHost: 'Esperando a que el anfitrión inicie la votación…',
     startVoting: 'Iniciar votación',
+    speakingOrder: 'Orden de hablar',
     waitingForRole: 'Esperando asignación de rol...',
   },
 

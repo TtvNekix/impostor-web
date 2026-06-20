@@ -150,6 +150,7 @@ const fr = {
     waitingForVoting: "En attente de la fin de la discussion...",
     waitingForHost: "En attente que l'hôte lance le vote...",
     startVoting: 'Lancer le vote',
+    speakingOrder: 'Ordre de parole',
     waitingForRole: 'En attente de lattribution du rôle...',
   },
 

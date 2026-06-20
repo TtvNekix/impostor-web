@@ -150,6 +150,7 @@ const pt = {
     waitingForVoting: 'A aguardar o fim da discussão...',
     waitingForHost: 'A aguardar que o anfitrião inicie a votação...',
     startVoting: 'Iniciar votação',
+    speakingOrder: 'Ordem de fala',
     waitingForRole: 'A aguardar atribuição de papel...',
   },
 

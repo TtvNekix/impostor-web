@@ -3486,3 +3486,50 @@ body {
 .voting-table__force-end {
   margin-top: 0.75rem;
 }
+
+/* ----------------------------------------------------------------------
+   Speaking order (turnOrder)
+   ---------------------------------------------------------------------- */
+.speaking-order {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.5rem;
+}
+.speaking-order__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.speaking-order__item--me {
+  border-color: var(--accent-primary, #00d4ff);
+  color: var(--text-primary, #fff);
+  background: var(--bg-card-active, rgba(0, 212, 255, 0.08));
+  font-weight: 600;
+}
+.speaking-order__num {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #888);
+  min-width: 1.5rem;
+  text-align: right;
+}
+.speaking-order__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.speaking-order__you {
+  color: var(--accent-primary, #00d4ff);
+  font-size: 0.8rem;
+  font-weight: 500;
+}

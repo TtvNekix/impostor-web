@@ -7,10 +7,17 @@ import { useT } from '../i18n/I18nContext';
 
 interface VotingScreenProps {
   vote: (payload: { targetId: string | null }) => void;
-  /** Total voting duration in seconds (default 30) */
+  /** Total voting duration in seconds. Read from the room settings
+   *  (set by the host at create time or via UPDATE_SETTINGS). If
+   *  undefined (e.g. settings haven't loaded yet) we fall back to 30
+   *  so the bar still has a denominator for the percentage. */
   totalTime?: number;
   /** This client's socket id (so we can filter ourselves from the list) */
   myId?: string;
+  /** Host-only: tally the current set of votes even if some
+   *  players haven't voted yet. Used when the room is stuck at
+   *  "5/6 voted" because someone AFK'd. */
+  forceEndVoting?: () => void;
 }
 
 /**
@@ -24,8 +31,9 @@ interface VotingScreenProps {
  */
 export function VotingScreen({
   vote,
-  totalTime = 30,
+  totalTime,
   myId = '',
+  forceEndVoting,
 }: VotingScreenProps) {
   const t = useT();
   const players = useRoomStore((s) => s.players);
@@ -41,6 +49,11 @@ export function VotingScreen({
   // Local timer tick — the server sets phaseEndsAt in phase_changed, this
   // hook recomputes the remaining seconds on a 250ms interval.
   const remaining = usePhaseTimer();
+
+  // Fall back to 30s when settings haven't loaded yet so the timer bar
+  // has a denominator for the percentage. This is also what the server
+  // defaults to (DEFAULT_VOTING_TIMER).
+  const totalSec = totalTime ?? 30;
 
   // If phase is not VOTING, don't render
   if (phase !== 'VOTING') return null;
@@ -68,7 +81,7 @@ export function VotingScreen({
       </div>
 
       {/* Timer bar */}
-      <TimerBar total={totalTime} remaining={remaining > 0 ? remaining : totalTime} />
+      <TimerBar total={totalSec} remaining={remaining > 0 ? remaining : totalSec} />
 
       {/* Live vote count */}
       <div className="vote-count">
@@ -87,6 +100,8 @@ export function VotingScreen({
         hasVoted={hasVoted}
         hardcore={settings?.hardcore}
         onVote={(targetId) => vote({ targetId })}
+        onForceEnd={forceEndVoting}
+        showForceEnd
       />
     </div>
   );

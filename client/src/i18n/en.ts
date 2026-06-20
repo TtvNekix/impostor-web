@@ -149,6 +149,7 @@ const en = {
     waitingForVoting: 'Waiting for the discussion to end...',
     waitingForHost: 'Waiting for the host to start voting...',
     startVoting: 'Start voting',
+    speakingOrder: 'Speaking order',
     waitingForRole: 'Waiting for role assignment...',
   },
 

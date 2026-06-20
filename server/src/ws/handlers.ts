@@ -273,6 +273,25 @@ export function registerHandlers(
         }
 
         /* ------------------------------------------------------------ */
+        /*  FORCE_END_VOTING (host-driven, while in VOTING)             */
+        /* ------------------------------------------------------------ */
+        // Useful when one or more players have AFK'd or left their
+        // client open without voting; the rest of the room is stuck at
+        // "5/6 voted" with no way to advance. The host can force-tally
+        // with the current set of votes. Server-side: same authorisation
+        // check as start_match (host only), same phase check (must be
+        // in VOTING). Missing voters are simply absent from the tally.
+        case ClientEvent.FORCE_END_VOTING: {
+          const roomCode = connectionManager.getRoomCode(socketId);
+          if (!roomCode) {
+            sendError(ws, ErrorCode.NOT_IN_ROOM, 'Not in a room');
+            return;
+          }
+          gameEngine.forceEndVoting(roomCode, socketId);
+          break;
+        }
+
+        /* ------------------------------------------------------------ */
         /*  VOTE                                                         */
         /* ------------------------------------------------------------ */
         case ClientEvent.VOTE: {
