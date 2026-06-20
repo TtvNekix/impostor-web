@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { Room, GameState, GamePlayer, Player, GamePhase } from '@impostor/shared';
 import {
   ServerEvent,
@@ -140,6 +141,36 @@ export class GameEngine {
     }
 
     // Build game state
+    //
+    // turnOrder: random speaking order for the discussion phase.
+    // Fisher-Yates with crypto.randomInt so the order is unbiased
+    // and unpredictable. Computed once per match (not per round) so
+    // everyone knows their order from round 1 and can refer to "the
+    // third speaker" etc. consistently across rounds. Only includes
+    // players who are ACTIVE in this match (not spectators).
+    // (gamePlayers is already filtered to active players above.)
+    //
+    // Preserve the previous match's turnOrder when the player set is
+    // unchanged (rounds 2+ of the same match). Regenerate only when
+    // the player set has shifted, since the order must reference
+    // actual game players.
+    const previousTurnOrder = room.gameState?.turnOrder;
+    const previousSet = previousTurnOrder ? new Set(previousTurnOrder) : null;
+    const samePlayers =
+      previousSet &&
+      gamePlayers.length === previousTurnOrder!.length &&
+      gamePlayers.every((p) => previousSet.has(p.id));
+    let turnOrder: string[];
+    if (previousTurnOrder && samePlayers) {
+      turnOrder = previousTurnOrder;
+    } else {
+      turnOrder = gamePlayers.map((p) => p.id);
+      for (let i = turnOrder.length - 1; i > 0; i--) {
+        const j = randomInt(0, i + 1);
+        [turnOrder[i], turnOrder[j]] = [turnOrder[j], turnOrder[i]];
+      }
+    }
+
     const gameState: GameState = {
       phase: 'WORD_REVEAL',
       word: wordPick.word,
@@ -150,6 +181,7 @@ export class GameEngine {
       phaseEndsAt: 0,
       result: null,
       impostorIds: Array.from(impostorIds),
+      turnOrder,
     };
 
     room.gameState = gameState;
@@ -260,6 +292,53 @@ export class GameEngine {
       phase: 'VOTING',
       phaseEndsAt: sm.phaseEndsAt,
     });
+    return true;
+  }
+
+  /**
+   * Host-driven force-tally: tally the current set of votes even
+   * if some active players haven't voted yet. Use case: an AFK
+   * player is blocking the round at "5/6 voted" and the rest of
+   * the room has been waiting for the timer. Without this, the
+   * only way to advance is the voting timer, which can be up to
+   * 60 seconds. With this, the host can resolve immediately.
+   *
+   * Server-side checks:
+   *   - Caller is the host (same authorisation as start_voting)
+   *   - Current phase is VOTING (cannot force-end a different
+   *     phase, and the round hasn't already been tallied)
+   *
+   * Missing voters are simply absent from the tally; their "vote"
+   * defaults to "skip" in RoundManager.tally.
+   */
+  forceEndVoting(roomCode: string, callerSocketId: string): boolean {
+    const room = this.roomStore.getRoom(roomCode);
+    if (!room) {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.ROOM_NOT_FOUND, message: 'Room not found',
+      });
+      return false;
+    }
+    const host = this.findPlayerBySocket(room, callerSocketId);
+    if (!host || !host.isHost) {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.NOT_HOST,
+        message: 'Only the host can force-end the vote',
+      });
+      return false;
+    }
+    if (!room.gameState || room.gameState.phase !== 'VOTING') {
+      this.connManager.sendToSocket(callerSocketId, ServerEvent.ROOM_ERROR, {
+        code: ErrorCode.GENERIC,
+        message: 'Voting can only be force-ended during the voting phase',
+      });
+      return false;
+    }
+    // Cancel the voting timer and tally with whatever votes are in.
+    // Missing voters are treated as "skip" by RoundManager.tally.
+    const sm = this.machines.get(roomCode);
+    if (sm) sm.cancelTimer();
+    this.tallyAndEvaluate(roomCode);
     return true;
   }
 

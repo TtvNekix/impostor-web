@@ -137,6 +137,7 @@ describe('RoomManager', () => {
         phaseEndsAt: 0,
         result: null,
         impostorIds: [],
+        turnOrder: [],
       };
 
       const result = manager.joinRoom('ABC12', 'LatePlayer', 'socket-late');
@@ -157,6 +158,7 @@ describe('RoomManager', () => {
         phaseEndsAt: 0,
         result: null,
         impostorIds: [],
+        turnOrder: [],
       };
 
       // Add 2 spectators — should be allowed even though maxPlayers=2

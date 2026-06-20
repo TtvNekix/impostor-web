@@ -12,6 +12,7 @@ export const ClientEvent = {
   START_MATCH: 'start_match',
   START_VOTING: 'start_voting',
   VOTE: 'vote',
+  FORCE_END_VOTING: 'force_end_voting',
   UPDATE_SETTINGS: 'update_settings',
   ADD_CATEGORY: 'add_category',
   ADD_WORDS: 'add_words',
