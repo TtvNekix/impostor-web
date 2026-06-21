@@ -1,0 +1,81 @@
+name: E2E
+
+# Runs the Playwright E2E suite on every PR and every push to main.
+# - PRs: full suite, fail-fast on first failure
+# - main push: full suite + uploads the HTML report as an artifact
+#
+# The webServer in playwright.config.ts boots `pnpm build:all &&
+# pnpm dev:server`, so this workflow doesn't need to start the
+# dev server manually — Playwright handles the lifecycle.
+#
+# We cache pnpm to avoid re-downloading the lockfile's transitive
+# deps on every run. node_modules is restored on cache hit.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel any in-flight run for the same PR when a new commit
+# lands. Saves ~5min on a long E2E that gets superseded.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Force Linux paths and apt package names.
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright system dependencies
+        # On Linux we need the runtime libs that Chromium links against.
+        # On Windows/macOS runners this is a no-op.
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run server tests (fast feedback)
+        # Run vitest first — it's quick and catches protocol bugs
+        # before we boot the full web stack for E2E.
+        run: pnpm --filter @impostor/server test
+
+      - name: Run E2E tests
+        run: pnpm e2e
+
+      - name: Upload Playwright report (always)
+        # Upload even on failure so the report is browsable in the
+        # run summary, not just in the artifacts list.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+      - name: Upload test results (videos, traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          retention-days: 3
