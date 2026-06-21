@@ -203,6 +203,7 @@ export class GameEngine {
       category: gameState.category,
       phaseEndsAt: 0,
       impostorIds: gameState.impostorIds,
+      turnOrder: gameState.turnOrder,
     });
 
     // Audit log: record the round's metadata but NOT the secret word

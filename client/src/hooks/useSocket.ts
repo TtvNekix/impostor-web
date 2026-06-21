@@ -101,6 +101,13 @@ export function useSocket() {
 
   useEffect(() => {
     setConnecting();
+    // Expose the connection status to the page (dev/test only). This
+    // lets Playwright wait for "ws is open" before firing events that
+    // would otherwise be dropped or queued. Cheap to set on every
+    // transition; the page never reads it in production.
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __impostorSocketStatus?: string }).__impostorSocketStatus = 'connecting';
+    }
 
     const serverUrl = import.meta.env.VITE_SERVER_URL;
     const url = serverUrl || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
@@ -125,6 +132,9 @@ export function useSocket() {
 
       ws.addEventListener('open', () => {
         setConnected();
+        if (typeof window !== 'undefined') {
+          (window as unknown as { __impostorSocketStatus?: string }).__impostorSocketStatus = 'connected';
+        }
         // Flush any messages queued while the socket was connecting.
         // This is what makes the "first click on /salas does nothing"
         // bug go away: the user can fire JOIN_ROOM before the WS
@@ -297,6 +307,9 @@ export function useSocket() {
             clearRoom();
             resetGame();
             setDisconnected(payload.message || t.errors.generic);
+            if (typeof window !== 'undefined') {
+              (window as unknown as { __impostorSocketStatus?: string }).__impostorSocketStatus = 'disconnected';
+            }
             // Show a toast for the host-leave event in addition to the
             // disconnected screen, so the user gets an immediate cue.
             pushToast({
@@ -319,6 +332,9 @@ export function useSocket() {
             clearRoom();
             resetGame();
             setDisconnected(payload.message || t.errors.generic);
+            if (typeof window !== 'undefined') {
+              (window as unknown as { __impostorSocketStatus?: string }).__impostorSocketStatus = 'disconnected';
+            }
             pushToast({
               message: '',
               variant: 'error',
@@ -334,6 +350,9 @@ export function useSocket() {
 
       ws.addEventListener('close', () => {
         setDisconnected();
+        if (typeof window !== 'undefined') {
+          (window as unknown as { __impostorSocketStatus?: string }).__impostorSocketStatus = 'disconnected';
+        }
         if (pingIntervalRef.current) {
           clearInterval(pingIntervalRef.current);
           pingIntervalRef.current = null;

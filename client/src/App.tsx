@@ -254,12 +254,6 @@ function ScreenRouter({
   const t = useT();
   const location = useLocation();
 
-  // /join/CODE — render the dedicated join page even if no room yet
-  const joinCode = parseJoinCode();
-  if (joinCode !== null) {
-    return <JoinPage code={joinCode} joinRoom={joinRoom} />;
-  }
-
   // Dedicated public-rooms page — always wins over the room-based
   // routing. This means navigating to /salas from anywhere (even with
   // a room code already set) renders the lobbies browser.
@@ -267,8 +261,22 @@ function ScreenRouter({
     return <LobbiesPage joinRoom={joinRoom} />;
   }
 
-  // No room yet → show the entry page (game mode selector + create/join).
-  if (!roomCode) {
+  // Already in a room → fall through to the in-game router. This
+  // wins over the /join/CODE check below: if the user joined via a
+  // deep link and the WS already accepted them, we should render the
+  // LobbyScreen, not stick them on the JoinPage. (Previously the
+  // /join/CODE check ran first and would re-render JoinPage forever
+  // because the URL never changed after a successful join.)
+  if (roomCode) {
+    // fall through to the phase-based switch below
+  } else {
+    // /join/CODE — render the dedicated join page only if we don't
+    // have a room yet. Once we do, the deep link is "consumed".
+    const joinCode = parseJoinCode();
+    if (joinCode !== null) {
+      return <JoinPage code={joinCode} joinRoom={joinRoom} />;
+    }
+    // No room yet and not on a deep link → show the entry page.
     return <EntryPage createRoom={createRoom} joinRoom={joinRoom} />;
   }
 

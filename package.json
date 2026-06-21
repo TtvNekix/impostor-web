@@ -6,10 +6,19 @@
     "build:shared": "pnpm --filter @impostor/shared build",
     "build:server": "pnpm --filter @impostor/server build",
     "build:client": "pnpm --filter @impostor/client build",
+    "build:all": "pnpm build:shared && pnpm build:client",
     "deploy": "python scripts/deploy.py",
     "deploy:verify": "python scripts/deploy.py --verify",
     "deploy:client": "python scripts/deploy.py --client-only",
     "deploy:server": "python scripts/deploy.py --server-only",
-    "dev": "pnpm build:shared && pnpm dev:server"
+    "dev": "pnpm build:shared && pnpm dev:server",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug",
+    "e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
   }
 }
