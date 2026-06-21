@@ -88,3 +88,9 @@ pnpm-debug.log*
 .vercel
 .netlify
 .vercel/
+
+# Playwright
+playwright-report/
+test-results/
+e2e/.cache/
+
