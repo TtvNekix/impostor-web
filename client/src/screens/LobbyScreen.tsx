@@ -123,7 +123,7 @@ export function LobbyScreen({
           aria-hidden="true"
           className="page-header__logo"
         />
-        <div className="page-header__title">{t.lobby.title}</div>
+        <h1 className="page-header__title">{t.lobby.title}</h1>
       </div>
 
       {/* Room code + copy */}
@@ -222,7 +222,17 @@ export function LobbyScreen({
           {/* Hardcore mode toggle + help */}
           <div className="settings-panel__row settings-panel__row--hardcore">
             <label className="settings-panel__label">
-              {t.lobby.hardcore}
+              <input
+                type="checkbox"
+                className="visually-hidden"
+                checked={settings?.hardcore ?? false}
+                onChange={(e) => updateSettings({ hardcore: e.target.checked })}
+                aria-label={t.lobby.hardcore}
+              />
+              <span aria-hidden="true" className="toggle-switch__slider" />
+              <span className="settings-panel__label-text">
+                {t.lobby.hardcore}
+              </span>
               <button
                 type="button"
                 className="help-icon"
@@ -232,14 +242,6 @@ export function LobbyScreen({
               >
                 ?
               </button>
-            </label>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings?.hardcore ?? false}
-                onChange={(e) => updateSettings({ hardcore: e.target.checked })}
-              />
-              <span className="toggle-switch__slider" />
             </label>
           </div>
 
