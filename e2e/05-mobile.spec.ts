@@ -12,7 +12,14 @@ import { test, expect, type Page } from '@playwright/test';
  * Note: we do NOT cover tablet viewports (iPad). The design only
  * has desktop + phone breakpoints; tablet falls back to the desktop
  * layout and is exercised by the desktop suite.
+ *
+ * These tests are skipped on Firefox / WebKit projects because
+ * the viewport is a critical part of what they're verifying —
+ * running them at a desktop viewport would defeat the purpose.
+ * The desktop suite covers the same flows at desktop dimensions
+ * on all three browsers.
  */
+test.skip(({ browserName }) => browserName !== 'chromium', 'Mobile viewport tests target a specific pixel size');
 
 const SEL = {
   usernameInput: /Enter your name|Introduce tu nombre/i,

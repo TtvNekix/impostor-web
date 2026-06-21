@@ -24,7 +24,9 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false, // game state is shared; see header
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 0,
+  // The dev server boots once per run; running multiple workers
+  // against the same port causes port-in-use errors.
   workers: 1,
   reporter: [
     ['list'],
@@ -48,6 +50,20 @@ export default defineConfig({
         // Lock to English so selectors like "Create room" / "Join" are
         // stable. Tests that exercise locale-switching set the locale
         // explicitly via the LanguageSelector.
+        locale: 'en-US',
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        locale: 'en-US',
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
         locale: 'en-US',
       },
     },
